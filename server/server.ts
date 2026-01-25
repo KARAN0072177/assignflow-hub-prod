@@ -6,6 +6,8 @@ import helmet from "helmet";
 import { config } from "./config";
 import { connectDB, disconnectDB } from "./db";
 
+import authRoutes from "./modules/auth/auth.routes";
+
 const app = express();
 
 /**
@@ -41,6 +43,8 @@ app.get("/health", (_req, res) => {
  * app.use("/api/auth", authRoutes);
  */
 
+// after middlewares
+app.use("/api/auth", authRoutes);
 /**
  * Server bootstrap
  */
