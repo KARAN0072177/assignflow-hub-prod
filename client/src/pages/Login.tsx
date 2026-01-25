@@ -1,11 +1,14 @@
 import { useState } from "react";
 import { loginUser } from "../services/auth.api";
+import { useNavigate } from "react-router-dom";
 
 const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -20,7 +23,7 @@ const Login = () => {
       localStorage.setItem("userRole", data.user.role);
 
       // For now, just confirm success
-      alert("Login successful");
+        navigate("/home");
     } catch (err: any) {
       setError(err?.response?.data?.message || "Login failed");
     } finally {

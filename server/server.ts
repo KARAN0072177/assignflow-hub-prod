@@ -1,4 +1,5 @@
 // server/server.ts
+import "./types/express";
 import express from "express";
 import cors from "cors";
 import helmet from "helmet";
@@ -7,6 +8,8 @@ import { config } from "./config";
 import { connectDB, disconnectDB } from "./db";
 
 import authRoutes from "./modules/auth/auth.routes";
+
+import { requireAuth } from "./middleware/requireAuth";
 
 const app = express();
 
@@ -45,6 +48,13 @@ app.get("/health", (_req, res) => {
 
 // after middlewares
 app.use("/api/auth", authRoutes);
+
+
+
+
+app.get("/api/test-auth", requireAuth, (req, res) => {
+  res.json({ message: "Authenticated access granted", user: req.user });
+});
 /**
  * Server bootstrap
  */
