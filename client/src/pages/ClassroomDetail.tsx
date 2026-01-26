@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import axios from "axios";
 import CreateAssignmentForm from "../components/CreateAssignmentForm";
+import SubmissionBox from "../components/SubmissionBox";
 
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
@@ -28,6 +29,7 @@ const ClassroomDetail = () => {
   const [assignments, setAssignments] = useState<Assignment[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
   const role = localStorage.getItem("userRole");
 
   useEffect(() => {
@@ -47,7 +49,7 @@ const ClassroomDetail = () => {
 
         setClassroom(classroomRes.data);
 
-        // 2. Fetch assignments for this classroom
+        // 2. Fetch assignments
         const assignmentsRes = await axios.get(
           `${API_BASE_URL}/api/classrooms/${id}/assignments`,
           {
@@ -61,7 +63,7 @@ const ClassroomDetail = () => {
       } catch (err: any) {
         setError(
           err?.response?.data?.message ||
-          "Failed to load classroom details"
+            "Failed to load classroom details"
         );
       } finally {
         setLoading(false);
@@ -90,6 +92,7 @@ const ClassroomDetail = () => {
       <section>
         <h3>Assignments</h3>
 
+        {/* Teacher-only: Create assignment */}
         {role === "TEACHER" && (
           <CreateAssignmentForm
             classroomId={id!}
@@ -115,6 +118,13 @@ const ClassroomDetail = () => {
                     <> | Due: {new Date(a.dueDate).toLocaleDateString()}</>
                   )}
                 </p>
+
+                {/* ✅ STUDENT submission box */}
+                {localStorage.getItem("userRole") === "STUDENT" &&
+                  a.type === "GRADED" &&
+                  a.state === "PUBLISHED" && (
+                    <SubmissionBox assignmentId={a.id} />
+                  )}
               </li>
             ))}
           </ul>

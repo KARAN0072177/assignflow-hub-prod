@@ -1,0 +1,54 @@
+import axios from "axios";
+
+const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
+
+export interface DraftSubmissionResponse {
+  submissionId: string;
+  uploadUrl: string;
+  fileKey: string;
+}
+
+export const createOrUpdateDraftSubmission = async (
+  assignmentId: string,
+  file: File
+): Promise<DraftSubmissionResponse> => {
+  const token = localStorage.getItem("authToken");
+
+  const res = await axios.post(
+    `${API_BASE_URL}/api/submissions/draft`,
+    {
+      assignmentId,
+      originalFileName: file.name,
+      fileType: file.name.endsWith(".pdf") ? "PDF" : "DOCX",
+    },
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    }
+  );
+
+  // upload file to S3
+  await axios.put(res.data.uploadUrl, file, {
+    headers: {
+      "Content-Type": file.type,
+    },
+  });
+
+  return res.data;
+};
+
+export const submitSubmission = async (submissionId: string) => {
+  const token = localStorage.getItem("authToken");
+
+  await axios.patch(
+    `${API_BASE_URL}/api/submissions/${submissionId}/submit`,
+    {},
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    }
+  );
+};
