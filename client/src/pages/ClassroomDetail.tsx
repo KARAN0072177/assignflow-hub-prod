@@ -3,6 +3,7 @@ import { useParams } from "react-router-dom";
 import axios from "axios";
 import CreateAssignmentForm from "../components/CreateAssignmentForm";
 import SubmissionBox from "../components/SubmissionBox";
+import TeacherSubmissions from "../components/TeacherSubmissions";
 
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
@@ -63,7 +64,7 @@ const ClassroomDetail = () => {
       } catch (err: any) {
         setError(
           err?.response?.data?.message ||
-            "Failed to load classroom details"
+          "Failed to load classroom details"
         );
       } finally {
         setLoading(false);
@@ -119,12 +120,17 @@ const ClassroomDetail = () => {
                   )}
                 </p>
 
-                {/* ✅ STUDENT submission box */}
-                {localStorage.getItem("userRole") === "STUDENT" &&
+                {/* 👩‍🎓 STUDENT */}
+                {role === "STUDENT" &&
                   a.type === "GRADED" &&
                   a.state === "PUBLISHED" && (
                     <SubmissionBox assignmentId={a.id} />
                   )}
+
+                {/* 👨‍🏫 TEACHER */}
+                {role === "TEACHER" && a.type === "GRADED" && (
+                  <TeacherSubmissions assignmentId={a.id} />
+                )}
               </li>
             ))}
           </ul>

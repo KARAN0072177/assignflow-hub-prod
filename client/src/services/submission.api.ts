@@ -52,3 +52,31 @@ export const submitSubmission = async (submissionId: string) => {
     }
   );
 };
+
+export interface TeacherSubmission {
+  id: string;
+  student: {
+    id: string;
+    email: string;
+  };
+  state: "DRAFT" | "SUBMITTED" | "LOCKED";
+  submittedAt: string;
+  downloadUrl?: string | null;
+}
+
+export const getSubmissionsForAssignment = async (
+  assignmentId: string
+): Promise<TeacherSubmission[]> => {
+  const token = localStorage.getItem("authToken");
+
+  const res = await axios.get(
+    `${API_BASE_URL}/api/submissions/assignment/${assignmentId}`,
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    }
+  );
+
+  return res.data;
+};

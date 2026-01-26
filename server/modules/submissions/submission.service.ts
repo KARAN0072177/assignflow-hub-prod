@@ -126,3 +126,41 @@ export const submitSubmission = async (
 
   return submission;
 };
+
+
+// Get all submissions for an assignment (teacher view)
+
+import { generateDownloadUrl } from "../../utils/s3-download";
+import { User } from "../../models/user.model";
+
+export const getSubmissionsForAssignment = async (
+  assignmentId: Types.ObjectId,
+  teacherId: Types.ObjectId
+) => {
+  const assignment = await Assignment.findById(assignmentId);
+  if (!assignment) {
+    throw new Error("Assignment not found");
+  }
+
+  if (!assignment.teacherId.equals(teacherId)) {
+    throw new Error("Access denied");
+  }
+
+  const submissions = await Submission.find({ assignmentId })
+    .populate("studentId", "email")
+    .sort({ createdAt: -1 });
+
+  return Promise.all(
+    submissions.map(async (s) => ({
+      id: s._id,
+      student: {
+        id: (s.studentId as any)._id,
+        email: (s.studentId as any).email,
+      },
+      state: s.state,
+      submittedAt: s.updatedAt,
+      downloadUrl:
+        s.state !== "DRAFT" ? await generateDownloadUrl(s.fileKey) : null,
+    }))
+  );
+};

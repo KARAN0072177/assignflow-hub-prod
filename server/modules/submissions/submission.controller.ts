@@ -4,6 +4,7 @@ import { Types } from "mongoose";
 import { AuthenticatedRequest } from "../../middleware/requireAuth";
 import { createOrUpdateSubmissionDraft } from "./submission.service";
 import { submitSubmission } from "./submission.service";
+import { getSubmissionsForAssignment } from "./submission.service";
 
 const draftSchema = z.object({
   assignmentId: z.string(),
@@ -82,5 +83,48 @@ export const submitSubmissionHandler = async (
     return res
       .status(500)
       .json({ message: "Failed to submit submission" });
+  }
+};
+
+
+// Handler to list submissions for an assignment (teacher only)
+
+
+export const listSubmissionsForAssignmentHandler = async (
+  req: AuthenticatedRequest,
+  res: Response
+) => {
+  if (req.user?.role !== "TEACHER") {
+    return res
+      .status(403)
+      .json({ message: "Only teachers can view submissions" });
+  }
+
+  const { id } = req.params;
+
+  // 👇 new safety + type-narrowing guard
+  if (!id || Array.isArray(id)) {
+    return res.status(400).json({ message: "Valid assignment id is required" });
+  }
+
+  try {
+    const submissions = await getSubmissionsForAssignment(
+      new Types.ObjectId(id),
+      new Types.ObjectId(req.user.userId)
+    );
+
+    return res.status(200).json(submissions);
+  } catch (error: any) {
+    if (
+      error.message === "Assignment not found" ||
+      error.message === "Access denied"
+    ) {
+      return res.status(403).json({ message: error.message });
+    }
+
+    console.error(error);
+    return res
+      .status(500)
+      .json({ message: "Failed to fetch submissions" });
   }
 };
