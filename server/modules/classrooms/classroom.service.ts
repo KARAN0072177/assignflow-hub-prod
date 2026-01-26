@@ -75,3 +75,14 @@ export const getStudentClassrooms = async (studentId: Types.ObjectId) => {
 
   return classrooms;
 };
+
+// Get all classrooms created by a teacher
+
+export const getTeacherClassrooms = async (teacherId: Types.ObjectId) => {
+  const classrooms = await Classroom.find({
+    teacherId,
+    status: "ACTIVE",
+  }).select("name description");
+
+  return classrooms;
+};

@@ -6,6 +6,8 @@ const MyClassrooms = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const role = localStorage.getItem("userRole");
+
   useEffect(() => {
     const fetchClassrooms = async () => {
       try {
@@ -26,10 +28,16 @@ const MyClassrooms = () => {
 
   return (
     <div style={{ maxWidth: 600, margin: "40px auto" }}>
-      <h2>My Classrooms</h2>
+      <h2>
+        {role === "TEACHER" ? "My Created Classrooms" : "My Joined Classrooms"}
+      </h2>
 
       {classrooms.length === 0 ? (
-        <p>You have not joined any classrooms yet.</p>
+        <p>
+          {role === "TEACHER"
+            ? "You have not created any classrooms yet."
+            : "You have not joined any classrooms yet."}
+        </p>
       ) : (
         <ul>
           {classrooms.map((c) => (

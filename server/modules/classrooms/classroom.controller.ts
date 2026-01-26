@@ -3,7 +3,7 @@ import { z } from "zod";
 import { createClassroom, joinClassroomByCode } from "./classroom.service";
 import { AuthenticatedRequest } from "../../middleware/requireAuth";
 import { Types } from "mongoose";
-import { getStudentClassrooms } from "./classroom.service";
+import { getStudentClassrooms, getTeacherClassrooms } from "./classroom.service";
 
 const createClassroomSchema = z.object({
   name: z.string().min(2),
@@ -87,31 +87,43 @@ export const joinClassroomHandler = async (
 };
 
 
-// Get all classrooms a student has joined
+// Get all classrooms a user is enrolled in or teaching
 
 
 export const getMyClassroomsHandler = async (
   req: AuthenticatedRequest,
   res: Response
 ) => {
-  if (req.user?.role !== "STUDENT") {
-    return res
-      .status(403)
-      .json({ message: "Only students can view joined classrooms" });
-  }
-
   try {
-    const classrooms = await getStudentClassrooms(
-      new Types.ObjectId(req.user.userId)
-    );
+    if (req.user?.role === "STUDENT") {
+      const classrooms = await getStudentClassrooms(
+        new Types.ObjectId(req.user.userId)
+      );
 
-    return res.status(200).json(
-      classrooms.map((c) => ({
-        id: c._id,
-        name: c.name,
-        description: c.description,
-      }))
-    );
+      return res.status(200).json(
+        classrooms.map((c) => ({
+          id: c._id,
+          name: c.name,
+          description: c.description,
+        }))
+      );
+    }
+
+    if (req.user?.role === "TEACHER") {
+      const classrooms = await getTeacherClassrooms(
+        new Types.ObjectId(req.user.userId)
+      );
+
+      return res.status(200).json(
+        classrooms.map((c) => ({
+          id: c._id,
+          name: c.name,
+          description: c.description,
+        }))
+      );
+    }
+
+    return res.status(403).json({ message: "Unauthorized role" });
   } catch (error) {
     console.error(error);
     return res
