@@ -5,6 +5,7 @@ import { AuthenticatedRequest } from "../../middleware/requireAuth";
 import { Types } from "mongoose";
 import { AssignmentType } from "../../models/assignment.model";
 import { publishAssignment } from "./assignment.service";
+import { getAssignmentsForClassroom } from "./assignment.service";
 
 const createAssignmentSchema = z.object({
   classroomId: z.string(),
@@ -108,5 +109,54 @@ export const publishAssignmentHandler = async (
     return res
       .status(500)
       .json({ message: "Failed to publish assignment" });
+  }
+};
+
+
+// List assignments for a classroom based on user role (TEACHER or STUDENT)
+
+
+export const listAssignmentsForClassroomHandler = async (
+  req: AuthenticatedRequest,
+  res: Response
+) => {
+  const { id } = req.params;
+
+  // Ensure id exists and is a single string
+  if (!id || Array.isArray(id)) {
+    return res.status(400).json({ message: "Valid classroom id is required" });
+  }
+
+  try {
+    const assignments = await getAssignmentsForClassroom(
+      new Types.ObjectId(id),
+      new Types.ObjectId(req.user!.userId),
+      req.user!.role as "TEACHER" | "STUDENT"
+    );
+
+    return res.status(200).json(
+      assignments.map((a) => ({
+        id: a._id,
+        title: a.title,
+        description: a.description,
+        type: a.type,
+        state: a.state,
+        dueDate: a.dueDate,
+        createdAt: a.createdAt,
+      }))
+    );
+  } catch (error: any) {
+    if (error.message === "Classroom not found") {
+      return res.status(404).json({ message: error.message });
+    }
+
+    if (error.message === "Access denied") {
+      return res.status(403).json({ message: error.message });
+    }
+
+    console.error(error);
+    return res
+      .status(500)
+      .json({ message: "Failed to fetch assignments" });
   }
 };

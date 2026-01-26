@@ -7,6 +7,6 @@ const router = Router();
 
 router.post("/", requireAuth, createAssignmentHandler);
 
-router.patch("/:id/publish", requireAuth, publishAssignmentHandler);
+router.patch("/:id/publish", requireAuth, publishAssignmentHandler)
 
 export default router;

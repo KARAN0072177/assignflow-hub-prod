@@ -2,6 +2,7 @@ import { Assignment, AssignmentState, AssignmentType } from "../../models/assign
 import { Classroom } from "../../models/classroom.model";
 import { Types } from "mongoose";
 import { generateAssignmentUploadUrl } from "../../utils/s3";
+import { Membership } from "../../models/membership.model";
 
 interface CreateAssignmentParams {
   teacherId: Types.ObjectId;
@@ -95,4 +96,52 @@ export const publishAssignment = async (
   await assignment.save();
 
   return assignment;
+};
+
+
+
+// Get assignments for a classroom based on user role (TEACHER or STUDENT)
+
+
+export const getAssignmentsForClassroom = async (
+  classroomId: Types.ObjectId,
+  userId: Types.ObjectId,
+  role: "TEACHER" | "STUDENT"
+) => {
+  // Verify classroom exists
+  const classroom = await Classroom.findById(classroomId);
+  if (!classroom) {
+    throw new Error("Classroom not found");
+  }
+
+  // Teacher: must own classroom
+  if (role === "TEACHER") {
+    if (!classroom.teacherId.equals(userId)) {
+      throw new Error("Access denied");
+    }
+
+    return Assignment.find({
+      classroomId,
+      teacherId: userId,
+    }).sort({ createdAt: -1 });
+  }
+
+  // Student: must be member + see only PUBLISHED
+  if (role === "STUDENT") {
+    const membership = await Membership.findOne({
+      studentId: userId,
+      classroomId,
+    });
+
+    if (!membership) {
+      throw new Error("Access denied");
+    }
+
+    return Assignment.find({
+      classroomId,
+      state: AssignmentState.PUBLISHED,
+    }).sort({ createdAt: -1 });
+  }
+
+  throw new Error("Access denied");
 };

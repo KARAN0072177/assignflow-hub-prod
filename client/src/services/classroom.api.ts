@@ -89,3 +89,31 @@ export const getMyClassrooms = async (): Promise<ClassroomListItem[]> => {
 
   return response.data;
 };
+
+// Get assignments for a specific classroom
+
+export interface AssignmentListItem {
+  id: string;
+  title: string;
+  description?: string;
+  type: "GRADED" | "MATERIAL";
+  state: "DRAFT" | "PUBLISHED";
+  dueDate?: string;
+}
+
+export const getAssignmentsForClassroom = async (
+  classroomId: string
+): Promise<AssignmentListItem[]> => {
+  const token = localStorage.getItem("authToken");
+
+  const response = await axios.get(
+    `${API_BASE_URL}/api/classrooms/${classroomId}/assignments`,
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    }
+  );
+
+  return response.data;
+};

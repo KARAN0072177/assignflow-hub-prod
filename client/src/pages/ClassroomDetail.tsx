@@ -11,18 +11,30 @@ interface Classroom {
   description?: string;
 }
 
+interface Assignment {
+  id: string;
+  title: string;
+  description?: string;
+  type: "GRADED" | "MATERIAL";
+  state: "DRAFT" | "PUBLISHED";
+  dueDate?: string;
+}
+
 const ClassroomDetail = () => {
   const { id } = useParams<{ id: string }>();
+
   const [classroom, setClassroom] = useState<Classroom | null>(null);
+  const [assignments, setAssignments] = useState<Assignment[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchClassroom = async () => {
+    const fetchData = async () => {
       try {
         const token = localStorage.getItem("authToken");
 
-        const response = await axios.get(
+        // 1. Fetch classroom details
+        const classroomRes = await axios.get(
           `${API_BASE_URL}/api/classrooms/${id}`,
           {
             headers: {
@@ -31,10 +43,23 @@ const ClassroomDetail = () => {
           }
         );
 
-        setClassroom(response.data);
+        setClassroom(classroomRes.data);
+
+        // 2. Fetch assignments for this classroom
+        const assignmentsRes = await axios.get(
+          `${API_BASE_URL}/api/classrooms/${id}/assignments`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+
+        setAssignments(assignmentsRes.data);
       } catch (err: any) {
         setError(
-          err?.response?.data?.message || "Failed to load classroom"
+          err?.response?.data?.message ||
+            "Failed to load classroom details"
         );
       } finally {
         setLoading(false);
@@ -42,7 +67,7 @@ const ClassroomDetail = () => {
     };
 
     if (id) {
-      fetchClassroom();
+      fetchData();
     }
   }, [id]);
 
@@ -62,9 +87,29 @@ const ClassroomDetail = () => {
 
       <section>
         <h3>Assignments</h3>
-        <p style={{ color: "#777" }}>
-          No assignments have been posted yet.
-        </p>
+
+        {assignments.length === 0 ? (
+          <p style={{ color: "#777" }}>
+            No assignments have been posted yet.
+          </p>
+        ) : (
+          <ul>
+            {assignments.map((a) => (
+              <li key={a.id} style={{ marginBottom: 16 }}>
+                <strong>{a.title}</strong>
+
+                {a.description && <p>{a.description}</p>}
+
+                <p style={{ fontSize: 14, color: "#666" }}>
+                  Type: {a.type} | Status: {a.state}
+                  {a.dueDate && (
+                    <> | Due: {new Date(a.dueDate).toLocaleDateString()}</>
+                  )}
+                </p>
+              </li>
+            ))}
+          </ul>
+        )}
       </section>
     </div>
   );
