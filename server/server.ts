@@ -16,6 +16,7 @@ import classroomRoutes from "./modules/classrooms/classroom.routes";
 import assignmentRoutes from "./modules/assignments/assignment.routes";
 
 import submissionRoutes from "./modules/submissions/submission.routes";
+import gradeRoutes from "./modules/grades/grade.routes";
 
 const app = express();
 
@@ -57,6 +58,7 @@ app.use("/api/auth", authRoutes);          // login and register (auth managemen
 app.use("/api/classrooms", classroomRoutes);    // classroom management routes
 app.use("/api/assignments", assignmentRoutes);  // assignment management routes
 app.use("/api/submissions", submissionRoutes);     // submission management routes
+app.use("/api/grades", gradeRoutes);             // grade management routes
 
 
 
