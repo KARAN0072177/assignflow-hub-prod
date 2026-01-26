@@ -14,6 +14,9 @@ interface CreateAssignmentParams {
   fileType: "PDF" | "DOCX";
 }
 
+
+// Create assignment draft and generate S3 upload URL for the assignment file upload
+
 export const createAssignmentDraft = async ({
   teacherId,
   classroomId,
@@ -64,4 +67,32 @@ export const createAssignmentDraft = async ({
     uploadUrl,
     fileKey,
   };
+};
+
+
+// Publish an assignment (change state from DRAFT to PUBLISHED)
+
+
+export const publishAssignment = async (
+  assignmentId: Types.ObjectId,
+  teacherId: Types.ObjectId
+) => {
+  const assignment = await Assignment.findById(assignmentId);
+
+  if (!assignment) {
+    throw new Error("Assignment not found");
+  }
+
+  if (!assignment.teacherId.equals(teacherId)) {
+    throw new Error("Not authorized to publish this assignment");
+  }
+
+  if (assignment.state !== AssignmentState.DRAFT) {
+    throw new Error("Assignment is already published");
+  }
+
+  assignment.state = AssignmentState.PUBLISHED;
+  await assignment.save();
+
+  return assignment;
 };
