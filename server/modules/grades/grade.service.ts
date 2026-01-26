@@ -3,6 +3,9 @@ import { Grade } from "../../models/grade.model";
 import { Submission, SubmissionState } from "../../models/submission.model";
 import { Assignment } from "../../models/assignment.model";
 
+
+// Create or update a grade for a submission
+
 export const createOrUpdateGrade = async ({
   submissionId,
   teacherId,
@@ -56,6 +59,33 @@ export const createOrUpdateGrade = async ({
       published: false,
     });
   }
+
+  return grade;
+};
+
+
+// Publish a grade to make it visible to the student
+
+
+export const publishGrade = async (
+  gradeId: Types.ObjectId,
+  teacherId: Types.ObjectId
+) => {
+  const grade = await Grade.findById(gradeId);
+  if (!grade) {
+    throw new Error("Grade not found");
+  }
+
+  if (!grade.teacherId.equals(teacherId)) {
+    throw new Error("Not authorized to publish this grade");
+  }
+
+  if (grade.published) {
+    throw new Error("Grade is already published");
+  }
+
+  grade.published = true;
+  await grade.save();
 
   return grade;
 };
