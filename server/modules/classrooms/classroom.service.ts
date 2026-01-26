@@ -8,6 +8,9 @@ const generateJoinCode = (): string => {
   return `${letters}-${numbers}`;
 };
 
+
+// Create a new classroom by a teacher
+
 export const createClassroom = async (
   teacherId: Types.ObjectId,
   name: string,
@@ -32,6 +35,9 @@ export const createClassroom = async (
   return classroom;
 };
 
+
+// Student joins a classroom using join code
+
 export const joinClassroomByCode = async (
   studentId: Types.ObjectId,
   code: string
@@ -51,4 +57,21 @@ export const joinClassroomByCode = async (
     classroomId: classroom._id,
     name: classroom.name,
   };
+};
+
+// Get all classrooms a student is enrolled in
+
+export const getStudentClassrooms = async (studentId: Types.ObjectId) => {
+  const memberships = await Membership.find({ studentId }).select(
+    "classroomId"
+  );
+
+  const classroomIds = memberships.map((m) => m.classroomId);
+
+  const classrooms = await Classroom.find({
+    _id: { $in: classroomIds },
+    status: "ACTIVE",
+  }).select("name description");
+
+  return classrooms;
 };

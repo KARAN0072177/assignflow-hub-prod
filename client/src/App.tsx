@@ -4,6 +4,7 @@ import Login from "./pages/Login";
 import Home from "./pages/Home";
 import CreateClassroom from "./pages/CreateClassroom";
 import JoinClassroom from "./pages/JoinClassroom";
+import MyClassrooms from "./pages/MyClassrooms";
 
 function App() {
   return (
@@ -15,6 +16,7 @@ function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/classrooms/create" element={<CreateClassroom />} />
         <Route path="/classrooms/join" element={<JoinClassroom />} />
+        <Route path="/classrooms/my" element={<MyClassrooms />} />
 
       </Routes>
     </BrowserRouter>
