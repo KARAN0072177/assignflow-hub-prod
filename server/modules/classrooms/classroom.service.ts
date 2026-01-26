@@ -86,3 +86,44 @@ export const getTeacherClassrooms = async (teacherId: Types.ObjectId) => {
 
   return classrooms;
 };
+
+
+// Get classroom by ID with access check for student or teacher roles
+
+export const getClassroomByIdWithAccessCheck = async (
+  classroomId: Types.ObjectId,
+  userId: Types.ObjectId,
+  role: "STUDENT" | "TEACHER"
+) => {
+  const classroom = await Classroom.findById(classroomId).select(
+    "name description teacherId status"
+  );
+
+  if (!classroom || classroom.status !== "ACTIVE") {
+    throw new Error("Classroom not found");
+  }
+
+  // Teacher access: must own the classroom
+  if (role === "TEACHER") {
+    if (!classroom.teacherId.equals(userId)) {
+      throw new Error("Access denied");
+    }
+    return classroom;
+  }
+
+  // Student access: must have membership
+  if (role === "STUDENT") {
+    const membership = await Membership.findOne({
+      studentId: userId,
+      classroomId: classroom._id,
+    });
+
+    if (!membership) {
+      throw new Error("Access denied");
+    }
+
+    return classroom;
+  }
+
+  throw new Error("Access denied");
+};

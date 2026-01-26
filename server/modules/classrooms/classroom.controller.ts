@@ -4,6 +4,7 @@ import { createClassroom, joinClassroomByCode } from "./classroom.service";
 import { AuthenticatedRequest } from "../../middleware/requireAuth";
 import { Types } from "mongoose";
 import { getStudentClassrooms, getTeacherClassrooms } from "./classroom.service";
+import { getClassroomByIdWithAccessCheck } from "./classroom.service";
 
 const createClassroomSchema = z.object({
   name: z.string().min(2),
@@ -129,5 +130,53 @@ export const getMyClassroomsHandler = async (
     return res
       .status(500)
       .json({ message: "Failed to fetch classrooms" });
+  }
+};
+
+
+
+// Get classroom by ID with access check for student or teacher roles
+
+export const getClassroomByIdHandler = async (
+  req: AuthenticatedRequest,
+  res: Response
+) => {
+  const { id } = req.params;
+
+  // 🔒 Guard: id must be a single string
+  if (!id || Array.isArray(id)) {
+    return res.status(400).json({ message: "Invalid classroom id" });
+  }
+
+  // 🔒 Guard: must be valid Mongo ObjectId
+  if (!Types.ObjectId.isValid(id)) {
+    return res.status(400).json({ message: "Invalid classroom id format" });
+  }
+
+  try {
+    const classroom = await getClassroomByIdWithAccessCheck(
+      new Types.ObjectId(id),
+      new Types.ObjectId(req.user!.userId),
+      req.user!.role as "STUDENT" | "TEACHER"
+    );
+
+    return res.status(200).json({
+      id: classroom._id,
+      name: classroom.name,
+      description: classroom.description,
+    });
+  } catch (error: any) {
+    if (error.message === "Classroom not found") {
+      return res.status(404).json({ message: "Classroom not found" });
+    }
+
+    if (error.message === "Access denied") {
+      return res.status(403).json({ message: "Access denied" });
+    }
+
+    console.error(error);
+    return res
+      .status(500)
+      .json({ message: "Failed to fetch classroom" });
   }
 };
