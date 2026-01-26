@@ -3,12 +3,16 @@ import { z } from "zod";
 import { Types } from "mongoose";
 import { AuthenticatedRequest } from "../../middleware/requireAuth";
 import { createOrUpdateSubmissionDraft } from "./submission.service";
+import { submitSubmission } from "./submission.service";
 
 const draftSchema = z.object({
   assignmentId: z.string(),
   originalFileName: z.string().min(1),
   fileType: z.enum(["PDF", "DOCX"]),
 });
+
+
+// Handler to create or update a submission draft
 
 export const createSubmissionDraftHandler = async (
   req: AuthenticatedRequest,
@@ -34,5 +38,49 @@ export const createSubmissionDraftHandler = async (
     return res.status(200).json(result);
   } catch (error: any) {
     return res.status(400).json({ message: error.message });
+  }
+};
+
+
+// Handler to submit a submission
+
+export const submitSubmissionHandler = async (
+  req: AuthenticatedRequest,
+  res: Response
+) => {
+  if (req.user?.role !== "STUDENT") {
+    return res.status(403).json({ message: "Only students can submit work" });
+  }
+
+  const { id } = req.params;
+
+  // Ensure id exists and is a single string
+  if (!id || Array.isArray(id)) {
+    return res.status(400).json({ message: "Valid submission id is required" });
+  }
+
+  try {
+    await submitSubmission(
+      new Types.ObjectId(id),
+      new Types.ObjectId(req.user.userId)
+    );
+
+    return res
+      .status(200)
+      .json({ message: "Submission submitted successfully" });
+  } catch (error: any) {
+    if (
+      error.message.includes("not found") ||
+      error.message.includes("authorized") ||
+      error.message.includes("deadline") ||
+      error.message.includes("state")
+    ) {
+      return res.status(400).json({ message: error.message });
+    }
+
+    console.error(error);
+    return res
+      .status(500)
+      .json({ message: "Failed to submit submission" });
   }
 };

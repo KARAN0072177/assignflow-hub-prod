@@ -4,6 +4,9 @@ import { Submission, SubmissionState } from "../../models/submission.model";
 import { Membership } from "../../models/membership.model";
 import { generateSubmissionUploadUrl } from "../../utils/s3-submission";
 
+
+// Create or update a submission draft
+
 export const createOrUpdateSubmissionDraft = async ({
   studentId,
   assignmentId,
@@ -80,4 +83,46 @@ export const createOrUpdateSubmissionDraft = async ({
     uploadUrl,
     fileKey,
   };
+};
+
+// Submit a submission for grading
+
+export const submitSubmission = async (
+  submissionId: Types.ObjectId,
+  studentId: Types.ObjectId
+) => {
+  const submission = await Submission.findById(submissionId);
+
+  if (!submission) {
+    throw new Error("Submission not found");
+  }
+
+  if (!submission.studentId.equals(studentId)) {
+    throw new Error("Not authorized to submit this submission");
+  }
+
+  if (submission.state !== SubmissionState.DRAFT) {
+    throw new Error("Submission is not in draft state");
+  }
+
+  const assignment = await Assignment.findById(submission.assignmentId);
+
+  if (!assignment) {
+    throw new Error("Assignment not found");
+  }
+
+  if (assignment.state !== AssignmentState.PUBLISHED) {
+    throw new Error("Assignment is not accepting submissions");
+  }
+
+  if (assignment.dueDate && new Date() > assignment.dueDate) {
+    submission.state = SubmissionState.LOCKED;
+    await submission.save();
+    throw new Error("Submission deadline has passed");
+  }
+
+  submission.state = SubmissionState.SUBMITTED;
+  await submission.save();
+
+  return submission;
 };
