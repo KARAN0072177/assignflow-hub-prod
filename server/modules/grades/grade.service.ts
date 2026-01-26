@@ -89,3 +89,27 @@ export const publishGrade = async (
 
   return grade;
 };
+
+
+// Get published grades for a student
+
+export const getPublishedGradesForStudent = async (
+  studentId: Types.ObjectId
+) => {
+  const grades = await Grade.find({
+    studentId,
+    published: true,
+  })
+    .populate("assignmentId", "title")
+    .sort({ updatedAt: -1 });
+
+  return grades.map((g) => ({
+    assignment: {
+      id: (g.assignmentId as any)._id,
+      title: (g.assignmentId as any).title,
+    },
+    score: g.score,
+    feedback: g.feedback,
+    gradedAt: g.updatedAt,
+  }));
+};

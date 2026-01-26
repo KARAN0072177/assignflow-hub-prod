@@ -4,6 +4,7 @@ import { Types } from "mongoose";
 import { AuthenticatedRequest } from "../../middleware/requireAuth";
 import { createOrUpdateGrade } from "./grade.service";
 import { publishGrade } from "./grade.service";
+import { getPublishedGradesForStudent } from "./grade.service";
 
 const gradeSchema = z.object({
   submissionId: z.string(),
@@ -69,5 +70,32 @@ export const publishGradeHandler = async (
       .json({ message: "Grade published successfully" });
   } catch (error: any) {
     return res.status(400).json({ message: error.message });
+  }
+};
+
+
+// Handler for students to get their published grades
+
+export const getMyGradesHandler = async (
+  req: AuthenticatedRequest,
+  res: Response
+) => {
+  if (req.user?.role !== "STUDENT") {
+    return res
+      .status(403)
+      .json({ message: "Only students can view grades" });
+  }
+
+  try {
+    const grades = await getPublishedGradesForStudent(
+      new Types.ObjectId(req.user.userId)
+    );
+
+    return res.status(200).json(grades);
+  } catch (error) {
+    console.error(error);
+    return res
+      .status(500)
+      .json({ message: "Failed to fetch grades" });
   }
 };
