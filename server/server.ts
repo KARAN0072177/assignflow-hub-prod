@@ -13,6 +13,8 @@ import { requireAuth } from "./middleware/requireAuth";
 
 import classroomRoutes from "./modules/classrooms/classroom.routes";
 
+import assignmentRoutes from "./modules/assignments/assignment.routes";
+
 const app = express();
 
 /**
@@ -49,8 +51,9 @@ app.get("/health", (_req, res) => {
  */
 
 // after middlewares
-app.use("/api/auth", authRoutes);          // login and register routes
-app.use("/api/classrooms", classroomRoutes);    // classroom creation routes
+app.use("/api/auth", authRoutes);          // login and register (auth management) routes
+app.use("/api/classrooms", classroomRoutes);    // classroom management routes
+app.use("/api/assignments", assignmentRoutes);  // assignment management routes
 
 
 
