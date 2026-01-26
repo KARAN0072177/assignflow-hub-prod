@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import { z } from "zod";
-import { createClassroom } from "./classroom.service";
+import { createClassroom, joinClassroomByCode } from "./classroom.service";
 import { AuthenticatedRequest } from "../../middleware/requireAuth";
 import { Types } from "mongoose";
 
@@ -39,5 +39,42 @@ export const createClassroomHandler = async (
   } catch (error) {
     console.error(error);
     return res.status(500).json({ message: "Failed to create classroom" });
+  }
+};
+
+export const joinClassroomHandler = async (
+  req: AuthenticatedRequest,
+  res: Response
+) => {
+  if (req.user?.role !== "STUDENT") {
+    return res
+      .status(403)
+      .json({ message: "Only students can join classrooms" });
+  }
+
+  const { code } = req.body;
+
+  if (!code || typeof code !== "string") {
+    return res.status(400).json({ message: "Classroom code is required" });
+  }
+
+  try {
+    const result = await joinClassroomByCode(
+      new Types.ObjectId(req.user.userId),
+      code
+    );
+
+    return res.status(201).json({
+      message: "Joined classroom successfully",
+      classroom: result,
+    });
+  } catch (error: any) {
+    if (error.code === 11000) {
+      return res
+        .status(400)
+        .json({ message: "Already joined this classroom" });
+    }
+
+    return res.status(400).json({ message: error.message });
   }
 };
