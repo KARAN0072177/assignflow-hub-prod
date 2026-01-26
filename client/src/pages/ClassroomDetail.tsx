@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import axios from "axios";
+import CreateAssignmentForm from "../components/CreateAssignmentForm";
 
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
@@ -27,6 +28,7 @@ const ClassroomDetail = () => {
   const [assignments, setAssignments] = useState<Assignment[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const role = localStorage.getItem("userRole");
 
   useEffect(() => {
     const fetchData = async () => {
@@ -59,7 +61,7 @@ const ClassroomDetail = () => {
       } catch (err: any) {
         setError(
           err?.response?.data?.message ||
-            "Failed to load classroom details"
+          "Failed to load classroom details"
         );
       } finally {
         setLoading(false);
@@ -87,6 +89,13 @@ const ClassroomDetail = () => {
 
       <section>
         <h3>Assignments</h3>
+
+        {role === "TEACHER" && (
+          <CreateAssignmentForm
+            classroomId={id!}
+            onCreated={() => window.location.reload()}
+          />
+        )}
 
         {assignments.length === 0 ? (
           <p style={{ color: "#777" }}>
