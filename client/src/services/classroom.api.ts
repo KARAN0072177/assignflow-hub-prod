@@ -32,3 +32,29 @@ export const createClassroom = async (
 
   return response.data;
 };
+
+export interface JoinClassroomResponse {
+  message: string;
+  classroom: {
+    classroomId: string;
+    name: string;
+  };
+}
+
+export const joinClassroom = async (
+  code: string
+): Promise<JoinClassroomResponse> => {
+  const token = localStorage.getItem("authToken");
+
+  const response = await axios.post(
+    `${API_BASE_URL}/api/classrooms/join`,
+    { code },
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    }
+  );
+
+  return response.data;
+};
