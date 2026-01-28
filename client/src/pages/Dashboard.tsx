@@ -38,10 +38,10 @@ const Dashboard = () => {
           <>
             <p>Teacher actions:</p>
             <ul>
-              <li onClick={() => navigate("/classrooms/create")}>
+              <li onClick={() => navigate("/dashboard/classrooms/create")}>
                 Create Classroom
               </li>
-              <li onClick={() => navigate("/classrooms/my")}>
+              <li onClick={() => navigate("/dashboard/classrooms/my")}>
                 My Classrooms
               </li>
             </ul>
@@ -52,13 +52,13 @@ const Dashboard = () => {
           <>
             <p>Student actions:</p>
             <ul>
-              <li onClick={() => navigate("/classrooms/join")}>
+              <li onClick={() => navigate("/dashboard/classrooms/join")}>
                 Join Classroom
               </li>
-              <li onClick={() => navigate("/classrooms/my")}>
+              <li onClick={() => navigate("/dashboard/classrooms/my")}>
                 My Classrooms
               </li>
-              <li onClick={() => navigate("/grades")}>
+              <li onClick={() => navigate("/dashboard/grades")}>
                 My Grades
               </li>
             </ul>

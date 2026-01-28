@@ -22,7 +22,7 @@ const Login = () => {
       localStorage.setItem("authToken", data.token);
       localStorage.setItem("userRole", data.user.role);
 
-      navigate("/home");
+      navigate("/dashboard");
     } catch (err: any) {
       setError(err?.response?.data?.message || "Login failed");
     } finally {

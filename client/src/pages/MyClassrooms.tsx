@@ -43,7 +43,7 @@ const MyClassrooms = () => {
                 <ul>
                     {classrooms.map((c) => (
                         <li key={c.id} style={{ marginBottom: 12 }}>
-                            <Link to={`/classrooms/${c.id}`}>
+                            <Link to={`/dashboard/classrooms/${c.id}`}>
                                 <strong>{c.name}</strong>
                             </Link>
                             {c.description && <p>{c.description}</p>}

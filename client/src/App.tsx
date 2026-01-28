@@ -1,13 +1,17 @@
-import { BrowserRouter, Routes, Route} from "react-router-dom";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
+
 import Register from "./pages/Register";
 import Login from "./pages/Login";
 import Home from "./pages/Home";
+
 import CreateClassroom from "./pages/CreateClassroom";
 import JoinClassroom from "./pages/JoinClassroom";
 import MyClassrooms from "./pages/MyClassrooms";
 import ClassroomDetail from "./pages/ClassroomDetail";
 import MyGrades from "./pages/MyGrades";
+
 import Dashboard from "./pages/Dashboard";
+import DashboardLayout from "./layouts/DashboardLayout";
 
 function App() {
   return (
@@ -17,13 +21,23 @@ function App() {
         <Route path="/home" element={<Home />} />
         <Route path="/register" element={<Register />} />
         <Route path="/login" element={<Login />} />
-        <Route path="/classrooms/create" element={<CreateClassroom />} />
-        <Route path="/classrooms/join" element={<JoinClassroom />} />
-        <Route path="/classrooms/my" element={<MyClassrooms />} />
-        <Route path="/classrooms/:id" element={<ClassroomDetail />} />
-        <Route path="/grades" element={<MyGrades />} />
-        <Route path="/dashboard" element={<Dashboard />} />
 
+        {/* Dashboard layout (protected shell) */}
+        <Route path="/dashboard" element={<DashboardLayout />}>
+          {/* Dashboard home */}
+          <Route index element={<Dashboard />} />
+
+          {/* Teacher & Student shared */}
+          <Route path="classrooms/my" element={<MyClassrooms />} />
+          <Route path="classrooms/:id" element={<ClassroomDetail />} />
+
+          {/* Teacher only (UI-level) */}
+          <Route path="classrooms/create" element={<CreateClassroom />} />
+
+          {/* Student only */}
+          <Route path="classrooms/join" element={<JoinClassroom />} />
+          <Route path="grades" element={<MyGrades />} />
+        </Route>
       </Routes>
     </BrowserRouter>
   );
