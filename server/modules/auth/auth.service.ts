@@ -2,6 +2,7 @@ import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import { User, UserRole } from "../../models/user.model";
 import { config } from "../../config";
+import { logAuditEvent } from "../../utils/auditLogger";
 
 const SALT_ROUNDS = 10;
 
@@ -49,6 +50,18 @@ export const loginUser = async (email: string, password: string) => {
     config.jwtSecret,
     { expiresIn: "1d" }
   );
+
+  await logAuditEvent({
+  actorRole: "USER",
+  actorId: user._id,
+  action: "USER_LOGIN",
+  entityType: "AUTH",
+  entityId: user._id,
+  metadata: {
+    email: user.email,
+  },
+});
+
 
   return {
     token,

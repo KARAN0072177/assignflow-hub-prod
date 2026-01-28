@@ -22,17 +22,32 @@ const Navbar = () => {
     };
   }, []);
 
-  const handleLogout = () => {
+const handleLogout = async () => {
+  try {
+    const token = localStorage.getItem("authToken");
+
+    if (token) {
+      await fetch("http://localhost:5000/api/auth/logout", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+    }
+  } catch (error) {
+    // ignore errors — logout must always succeed
+  } finally {
     // Clear session (NOT deleting user)
     localStorage.removeItem("authToken");
     localStorage.removeItem("userRole");
 
-    // Notify other components (Navbar itself)
+    // Notify other components
     window.dispatchEvent(new Event("storage"));
 
     // Redirect to login
     navigate("/login");
-  };
+  }
+};
 
   return (
     <nav className="w-full bg-white border-b border-gray-200 px-6 py-3 flex justify-between items-center">

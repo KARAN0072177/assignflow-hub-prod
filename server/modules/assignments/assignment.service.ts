@@ -4,6 +4,7 @@ import { Types } from "mongoose";
 import { generateAssignmentUploadUrl } from "../../utils/s3";
 import { Membership } from "../../models/membership.model";
 import { Submission } from "../../models/submission.model";
+import { logAuditEvent } from "../../utils/auditLogger";
 
 interface CreateAssignmentParams {
   teacherId: Types.ObjectId;

@@ -2,7 +2,7 @@ import { Types } from "mongoose";
 import { Grade } from "../../models/grade.model";
 import { Submission, SubmissionState } from "../../models/submission.model";
 import { Assignment } from "../../models/assignment.model";
-
+import { logAuditEvent } from "../../utils/auditLogger";
 
 // Create or update a grade for a submission
 
@@ -86,6 +86,20 @@ export const publishGrade = async (
 
   grade.published = true;
   await grade.save();
+
+  await logAuditEvent({
+    actorRole: "TEACHER",
+    actorId: teacherId,
+    action: "GRADE_PUBLISHED",
+    entityType: "GRADE",
+    entityId: grade._id,
+    metadata: {
+      submissionId: grade.submissionId,
+      assignmentId: grade.assignmentId,
+      studentId: grade.studentId,
+      score: grade.score,
+    },
+  });
 
   return grade;
 };

@@ -20,6 +20,11 @@ import gradeRoutes from "./modules/grades/grade.routes";
 
 import { registerRepeatableJobs } from "./queues/scheduler";  // import the scheduler
 
+import adminRoutes from "./modules/admin/admin.routes"; // import admin routes
+import { setupBullMQDashboard } from "./admin/bullmq";
+import { adminGuard } from "./middleware/adminGuard";
+import { bullmqAuth } from "./middleware/bullmqAuth";
+
 const app = express();
 
 /**
@@ -63,11 +68,25 @@ app.use("/api/submissions", submissionRoutes);     // submission management rout
 app.use("/api/grades", gradeRoutes);             // grade management routes
 
 
+// Admin routes
+
+app.use("/api/admin", adminRoutes);
+
+
 
 
 app.get("/api/test-auth", requireAuth, (req, res) => {
   res.json({ message: "Authenticated access granted", user: req.user });
 });
+
+const bullBoardAdapter = setupBullMQDashboard();
+
+app.use(
+  "/admin/queues",
+  bullmqAuth,
+  bullBoardAdapter.getRouter()
+);
+
 /**
  * Server bootstrap
  */

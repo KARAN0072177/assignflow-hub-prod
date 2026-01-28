@@ -2,10 +2,11 @@ import { Worker } from "bullmq";
 import { redisConnection } from "../config/redis";
 import { SYSTEM_QUEUE_NAME } from "../queues/system.queue";
 import mongoose from "mongoose";
+
 import { Assignment, AssignmentState } from "../models/assignment.model";
 import { Submission, SubmissionState } from "../models/submission.model";
 import { connectDB } from "../db";
-
+import { logAuditEvent } from "../utils/auditLogger";
 
 console.log("[Worker] Starting background worker...");
 
@@ -18,12 +19,12 @@ const worker = new Worker(
 
     console.log("[Worker] Running LOCK_EXPIRED_SUBMISSIONS job");
 
-    // Ensure DB connection (worker is separate process)
+    // Ensure DB connection (worker is a separate process)
     await connectDB();
 
     const now = new Date();
 
-    // 1. Find expired assignments
+    // 1️⃣ Find expired assignments
     const expiredAssignments = await Assignment.find({
       dueDate: { $exists: true, $lt: now },
       state: AssignmentState.PUBLISHED,
@@ -36,11 +37,21 @@ const worker = new Worker(
 
     const assignmentIds = expiredAssignments.map((a) => a._id);
 
-    // 2. Lock all DRAFT submissions for expired assignments
-    const result = await Submission.updateMany(
+    // 2️⃣ Find DRAFT submissions that need to be locked
+    const submissionsToLock = await Submission.find({
+      assignmentId: { $in: assignmentIds },
+      state: SubmissionState.DRAFT,
+    }).select("_id assignmentId");
+
+    if (submissionsToLock.length === 0) {
+      console.log("[Worker] No draft submissions to lock");
+      return;
+    }
+
+    // 3️⃣ Lock submissions in bulk (idempotent)
+    await Submission.updateMany(
       {
-        assignmentId: { $in: assignmentIds },
-        state: SubmissionState.DRAFT,
+        _id: { $in: submissionsToLock.map((s) => s._id) },
       },
       {
         $set: { state: SubmissionState.LOCKED },
@@ -48,8 +59,23 @@ const worker = new Worker(
     );
 
     console.log(
-      `[Worker] Locked ${result.modifiedCount} submissions`
+      `[Worker] Locked ${submissionsToLock.length} submissions`
     );
+
+    // 4️⃣ Write audit logs (fire-and-forget, safe)
+    for (const submission of submissionsToLock) {
+      await logAuditEvent({
+        actorRole: "SYSTEM",
+        action: "SUBMISSION_AUTO_LOCKED",
+        entityType: "SUBMISSION",
+        entityId: submission._id,
+        metadata: {
+          assignmentId: submission.assignmentId,
+          reason: "DEADLINE_EXPIRED",
+          jobName: job.name,
+        },
+      });
+    }
   },
   {
     connection: redisConnection,

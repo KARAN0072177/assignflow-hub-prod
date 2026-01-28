@@ -4,7 +4,7 @@ import { Submission, SubmissionState } from "../../models/submission.model";
 import { Membership } from "../../models/membership.model";
 import { generateSubmissionUploadUrl } from "../../utils/s3-submission";
 import { Grade } from "../../models/grade.model";
-
+import { logAuditEvent } from "../../utils/auditLogger";
 
 // Create or update a submission draft
 
@@ -125,6 +125,17 @@ export const submitSubmission = async (
   submission.state = SubmissionState.SUBMITTED;
   await submission.save();
 
+  await logAuditEvent({
+    actorRole: "STUDENT",
+    actorId: studentId,
+    action: "SUBMISSION_SUBMITTED",
+    entityType: "SUBMISSION",
+    entityId: submission._id,
+    metadata: {
+      assignmentId: submission.assignmentId,
+      classroomId: submission.classroomId,
+    },
+  });
   return submission;
 };
 

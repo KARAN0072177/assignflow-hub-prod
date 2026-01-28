@@ -14,6 +14,7 @@ import Dashboard from "./pages/Dashboard";
 import DashboardLayout from "./layouts/DashboardLayout";
 
 import Navbar from "./components/Navbar";
+import AdminAuditLogs from "./pages/AdminAuditLogs";
 
 function App() {
   return (
@@ -41,6 +42,9 @@ function App() {
           <Route path="classrooms/join" element={<JoinClassroom />} />
           <Route path="grades" element={<MyGrades />} />
         </Route>
+
+        {/* Admin routes */}
+        <Route path="admin/audit-logs" element={<AdminAuditLogs />} />
       </Routes>
     </BrowserRouter>
   );
