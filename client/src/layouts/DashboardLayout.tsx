@@ -1,6 +1,7 @@
 import { Outlet, useNavigate } from "react-router-dom";
 import { useEffect } from "react";
 import Sidebar from "../components/Sidebar";
+import Breadcrumbs from "../components/Breadcrumbs";
 
 const DashboardLayout = () => {
   const navigate = useNavigate();
@@ -19,6 +20,7 @@ const DashboardLayout = () => {
       <Sidebar />
 
       <main className="flex-1 bg-gray-100 min-h-screen p-6">
+        <Breadcrumbs />
         <Outlet />
       </main>
     </div>
