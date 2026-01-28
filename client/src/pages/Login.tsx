@@ -22,6 +22,8 @@ const Login = () => {
       localStorage.setItem("authToken", data.token);
       localStorage.setItem("userRole", data.user.role);
 
+      window.dispatchEvent(new Event("storage"));
+
       navigate("/dashboard");
     } catch (err: any) {
       setError(err?.response?.data?.message || "Login failed");

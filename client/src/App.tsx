@@ -13,9 +13,12 @@ import MyGrades from "./pages/MyGrades";
 import Dashboard from "./pages/Dashboard";
 import DashboardLayout from "./layouts/DashboardLayout";
 
+import Navbar from "./components/Navbar";
+
 function App() {
   return (
     <BrowserRouter>
+      <Navbar />
       <Routes>
         {/* Public routes */}
         <Route path="/home" element={<Home />} />
