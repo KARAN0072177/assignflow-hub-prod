@@ -7,6 +7,7 @@ import mongoose, { Schema, Document, Model } from "mongoose";
 export enum UserRole {
   STUDENT = "STUDENT",
   TEACHER = "TEACHER",
+  ADMIN = "ADMIN",
 }
 
 /**

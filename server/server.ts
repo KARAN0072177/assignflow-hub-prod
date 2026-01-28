@@ -25,6 +25,8 @@ import { setupBullMQDashboard } from "./admin/bullmq";
 import { adminGuard } from "./middleware/adminGuard";
 import { bullmqAuth } from "./middleware/bullmqAuth";
 
+import adminAnalyticsRoutes from "./modules/admin/admin.analytics.routes";
+
 const app = express();
 
 /**
@@ -70,7 +72,8 @@ app.use("/api/grades", gradeRoutes);             // grade management routes
 
 // Admin routes
 
-app.use("/api/admin", adminRoutes);
+app.use("/api/admin", adminRoutes);              // admin management routes 
+app.use("/api/admin", adminAnalyticsRoutes);     // admin analytics routes
 
 
 
