@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 
 import Register from "./pages/Register";
 import Login from "./pages/Login";
@@ -19,42 +19,52 @@ import AdminAuditLogs from "./pages/AdminAuditLogs";
 import AdminLayout from "./layouts/AdminLayout";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 
-function App() {
+function AppRoutes() {
+  const location = useLocation();
+
+  // hide navbar on these routes
+  const hideNavbarRoutes = ["/login", "/register", "/admin"];
+
+  const shouldHideNavbar = hideNavbarRoutes.some((path) =>
+    location.pathname.startsWith(path)
+  );
+
   return (
-    <BrowserRouter>
-      <Navbar />
+    <>
+      {!shouldHideNavbar && <Navbar />}
+
       <Routes>
         {/* Public routes */}
         <Route path="/home" element={<Home />} />
         <Route path="/register" element={<Register />} />
         <Route path="/login" element={<Login />} />
 
-        {/* Dashboard layout (protected shell) */}
+        {/* Dashboard layout */}
         <Route path="/dashboard" element={<DashboardLayout />}>
-          {/* Dashboard home */}
           <Route index element={<Dashboard />} />
 
-          {/* Teacher & Student shared */}
           <Route path="classrooms/my" element={<MyClassrooms />} />
           <Route path="classrooms/:id" element={<ClassroomDetail />} />
 
-          {/* Teacher only (UI-level) */}
           <Route path="classrooms/create" element={<CreateClassroom />} />
-
-          {/* Student only */}
           <Route path="classrooms/join" element={<JoinClassroom />} />
           <Route path="grades" element={<MyGrades />} />
         </Route>
 
         {/* Admin routes */}
-
         <Route path="/admin" element={<AdminLayout />}>
           <Route path="dashboard" element={<AdminDashboard />} />
           <Route path="audit-logs" element={<AdminAuditLogs />} />
         </Route>
       </Routes>
-    </BrowserRouter>
+    </>
   );
 }
 
-export default App;
+export default function App() {
+  return (
+    <BrowserRouter>
+      <AppRoutes />
+    </BrowserRouter>
+  );
+}
