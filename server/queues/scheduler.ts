@@ -8,7 +8,7 @@ export const registerRepeatableJobs = async () => {
     {},
     {
       repeat: {
-        every: 5 * 60 * 1000, // every 5 minutes
+        every: 30 * 1000, // every 5 minutes
       },
       removeOnComplete: true,
       removeOnFail: false,
