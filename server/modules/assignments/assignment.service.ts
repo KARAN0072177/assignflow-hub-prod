@@ -3,6 +3,7 @@ import { Classroom } from "../../models/classroom.model";
 import { Types } from "mongoose";
 import { generateAssignmentUploadUrl } from "../../utils/s3";
 import { Membership } from "../../models/membership.model";
+import { Submission } from "../../models/submission.model";
 
 interface CreateAssignmentParams {
   teacherId: Types.ObjectId;
@@ -127,21 +128,42 @@ export const getAssignmentsForClassroom = async (
   }
 
   // Student: must be member + see only PUBLISHED
-  if (role === "STUDENT") {
-    const membership = await Membership.findOne({
-      studentId: userId,
-      classroomId,
-    });
+// Student: must be member + see only PUBLISHED
+if (role === "STUDENT") {
+  const membership = await Membership.findOne({
+    studentId: userId,
+    classroomId,
+  });
 
-    if (!membership) {
-      throw new Error("Access denied");
-    }
-
-    return Assignment.find({
-      classroomId,
-      state: AssignmentState.PUBLISHED,
-    }).sort({ createdAt: -1 });
+  if (!membership) {
+    throw new Error("Access denied");
   }
 
+  const assignments = await Assignment.find({
+    classroomId,
+    state: AssignmentState.PUBLISHED,
+  }).sort({ createdAt: -1 });
+
+  const assignmentsWithSubmission = await Promise.all(
+    assignments.map(async (assignment) => {
+      const submission = await Submission.findOne({
+        assignmentId: assignment._id,
+        studentId: userId,
+      }).select("_id state");
+
+      return {
+        assignment,
+        submission: submission
+          ? {
+              id: submission._id,
+              state: submission.state,
+            }
+          : null,
+      };
+    })
+  );
+
+  return assignmentsWithSubmission;
+}
   throw new Error("Access denied");
 };

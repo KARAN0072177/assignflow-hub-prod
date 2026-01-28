@@ -21,6 +21,10 @@ interface Assignment {
   type: "GRADED" | "MATERIAL";
   state: "DRAFT" | "PUBLISHED";
   dueDate?: string;
+  submission: {
+    id: string;
+    state: "DRAFT" | "SUBMITTED" | "LOCKED";
+  } | null;
 }
 
 const ClassroomDetail = () => {
@@ -124,7 +128,31 @@ const ClassroomDetail = () => {
                 {role === "STUDENT" &&
                   a.type === "GRADED" &&
                   a.state === "PUBLISHED" && (
-                    <SubmissionBox assignmentId={a.id} />
+                    <>
+                      {/* No submission yet */}
+                      {a.submission === null && (
+                        <SubmissionBox assignmentId={a.id} />
+                      )}
+
+                      {/* Draft exists */}
+                      {a.submission?.state === "DRAFT" && (
+                        <SubmissionBox assignmentId={a.id} />
+                      )}
+
+                      {/* Submitted */}
+                      {a.submission?.state === "SUBMITTED" && (
+                        <p style={{ color: "green" }}>
+                          Assignment submitted successfully.
+                        </p>
+                      )}
+
+                      {/* Locked */}
+                      {a.submission?.state === "LOCKED" && (
+                        <p style={{ color: "red" }}>
+                          Submission locked (deadline passed).
+                        </p>
+                      )}
+                    </>
                   )}
 
                 {/* 👨‍🏫 TEACHER */}

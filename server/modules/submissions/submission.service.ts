@@ -3,6 +3,7 @@ import { Assignment, AssignmentState } from "../../models/assignment.model";
 import { Submission, SubmissionState } from "../../models/submission.model";
 import { Membership } from "../../models/membership.model";
 import { generateSubmissionUploadUrl } from "../../utils/s3-submission";
+import { Grade } from "../../models/grade.model";
 
 
 // Create or update a submission draft
@@ -151,16 +152,28 @@ export const getSubmissionsForAssignment = async (
     .sort({ createdAt: -1 });
 
   return Promise.all(
-    submissions.map(async (s) => ({
-      id: s._id,
-      student: {
-        id: (s.studentId as any)._id,
-        email: (s.studentId as any).email,
-      },
-      state: s.state,
-      submittedAt: s.updatedAt,
-      downloadUrl:
-        s.state !== "DRAFT" ? await generateDownloadUrl(s.fileKey) : null,
-    }))
+    submissions.map(async (s) => {
+      const grade = await Grade.findOne({ submissionId: s._id });
+
+      return {
+        id: s._id,
+        student: {
+          id: (s.studentId as any)._id,
+          email: (s.studentId as any).email,
+        },
+        state: s.state,
+        submittedAt: s.updatedAt,
+        downloadUrl:
+          s.state !== "DRAFT" ? await generateDownloadUrl(s.fileKey) : null,
+        grade: grade
+          ? {
+            id: grade._id,
+            score: grade.score,
+            feedback: grade.feedback,
+            published: grade.published,
+          }
+          : null,
+      };
+    })
   );
 };

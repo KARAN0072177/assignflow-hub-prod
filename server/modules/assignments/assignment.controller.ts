@@ -135,15 +135,30 @@ export const listAssignmentsForClassroomHandler = async (
     );
 
     return res.status(200).json(
-      assignments.map((a) => ({
-        id: a._id,
-        title: a.title,
-        description: a.description,
-        type: a.type,
-        state: a.state,
-        dueDate: a.dueDate,
-        createdAt: a.createdAt,
-      }))
+      assignments.map((item: any) => {
+        // STUDENT shape
+        if (item.assignment) {
+          return {
+            id: item.assignment._id,
+            title: item.assignment.title,
+            description: item.assignment.description,
+            type: item.assignment.type,
+            state: item.assignment.state,
+            dueDate: item.assignment.dueDate,
+            submission: item.submission, // 👈 IMPORTANT
+          };
+        }
+
+        // TEACHER shape
+        return {
+          id: item._id,
+          title: item.title,
+          description: item.description,
+          type: item.type,
+          state: item.state,
+          dueDate: item.dueDate,
+        };
+      })
     );
   } catch (error: any) {
     if (error.message === "Classroom not found") {
