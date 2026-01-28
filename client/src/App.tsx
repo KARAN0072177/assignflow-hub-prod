@@ -7,6 +7,7 @@ import JoinClassroom from "./pages/JoinClassroom";
 import MyClassrooms from "./pages/MyClassrooms";
 import ClassroomDetail from "./pages/ClassroomDetail";
 import MyGrades from "./pages/MyGrades";
+import Dashboard from "./pages/Dashboard";
 
 function App() {
   return (
@@ -21,6 +22,7 @@ function App() {
         <Route path="/classrooms/my" element={<MyClassrooms />} />
         <Route path="/classrooms/:id" element={<ClassroomDetail />} />
         <Route path="/grades" element={<MyGrades />} />
+        <Route path="/dashboard" element={<Dashboard />} />
 
       </Routes>
     </BrowserRouter>
