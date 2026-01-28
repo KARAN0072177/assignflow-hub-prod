@@ -18,6 +18,8 @@ import assignmentRoutes from "./modules/assignments/assignment.routes";
 import submissionRoutes from "./modules/submissions/submission.routes";
 import gradeRoutes from "./modules/grades/grade.routes";
 
+import { registerRepeatableJobs } from "./queues/scheduler";  // import the scheduler
+
 const app = express();
 
 /**
@@ -70,13 +72,21 @@ app.get("/api/test-auth", requireAuth, (req, res) => {
  * Server bootstrap
  */
 const startServer = async () => {
-  await connectDB();
+  try {
+    await connectDB();
 
-  app.listen(config.port, () => {
-    console.log(
-      `🚀 AssignFlow Hub API running on port ${config.port} (${config.env})`
-    );
-  });
+    // 🔁 Register background jobs AFTER DB is ready
+    await registerRepeatableJobs();
+
+    app.listen(config.port, () => {
+      console.log(
+        `🚀 AssignFlow Hub API running on port ${config.port} (${config.env})`
+      );
+    });
+  } catch (error) {
+    console.error("❌ Failed to start server:", error);
+    process.exit(1);
+  }
 };
 
 startServer();
