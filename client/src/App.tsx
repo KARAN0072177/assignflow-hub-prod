@@ -19,19 +19,20 @@ import AdminAuditLogs from "./pages/AdminAuditLogs";
 import AdminLayout from "./layouts/AdminLayout";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 
+import Footer from "./components/Footer";
+
 function AppRoutes() {
   const location = useLocation();
 
-  // hide navbar on these routes
-  const hideNavbarRoutes = ["/login", "/register", "/admin"];
+  const hideLayoutRoutes = ["/login", "/register", "/dashboard", "/admin"];
 
-  const shouldHideNavbar = hideNavbarRoutes.some((path) =>
+  const shouldHideLayout = hideLayoutRoutes.some((path) =>
     location.pathname.startsWith(path)
   );
 
   return (
     <>
-      {!shouldHideNavbar && <Navbar />}
+      {!shouldHideLayout && <Navbar />}
 
       <Routes>
         {/* Public routes */}
@@ -42,10 +43,8 @@ function AppRoutes() {
         {/* Dashboard layout */}
         <Route path="/dashboard" element={<DashboardLayout />}>
           <Route index element={<Dashboard />} />
-
           <Route path="classrooms/my" element={<MyClassrooms />} />
           <Route path="classrooms/:id" element={<ClassroomDetail />} />
-
           <Route path="classrooms/create" element={<CreateClassroom />} />
           <Route path="classrooms/join" element={<JoinClassroom />} />
           <Route path="grades" element={<MyGrades />} />
@@ -57,6 +56,8 @@ function AppRoutes() {
           <Route path="audit-logs" element={<AdminAuditLogs />} />
         </Route>
       </Routes>
+
+      {!shouldHideLayout && <Footer />}
     </>
   );
 }

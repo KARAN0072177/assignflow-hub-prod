@@ -39,6 +39,8 @@ export const createClassroom = async (
 };
 
 export interface JoinClassroomResponse {
+  name: undefined;
+  id: string | undefined;
   message: string;
   classroom: {
     classroomId: string;

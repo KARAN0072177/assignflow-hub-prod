@@ -8,13 +8,19 @@ const API_BASE_URL =
    ======================= */
 
 export interface StudentGrade {
+  score: number;
+  feedback?: string;
+
+  submittedAt: string;
+  gradedAt: string;
+
+  submissionDownloadUrl?: string;
+
   assignment: {
     id: string;
     title: string;
+    description?: string;
   };
-  score: number;
-  feedback?: string;
-  gradedAt: string;
 }
 
 /**
