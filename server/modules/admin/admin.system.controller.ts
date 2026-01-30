@@ -55,6 +55,59 @@ export const getSystemMetadata = async (
             state: SubmissionState.LOCKED,
         });
 
+        /* =====================
+   STORAGE & FILE HEALTH
+===================== */
+
+        // Assignment storage stats (only records with fileSize)
+        const assignmentStorageAgg = await Assignment.aggregate([
+            { $match: { fileSize: { $exists: true } } },
+            {
+                $group: {
+                    _id: null,
+                    files: { $sum: 1 },
+                    totalSizeBytes: { $sum: "$fileSize" },
+                    avgSizeBytes: { $avg: "$fileSize" },
+                },
+            },
+        ]);
+
+        // Submission storage stats (only records with fileSize)
+        const submissionStorageAgg = await Submission.aggregate([
+            { $match: { fileSize: { $exists: true } } },
+            {
+                $group: {
+                    _id: null,
+                    files: { $sum: 1 },
+                    totalSizeBytes: { $sum: "$fileSize" },
+                    avgSizeBytes: { $avg: "$fileSize" },
+                },
+            },
+        ]);
+
+        const assignmentStorage = assignmentStorageAgg[0] || {
+            files: 0,
+            totalSizeBytes: 0,
+            avgSizeBytes: 0,
+        };
+
+        const submissionStorage = submissionStorageAgg[0] || {
+            files: 0,
+            totalSizeBytes: 0,
+            avgSizeBytes: 0,
+        };
+
+        const totalFiles =
+            assignmentStorage.files + submissionStorage.files;
+
+        const totalSizeBytes =
+            assignmentStorage.totalSizeBytes +
+            submissionStorage.totalSizeBytes;
+
+        const avgFileSizeBytes =
+            totalFiles > 0 ? totalSizeBytes / totalFiles : 0;
+
+
         return res.status(200).json({
             status: "HEALTHY",
             metadata: {
@@ -73,6 +126,29 @@ export const getSystemMetadata = async (
                 unpublishedGrades,
                 lockedSubmissions,
                 backgroundJobFailures: "Not enabled",
+            },
+            storage: {
+                totalFiles,
+                totalSizeBytes,
+                avgFileSizeBytes,
+
+                assignments: {
+                    files: assignmentStorage.files,
+                    totalSizeBytes: assignmentStorage.totalSizeBytes,
+                    avgSizeBytes: assignmentStorage.avgSizeBytes,
+                },
+
+                submissions: {
+                    files: submissionStorage.files,
+                    totalSizeBytes: submissionStorage.totalSizeBytes,
+                    avgSizeBytes: submissionStorage.avgSizeBytes,
+                },
+
+                notes: {
+                    source: "Derived from recorded file metadata",
+                    missingFileSize:
+                        "Older records may not include fileSize",
+                },
             },
         });
 
