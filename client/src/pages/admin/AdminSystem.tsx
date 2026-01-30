@@ -4,6 +4,7 @@ import {
   CheckCircle,
   AlertTriangle,
   Info,
+  Database,
 } from "lucide-react";
 
 const API_BASE_URL =
@@ -53,40 +54,17 @@ const AdminSystem = () => {
         </h2>
 
         <div className="grid grid-cols-2 gap-x-8 gap-y-3 text-sm">
-          <MetadataRow
-            label="Environment"
-            value={data.metadata.environment}
-          />
-          <MetadataRow
-            label="App Version"
-            value={data.metadata.appVersion}
-          />
-          <MetadataRow
-            label="API Version"
-            value={data.metadata.apiVersion}
-          />
+          <MetadataRow label="Environment" value={data.metadata.environment} />
+          <MetadataRow label="App Version" value={data.metadata.appVersion} />
+          <MetadataRow label="API Version" value={data.metadata.apiVersion} />
           <MetadataRow
             label="Server Time"
-            value={new Date(
-              data.metadata.serverTime
-            ).toLocaleString()}
+            value={new Date(data.metadata.serverTime).toLocaleString()}
           />
-          <MetadataRow
-            label="Server Timezone"
-            value={data.metadata.serverTimezone}
-          />
-          <MetadataRow
-            label="Uptime (seconds)"
-            value={data.metadata.uptimeSeconds}
-          />
-          <MetadataRow
-            label="Process ID"
-            value={data.metadata.processId}
-          />
-          <MetadataRow
-            label="Node Version"
-            value={data.metadata.nodeVersion}
-          />
+          <MetadataRow label="Server Timezone" value={data.metadata.serverTimezone} />
+          <MetadataRow label="Uptime (seconds)" value={data.metadata.uptimeSeconds} />
+          <MetadataRow label="Process ID" value={data.metadata.processId} />
+          <MetadataRow label="Node Version" value={data.metadata.nodeVersion} />
         </div>
       </section>
 
@@ -134,6 +112,52 @@ const AdminSystem = () => {
           infoOnly
         />
       </section>
+
+      {/* =====================
+          STORAGE & FILE HEALTH
+      ===================== */}
+      <section className="bg-white rounded shadow p-6">
+        <h2 className="text-lg font-medium mb-4 flex items-center gap-2">
+          <Database className="w-5 h-5 text-gray-500" />
+          Storage & File Health
+        </h2>
+
+        <div className="grid grid-cols-3 gap-4 mb-6">
+          <StorageCard
+            title="Total Files"
+            value={data.storage.totalFiles}
+          />
+          <StorageCard
+            title="Total Storage Used"
+            value={formatBytes(data.storage.totalSizeBytes)}
+          />
+          <StorageCard
+            title="Average File Size"
+            value={formatBytes(data.storage.avgFileSizeBytes)}
+          />
+        </div>
+
+        <div className="grid grid-cols-2 gap-6">
+          <StorageBreakdown
+            title="Assignment Uploads"
+            files={data.storage.assignments.files}
+            totalSize={data.storage.assignments.totalSizeBytes}
+            avgSize={data.storage.assignments.avgSizeBytes}
+          />
+
+          <StorageBreakdown
+            title="Submission Uploads"
+            files={data.storage.submissions.files}
+            totalSize={data.storage.submissions.totalSizeBytes}
+            avgSize={data.storage.submissions.avgSizeBytes}
+          />
+        </div>
+
+        <p className="text-xs text-gray-500 mt-4">
+          ℹ️ Storage metrics are derived from recorded file metadata.
+          Older records may not include file size information.
+        </p>
+      </section>
     </div>
   );
 };
@@ -180,15 +204,57 @@ const IntegrityItem = ({
     <div className="flex-1">
       <p className="font-medium">
         {label}{" "}
-        <span className="text-sm text-gray-500">
-          ({value})
-        </span>
+        <span className="text-sm text-gray-500">({value})</span>
       </p>
-      <p className="text-sm text-gray-600">
-        {description}
-      </p>
+      <p className="text-sm text-gray-600">{description}</p>
     </div>
   </div>
 );
+
+const StorageCard = ({
+  title,
+  value,
+}: {
+  title: string;
+  value: string | number;
+}) => (
+  <div className="border rounded p-4">
+    <p className="text-sm text-gray-500">{title}</p>
+    <p className="text-lg font-semibold">{value}</p>
+  </div>
+);
+
+const StorageBreakdown = ({
+  title,
+  files,
+  totalSize,
+  avgSize,
+}: {
+  title: string;
+  files: number;
+  totalSize: number;
+  avgSize: number;
+}) => (
+  <div className="border rounded p-4">
+    <h3 className="font-medium mb-2">{title}</h3>
+    <ul className="text-sm space-y-1 text-gray-700">
+      <li>Total files: {files}</li>
+      <li>Total size: {formatBytes(totalSize)}</li>
+      <li>Average size: {formatBytes(avgSize)}</li>
+    </ul>
+  </div>
+);
+
+/* =====================
+   Utils
+===================== */
+
+const formatBytes = (bytes: number) => {
+  if (!bytes || bytes === 0) return "0 B";
+  const k = 1024;
+  const sizes = ["B", "KB", "MB", "GB", "TB"];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return `${(bytes / Math.pow(k, i)).toFixed(2)} ${sizes[i]}`;
+};
 
 export default AdminSystem;

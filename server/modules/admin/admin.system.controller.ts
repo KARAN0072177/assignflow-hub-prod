@@ -3,6 +3,7 @@ import { AuthenticatedRequest } from "../../middleware/requireAuth";
 import { Assignment } from "../../models/assignment.model";
 import { Submission, SubmissionState } from "../../models/submission.model";
 import { Grade } from "../../models/grade.model";
+import { AuditLog } from "../../models/auditLog.model";
 
 export const getSystemMetadata = async (
     req: AuthenticatedRequest,
@@ -107,6 +108,32 @@ export const getSystemMetadata = async (
         const avgFileSizeBytes =
             totalFiles > 0 ? totalSizeBytes / totalFiles : 0;
 
+        /* =====================
+AUTH & SECURITY SIGNALS
+===================== */
+
+        // Calculate time windows
+        const last24h = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+        const last7d = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+
+        // Successful logins
+        const loginsLast24h = await AuditLog.countDocuments({
+            action: "USER_LOGIN",
+            createdAt: { $gte: last24h },
+        });
+
+        const loginsLast7d = await AuditLog.countDocuments({
+            action: "USER_LOGIN",
+            createdAt: { $gte: last7d },
+        });
+
+        // Logouts
+        const logoutsLast24h = await AuditLog.countDocuments({
+            action: "USER_LOGOUT",
+            createdAt: { $gte: last24h },
+        });
+
+
 
         return res.status(200).json({
             status: "HEALTHY",
@@ -149,6 +176,15 @@ export const getSystemMetadata = async (
                     missingFileSize:
                         "Older records may not include fileSize",
                 },
+            },
+            authSecurity: {
+                loginsLast24h,
+                loginsLast7d,
+                logoutsLast24h,
+
+                failedLoginsLast24h: "Not tracked",
+                tokenErrorsLast24h: "Not tracked",
+                accountLockouts: "Not implemented",
             },
         });
 
