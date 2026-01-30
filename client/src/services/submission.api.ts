@@ -21,6 +21,7 @@ export const createOrUpdateDraftSubmission = async (
       assignmentId,
       originalFileName: file.name,
       fileType: file.name.endsWith(".pdf") ? "PDF" : "DOCX",
+      fileSize: file.size,
     },
     {
       headers: {

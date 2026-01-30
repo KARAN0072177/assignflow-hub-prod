@@ -20,6 +20,7 @@ import AdminLayout from "./layouts/AdminLayout";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 
 import Footer from "./components/Footer";
+import AdminSystem from "./pages/admin/AdminSystem";
 
 function AppRoutes() {
   const location = useLocation();
@@ -54,6 +55,7 @@ function AppRoutes() {
         <Route path="/admin" element={<AdminLayout />}>
           <Route path="dashboard" element={<AdminDashboard />} />
           <Route path="audit-logs" element={<AdminAuditLogs />} />
+          <Route path="system" element={<AdminSystem />} />
         </Route>
       </Routes>
 

@@ -15,6 +15,7 @@ interface CreateAssignmentParams {
   dueDate?: Date;
   originalFileName: string;
   fileType: "PDF" | "DOCX";
+  fileSize: number;
 }
 
 
@@ -29,6 +30,7 @@ export const createAssignmentDraft = async ({
   dueDate,
   originalFileName,
   fileType,
+  fileSize,
 }: CreateAssignmentParams) => {
   // 1. Verify classroom ownership
   const classroom = await Classroom.findById(classroomId);
@@ -51,6 +53,7 @@ export const createAssignmentDraft = async ({
     state: AssignmentState.DRAFT,
     fileKey: "PENDING", // temporary placeholder
     fileType,
+    fileSize,
   });
 
   // 3. Generate S3 upload URL

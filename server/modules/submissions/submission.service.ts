@@ -13,11 +13,13 @@ export const createOrUpdateSubmissionDraft = async ({
   assignmentId,
   originalFileName,
   fileType,
+  fileSize,
 }: {
   studentId: Types.ObjectId;
   assignmentId: Types.ObjectId;
   originalFileName: string;
   fileType: "PDF" | "DOCX";
+  fileSize: number;
 }) => {
   // 1. Fetch assignment
   const assignment = await Assignment.findById(assignmentId);
@@ -62,6 +64,7 @@ export const createOrUpdateSubmissionDraft = async ({
       state: SubmissionState.DRAFT,
       fileKey: "PENDING",
       fileType,
+      fileSize,
     });
   }
 
@@ -77,6 +80,7 @@ export const createOrUpdateSubmissionDraft = async ({
   // 6. Update submission fileKey
   submission.fileKey = fileKey;
   submission.fileType = fileType;
+  submission.fileSize = fileSize;
   await submission.save();
 
   return {

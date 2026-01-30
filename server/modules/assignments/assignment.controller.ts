@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { z } from "zod";
+import { file, z } from "zod";
 import { createAssignmentDraft } from "./assignment.service";
 import { AuthenticatedRequest } from "../../middleware/requireAuth";
 import { Types } from "mongoose";
@@ -15,6 +15,7 @@ const createAssignmentSchema = z.object({
   dueDate: z.string().optional(),
   originalFileName: z.string().min(1),
   fileType: z.enum(["PDF", "DOCX"]),
+  fileSize: z.number().positive(),
 });
 
 
@@ -45,6 +46,7 @@ export const createAssignmentHandler = async (
       dueDate: parsed.data.dueDate ? new Date(parsed.data.dueDate) : undefined,
       originalFileName: parsed.data.originalFileName,
       fileType: parsed.data.fileType,
+      fileSize: parsed.data.fileSize,
     });
 
     return res.status(201).json(result);

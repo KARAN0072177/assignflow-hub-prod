@@ -1,5 +1,5 @@
 import { Response } from "express";
-import { z } from "zod";
+import { file, z } from "zod";
 import { Types } from "mongoose";
 import { AuthenticatedRequest } from "../../middleware/requireAuth";
 import { createOrUpdateSubmissionDraft } from "./submission.service";
@@ -10,6 +10,7 @@ const draftSchema = z.object({
   assignmentId: z.string(),
   originalFileName: z.string().min(1),
   fileType: z.enum(["PDF", "DOCX"]),
+  fileSize: z.number().positive(),
 });
 
 
@@ -34,6 +35,7 @@ export const createSubmissionDraftHandler = async (
       assignmentId: new Types.ObjectId(parsed.data.assignmentId),
       originalFileName: parsed.data.originalFileName,
       fileType: parsed.data.fileType,
+      fileSize: parsed.data.fileSize,
     });
 
     return res.status(200).json(result);

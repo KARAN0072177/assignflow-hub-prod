@@ -34,6 +34,7 @@ export interface IAssignment extends Document {
 
   fileKey: string; // S3 object key
   fileType: "PDF" | "DOCX";
+  fileSize?: number; // in bytes
 
   createdAt: Date;
   updatedAt: Date;
@@ -93,6 +94,10 @@ const AssignmentSchema: Schema<IAssignment> = new Schema(
       type: String,
       enum: ["PDF", "DOCX"],
       required: true,
+    },
+    fileSize: {
+      type: Number,
+      required: false,
     },
   },
   {

@@ -66,6 +66,7 @@ const CreateAssignmentForm = ({ classroomId, onCreated }: Props) => {
           dueDate: dueDate || undefined,
           originalFileName: file.name,
           fileType: file.name.endsWith(".pdf") ? "PDF" : "DOCX",
+          fileSize: file.size,
         },
         {
           headers: {

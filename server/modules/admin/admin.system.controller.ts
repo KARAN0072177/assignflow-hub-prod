@@ -66,15 +66,16 @@ export const getSystemMetadata = async (
                 uptimeSeconds: Math.floor(process.uptime()),
                 processId: process.pid,
                 nodeVersion: process.version,
-                dataIntegrity: {
-                    orphanedSubmissions,
-                    ungradedSubmissions,
-                    unpublishedGrades,
-                    lockedSubmissions,
-                    backgroundJobFailures: "Not enabled",
-                },
+            },
+            dataIntegrity: {
+                orphanedSubmissions,
+                ungradedSubmissions,
+                unpublishedGrades,
+                lockedSubmissions,
+                backgroundJobFailures: "Not enabled",
             },
         });
+
     } catch (error) {
         console.error("[SystemMetadata] Failed:", error);
 
