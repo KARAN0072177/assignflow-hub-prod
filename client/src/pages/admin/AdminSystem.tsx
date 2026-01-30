@@ -5,6 +5,7 @@ import {
   AlertTriangle,
   Info,
   Database,
+  Shield,
 } from "lucide-react";
 
 const API_BASE_URL =
@@ -123,10 +124,7 @@ const AdminSystem = () => {
         </h2>
 
         <div className="grid grid-cols-3 gap-4 mb-6">
-          <StorageCard
-            title="Total Files"
-            value={data.storage.totalFiles}
-          />
+          <StorageCard title="Total Files" value={data.storage.totalFiles} />
           <StorageCard
             title="Total Storage Used"
             value={formatBytes(data.storage.totalSizeBytes)}
@@ -157,6 +155,61 @@ const AdminSystem = () => {
           ℹ️ Storage metrics are derived from recorded file metadata.
           Older records may not include file size information.
         </p>
+      </section>
+
+      {/* =====================
+          AUTH & SECURITY SIGNALS
+      ===================== */}
+      <section className="bg-white rounded shadow p-6">
+        <h2 className="text-lg font-medium mb-4 flex items-center gap-2">
+          <Shield className="w-5 h-5 text-gray-500" />
+          Auth & Security Signals
+        </h2>
+
+        <IntegrityItem
+          label="Successful logins (last 24h)"
+          value={data.authSecurity.loginsLast24h}
+          healthy={true}
+          description="Valid authentication events"
+        />
+
+        <IntegrityItem
+          label="Successful logins (last 7d)"
+          value={data.authSecurity.loginsLast7d}
+          healthy={true}
+          description="Login volume over the past week"
+        />
+
+        <IntegrityItem
+          label="Logouts (last 24h)"
+          value={data.authSecurity.logoutsLast24h}
+          healthy={true}
+          description="User-initiated logout activity"
+        />
+
+        <IntegrityItem
+          label="Failed login attempts"
+          value={data.authSecurity.failedLoginsLast24h}
+          healthy={data.authSecurity.failedLoginsLast24h === "Not tracked"}
+          description="Tracking not enabled yet"
+          infoOnly
+        />
+
+        <IntegrityItem
+          label="Token / auth errors"
+          value={data.authSecurity.tokenErrorsLast24h}
+          healthy={data.authSecurity.tokenErrorsLast24h === "Not tracked"}
+          description="JWT verification or auth failures"
+          infoOnly
+        />
+
+        <IntegrityItem
+          label="Account lockouts"
+          value={data.authSecurity.accountLockouts}
+          healthy={data.authSecurity.accountLockouts === "Not implemented"}
+          description="Lockout policy not implemented"
+          infoOnly
+        />
       </section>
     </div>
   );
