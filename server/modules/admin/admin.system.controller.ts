@@ -4,6 +4,7 @@ import { Assignment } from "../../models/assignment.model";
 import { Submission, SubmissionState } from "../../models/submission.model";
 import { Grade } from "../../models/grade.model";
 import { AuditLog } from "../../models/auditLog.model";
+import { ErrorLog, ErrorSeverity } from "../../models/errorLog.model";
 
 export const getSystemMetadata = async (
     req: AuthenticatedRequest,
@@ -133,6 +134,31 @@ AUTH & SECURITY SIGNALS
             createdAt: { $gte: last24h },
         });
 
+        /* =====================
+   SYSTEM ERRORS & WARNINGS
+===================== */
+
+        const last24hErrors = await ErrorLog.countDocuments({
+            createdAt: { $gte: last24h },
+        });
+
+        const criticalErrors = await ErrorLog.countDocuments({
+            severity: ErrorSeverity.CRITICAL,
+            createdAt: { $gte: last24h },
+        });
+
+        const mostCommonError = await ErrorLog.aggregate([
+            { $match: { createdAt: { $gte: last24h } } },
+            { $group: { _id: "$message", count: { $sum: 1 } } },
+            { $sort: { count: -1 } },
+            { $limit: 1 },
+        ]);
+
+        const recentErrors = await ErrorLog.find()
+            .sort({ createdAt: -1 })
+            .limit(5)
+            .select("source message severity createdAt");
+
 
 
         return res.status(200).json({
@@ -185,6 +211,12 @@ AUTH & SECURITY SIGNALS
                 failedLoginsLast24h: "Not tracked",
                 tokenErrorsLast24h: "Not tracked",
                 accountLockouts: "Not implemented",
+            },
+            systemErrors: {
+                totalLast24h: last24hErrors,
+                criticalLast24h: criticalErrors,
+                mostCommon: mostCommonError[0] || null,
+                recent: recentErrors,
             },
         });
 

@@ -6,6 +6,7 @@ import {
   Info,
   Database,
   Shield,
+  XCircle,
 } from "lucide-react";
 
 const API_BASE_URL =
@@ -39,11 +40,33 @@ const AdminSystem = () => {
     return <p>Loading system status...</p>;
   }
 
+  const systemHealthy =
+    data.systemErrors.criticalLast24h === 0;
+
   return (
     <div className="space-y-10 max-w-5xl">
-      <h1 className="text-2xl font-semibold">
-        System Health & Reliability
-      </h1>
+      {/* =====================
+          HEADER + STATUS
+      ===================== */}
+      <div className="flex items-center gap-3">
+        {systemHealthy ? (
+          <CheckCircle className="w-6 h-6 text-green-600" />
+        ) : (
+          <AlertTriangle className="w-6 h-6 text-red-600" />
+        )}
+        <h1 className="text-2xl font-semibold">
+          System Health & Reliability
+        </h1>
+        <span
+          className={`text-sm font-medium px-2 py-1 rounded ${
+            systemHealthy
+              ? "bg-green-100 text-green-700"
+              : "bg-red-100 text-red-700"
+          }`}
+        >
+          {systemHealthy ? "Healthy" : "Degraded"}
+        </span>
+      </div>
 
       {/* =====================
           SYSTEM METADATA
@@ -211,6 +234,67 @@ const AdminSystem = () => {
           infoOnly
         />
       </section>
+
+      {/* =====================
+          SYSTEM ERRORS & WARNINGS
+      ===================== */}
+      <section className="bg-white rounded shadow p-6">
+        <h2 className="text-lg font-medium mb-4 flex items-center gap-2">
+          <XCircle className="w-5 h-5 text-gray-500" />
+          System Errors & Warnings
+        </h2>
+
+        <div className="grid grid-cols-3 gap-4 mb-6">
+          <StatusCard
+            title="Errors (last 24h)"
+            value={data.systemErrors.totalLast24h}
+            critical={false}
+          />
+          <StatusCard
+            title="Critical Errors (24h)"
+            value={data.systemErrors.criticalLast24h}
+            critical
+          />
+          <StatusCard
+            title="Most Common Error"
+            value={
+              data.systemErrors.mostCommon
+                ? data.systemErrors.mostCommon._id
+                : "None"
+            }
+            critical={false}
+            text
+          />
+        </div>
+
+        <h3 className="text-sm font-medium mb-2">
+          Recent Errors
+        </h3>
+
+        {data.systemErrors.recent.length === 0 ? (
+          <p className="text-sm text-green-600">
+            ✅ No recent system errors
+          </p>
+        ) : (
+          <ul className="space-y-2 text-sm">
+            {data.systemErrors.recent.map(
+              (err: any, index: number) => (
+                <li
+                  key={index}
+                  className="border rounded p-3 flex justify-between"
+                >
+                  <span>
+                    [{err.source}] {err.message}
+                  </span>
+                  <span className="text-gray-500">
+                    {new Date(err.createdAt).toLocaleString()}
+                  </span>
+                </li>
+              )
+            )}
+          </ul>
+        )}
+      </section>
     </div>
   );
 };
@@ -295,6 +379,37 @@ const StorageBreakdown = ({
       <li>Total size: {formatBytes(totalSize)}</li>
       <li>Average size: {formatBytes(avgSize)}</li>
     </ul>
+  </div>
+);
+
+const StatusCard = ({
+  title,
+  value,
+  critical = false,
+  text = false,
+}: {
+  title: string;
+  value: number | string;
+  critical?: boolean;
+  text?: boolean;
+}) => (
+  <div
+    className={`border rounded p-4 ${
+      critical && value !== 0
+        ? "border-red-400 bg-red-50"
+        : ""
+    }`}
+  >
+    <p className="text-sm text-gray-500">{title}</p>
+    <p
+      className={`text-lg font-semibold ${
+        critical && value !== 0
+          ? "text-red-600"
+          : ""
+      }`}
+    >
+      {text ? value : value}
+    </p>
   </div>
 );
 
