@@ -5,6 +5,7 @@ import { generateAssignmentUploadUrl } from "../../utils/s3";
 import { Membership } from "../../models/membership.model";
 import { Submission } from "../../models/submission.model";
 import { logAuditEvent } from "../../utils/auditLogger";
+import sanitizeHtml from "sanitize-html";
 
 interface CreateAssignmentParams {
   teacherId: Types.ObjectId;
@@ -32,6 +33,18 @@ export const createAssignmentDraft = async ({
   fileType,
   fileSize,
 }: CreateAssignmentParams) => {
+  // 0. Sanitize user input (WRITE-time protection)
+  const cleanTitle = sanitizeHtml(title, {
+    allowedTags: [],
+    allowedAttributes: {},
+  });
+
+  const cleanDescription = description
+    ? sanitizeHtml(description, {
+      allowedTags: [],
+      allowedAttributes: {},
+    })
+    : undefined;
   // 1. Verify classroom ownership
   const classroom = await Classroom.findById(classroomId);
   if (!classroom) {
@@ -46,12 +59,12 @@ export const createAssignmentDraft = async ({
   const assignment = await Assignment.create({
     classroomId,
     teacherId,
-    title,
-    description,
+    title: cleanTitle,
+    description: cleanDescription,
     type,
     dueDate,
     state: AssignmentState.DRAFT,
-    fileKey: "PENDING", // temporary placeholder
+    fileKey: "PENDING",
     fileType,
     fileSize,
   });
@@ -132,42 +145,42 @@ export const getAssignmentsForClassroom = async (
   }
 
   // Student: must be member + see only PUBLISHED
-// Student: must be member + see only PUBLISHED
-if (role === "STUDENT") {
-  const membership = await Membership.findOne({
-    studentId: userId,
-    classroomId,
-  });
+  // Student: must be member + see only PUBLISHED
+  if (role === "STUDENT") {
+    const membership = await Membership.findOne({
+      studentId: userId,
+      classroomId,
+    });
 
-  if (!membership) {
-    throw new Error("Access denied");
-  }
+    if (!membership) {
+      throw new Error("Access denied");
+    }
 
-  const assignments = await Assignment.find({
-    classroomId,
-    state: AssignmentState.PUBLISHED,
-  }).sort({ createdAt: -1 });
+    const assignments = await Assignment.find({
+      classroomId,
+      state: AssignmentState.PUBLISHED,
+    }).sort({ createdAt: -1 });
 
-  const assignmentsWithSubmission = await Promise.all(
-    assignments.map(async (assignment) => {
-      const submission = await Submission.findOne({
-        assignmentId: assignment._id,
-        studentId: userId,
-      }).select("_id state");
+    const assignmentsWithSubmission = await Promise.all(
+      assignments.map(async (assignment) => {
+        const submission = await Submission.findOne({
+          assignmentId: assignment._id,
+          studentId: userId,
+        }).select("_id state");
 
-      return {
-        assignment,
-        submission: submission
-          ? {
+        return {
+          assignment,
+          submission: submission
+            ? {
               id: submission._id,
               state: submission.state,
             }
-          : null,
-      };
-    })
-  );
+            : null,
+        };
+      })
+    );
 
-  return assignmentsWithSubmission;
-}
+    return assignmentsWithSubmission;
+  }
   throw new Error("Access denied");
 };

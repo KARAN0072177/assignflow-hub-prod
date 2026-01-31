@@ -1,6 +1,7 @@
 import { Classroom, ClassroomStatus } from "../../models/classroom.model";
 import { Types } from "mongoose";
 import { Membership } from "../../models/membership.model";
+import sanitizeHtml from "sanitize-html";
 
 const generateJoinCode = (): string => {
   const letters = Math.random().toString(36).substring(2, 6).toUpperCase();
@@ -16,7 +17,25 @@ export const createClassroom = async (
   name: string,
   description?: string
 ) => {
-  let code: string = ""; // initialize
+  // 0. Sanitize user input (WRITE-time protection)
+  const cleanName = sanitizeHtml(name.trim(), {
+    allowedTags: [],
+    allowedAttributes: {},
+  });
+
+  const cleanDescription = description
+    ? sanitizeHtml(description.trim(), {
+        allowedTags: [],
+        allowedAttributes: {},
+      })
+    : undefined;
+
+  // Optional but recommended: basic validation
+  if (!cleanName) {
+    throw new Error("Classroom name is required");
+  }
+
+  let code = "";
   let exists = true;
 
   while (exists) {
@@ -25,8 +44,8 @@ export const createClassroom = async (
   }
 
   const classroom = await Classroom.create({
-    name,
-    description,
+    name: cleanName,
+    description: cleanDescription,
     code,
     teacherId,
     status: ClassroomStatus.ACTIVE,

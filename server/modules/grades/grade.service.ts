@@ -3,6 +3,7 @@ import { Grade } from "../../models/grade.model";
 import { Submission, SubmissionState } from "../../models/submission.model";
 import { Assignment } from "../../models/assignment.model";
 import { logAuditEvent } from "../../utils/auditLogger";
+import sanitizeHtml from "sanitize-html";
 
 // Create or update a grade for a submission
 
@@ -17,6 +18,13 @@ export const createOrUpdateGrade = async ({
   score: number;
   feedback?: string;
 }) => {
+  // 0. Sanitize feedback (WRITE-time protection)
+  const cleanFeedback = feedback
+    ? sanitizeHtml(feedback.trim(), {
+      allowedTags: [],
+      allowedAttributes: {},
+    })
+    : undefined;
   // 1. Fetch submission
   const submission = await Submission.findById(submissionId);
   if (!submission) {
@@ -46,16 +54,17 @@ export const createOrUpdateGrade = async ({
     }
 
     grade.score = score;
-    grade.feedback = feedback;
+    grade.feedback = cleanFeedback;
     await grade.save();
-  } else {
+  }
+  else {
     grade = await Grade.create({
       assignmentId: submission.assignmentId,
       submissionId,
       studentId: submission.studentId,
       teacherId,
       score,
-      feedback,
+      feedback: cleanFeedback,
       published: false,
     });
   }

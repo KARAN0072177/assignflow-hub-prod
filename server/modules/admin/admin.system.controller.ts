@@ -5,6 +5,7 @@ import { Submission, SubmissionState } from "../../models/submission.model";
 import { Grade } from "../../models/grade.model";
 import { AuditLog } from "../../models/auditLog.model";
 import { ErrorLog, ErrorSeverity } from "../../models/errorLog.model";
+import { SecurityEvent, SecurityEventType } from "../../models/securityEvent.model";
 
 export const getSystemMetadata = async (
     req: AuthenticatedRequest,
@@ -159,6 +160,17 @@ AUTH & SECURITY SIGNALS
             .limit(5)
             .select("source message severity createdAt");
 
+        /* =====================
+SECURITY EVENTS
+===================== */
+
+        const recentRateLimitHits = await SecurityEvent.find({
+            type: SecurityEventType.RATE_LIMIT_HIT,
+        })
+            .sort({ createdAt: -1 })
+            .limit(20)
+            .select("ip endpoint method userAgent createdAt");
+
 
 
         return res.status(200).json({
@@ -217,6 +229,9 @@ AUTH & SECURITY SIGNALS
                 criticalLast24h: criticalErrors,
                 mostCommon: mostCommonError[0] || null,
                 recent: recentErrors,
+            },
+            securityEvents: {
+                rateLimitHits: recentRateLimitHits,
             },
         });
 

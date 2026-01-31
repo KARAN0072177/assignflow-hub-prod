@@ -29,6 +29,8 @@ import adminAnalyticsRoutes from "./modules/admin/admin.analytics.routes";
 
 import adminSystemRoutes from "./modules/admin/admin.system.routes";
 
+
+
 const app = express();
 
 /**
@@ -36,7 +38,11 @@ const app = express();
  */
 app.use(helmet());
 app.use(cors());
-app.use(express.json());
+
+
+
+// Limit JSON body size (important for security)
+app.use(express.json({ limit: "10mb" }));
 
 app.get("/", (_req, res) => {
   res.send(`
