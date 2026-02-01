@@ -14,6 +14,8 @@ import {
   Star,
   Award
 } from "lucide-react";
+import Testimonials from "../components/Testimonials";
+import Features from "../components/Features";
 
 const Home = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -68,6 +70,8 @@ const Home = () => {
   ];
 
   return (
+
+    <>
     <div 
       className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50/30 overflow-hidden relative"
       onMouseMove={handleMouseMove}
@@ -350,6 +354,10 @@ const Home = () => {
         }
       `}</style>
     </div>
+
+    <Features />
+    <Testimonials />
+    </>
   );
 };
 

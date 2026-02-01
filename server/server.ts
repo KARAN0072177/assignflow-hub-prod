@@ -29,6 +29,12 @@ import adminAnalyticsRoutes from "./modules/admin/admin.analytics.routes";
 
 import adminSystemRoutes from "./modules/admin/admin.system.routes";
 
+import {Router} from "express";
+
+import feedbackRoutes from "./modules/feedback/feedback.routes";
+
+import contactRoutes from "./modules/contact/contact.routes";
+
 
 
 const app = express();
@@ -83,6 +89,31 @@ app.use("/api/grades", gradeRoutes);             // grade management routes
 app.use("/api/admin", adminRoutes);              // admin management routes 
 app.use("/api/admin", adminAnalyticsRoutes);     // admin analytics routes
 app.use("/api/admin", adminSystemRoutes);       // admin system metadata routes
+
+app.get("/__demo", (_req, res) => {
+  res.json({
+    ok: true,
+    message: "Demo GET route working",
+  });
+});
+
+app.post("/__demo-post", (req, res) => {
+  res.json({
+    ok: true,
+    receivedBody: req.body,
+  });
+});
+
+app.use("/api/feedback", feedbackRoutes);  
+app.use("/api/contact", contactRoutes);
+
+const demoRouter = Router();
+
+demoRouter.get("/ping", (_req, res) => {
+  res.json({ ok: true, route: "/api/demo/ping" });
+});
+
+app.use("/api/demo", demoRouter);
 
 
 

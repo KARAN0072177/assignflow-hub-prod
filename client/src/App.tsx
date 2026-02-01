@@ -21,6 +21,8 @@ import AdminDashboard from "./pages/admin/AdminDashboard";
 
 import Footer from "./components/Footer";
 import AdminSystem from "./pages/admin/AdminSystem";
+import FeedbackPage from "./pages/FeedbackPage";
+import ContactPage from "./pages/ContactPage";
 
 function AppRoutes() {
   const location = useLocation();
@@ -40,6 +42,8 @@ function AppRoutes() {
         <Route path="/home" element={<Home />} />
         <Route path="/register" element={<Register />} />
         <Route path="/login" element={<Login />} />
+        <Route path="/feedback" element={<FeedbackPage />} />
+        <Route path="/contact" element={<ContactPage />} />
 
         {/* Dashboard layout */}
         <Route path="/dashboard" element={<DashboardLayout />}>
