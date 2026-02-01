@@ -29,11 +29,17 @@ import adminAnalyticsRoutes from "./modules/admin/admin.analytics.routes";
 
 import adminSystemRoutes from "./modules/admin/admin.system.routes";
 
-import {Router} from "express";
+import { Router } from "express";
 
 import feedbackRoutes from "./modules/feedback/feedback.routes";
 
 import contactRoutes from "./modules/contact/contact.routes";
+
+
+// websockets imports
+
+import http from "http";
+import { initSocket } from "./socket";
 
 
 
@@ -104,7 +110,7 @@ app.post("/__demo-post", (req, res) => {
   });
 });
 
-app.use("/api/feedback", feedbackRoutes);  
+app.use("/api/feedback", feedbackRoutes);
 app.use("/api/contact", contactRoutes);
 
 const demoRouter = Router();
@@ -130,6 +136,13 @@ app.use(
   bullBoardAdapter.getRouter()
 );
 
+
+const server = http.createServer(app);
+
+// 🔌 Initialize WebSocket layer (admin-only)
+initSocket(server);
+
+
 /**
  * Server bootstrap
  */
@@ -140,9 +153,9 @@ const startServer = async () => {
     // 🔁 Register background jobs AFTER DB is ready
     await registerRepeatableJobs();
 
-    app.listen(config.port, () => {
+    server.listen(config.port, () => {
       console.log(
-        `🚀 AssignFlow Hub API running on port ${config.port} (${config.env})`
+        `🚀 AssignFlow Hub API + WebSocket running on port ${config.port} (${config.env})`
       );
     });
   } catch (error) {

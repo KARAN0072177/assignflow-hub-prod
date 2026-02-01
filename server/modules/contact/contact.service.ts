@@ -1,6 +1,7 @@
 import sanitizeHtml from "sanitize-html";
 import { Contact } from "../../models/contact.model";
 import { sendMail } from "../../utils/mailer";
+import { getIO } from "../../socket";
 
 export const handleContactSubmission = async ({
   name,
@@ -26,6 +27,19 @@ export const handleContactSubmission = async ({
     message: cleanMessage,
   });
 
+  // 1.5️⃣ Real-time admin notification (WebSocket)
+  try {
+    const io = getIO();
+    io.emit("contact:new", {
+      id: record._id,
+      name: record.name,
+      email: record.email,
+      createdAt: record.createdAt,
+    });
+  } catch {
+    // Socket failure must NEVER break contact submission
+  }
+
   // 2️⃣ Email to admin (Professional notification)
   await sendMail({
     to: process.env.ADMIN_CONTACT_EMAIL!,
@@ -45,19 +59,19 @@ export const handleContactSubmission = async ({
 
 // ===================== EMAIL TEMPLATES =====================
 
-const generateAdminEmail = ({ 
-  name, 
-  email, 
-  phone, 
-  message 
-}: { 
-  name: string; 
-  email: string; 
-  phone?: string; 
-  message: string; 
+const generateAdminEmail = ({
+  name,
+  email,
+  phone,
+  message
+}: {
+  name: string;
+  email: string;
+  phone?: string;
+  message: string;
 }) => {
   const formattedMessage = message.replace(/\n/g, '<br>');
-  
+
   return `
 <!DOCTYPE html>
 <html lang="en">
@@ -318,14 +332,14 @@ const generateAdminEmail = ({
           
           <div class="info-item">
             <span class="label">Submitted</span>
-            <span class="value">${new Date().toLocaleString('en-US', { 
-              weekday: 'long', 
-              year: 'numeric', 
-              month: 'long', 
-              day: 'numeric',
-              hour: '2-digit',
-              minute: '2-digit'
-            })}</span>
+            <span class="value">${new Date().toLocaleString('en-US', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  })}</span>
           </div>
         </div>
         
@@ -373,16 +387,16 @@ const generateAdminEmail = ({
   `;
 };
 
-const generateUserConfirmationEmail = ({ 
-  name, 
-  message 
-}: { 
-  name: string; 
-  message: string; 
+const generateUserConfirmationEmail = ({
+  name,
+  message
+}: {
+  name: string;
+  message: string;
 }) => {
   const firstName = name.split(' ')[0];
   const formattedMessage = message.replace(/\n/g, '<br>');
-  
+
   return `
 <!DOCTYPE html>
 <html lang="en">

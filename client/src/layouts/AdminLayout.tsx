@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import AdminNavbar from "../components/admin/AdminNavbar";
 import { motion } from "framer-motion";
 import { ShieldAlert, Server } from "lucide-react";
+import { AdminSocketProvider } from "../admin/AdminSocketProvider";
 
 const AdminLayout = () => {
   const navigate = useNavigate();
@@ -73,6 +74,8 @@ const AdminLayout = () => {
   }
 
   return (
+
+    <AdminSocketProvider>
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-900 to-slate-950">
       <AdminNavbar />
 
@@ -157,6 +160,7 @@ const AdminLayout = () => {
         </div>
       </div>
     </div>
+    </AdminSocketProvider>
   );
 };
 
