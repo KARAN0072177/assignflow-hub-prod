@@ -35,6 +35,8 @@ import feedbackRoutes from "./modules/feedback/feedback.routes";
 
 import contactRoutes from "./modules/contact/contact.routes";
 
+import adminContactRoutes from "./modules/admin/admin.contact.routes";
+
 
 // websockets imports
 
@@ -95,6 +97,7 @@ app.use("/api/grades", gradeRoutes);             // grade management routes
 app.use("/api/admin", adminRoutes);              // admin management routes 
 app.use("/api/admin", adminAnalyticsRoutes);     // admin analytics routes
 app.use("/api/admin", adminSystemRoutes);       // admin system metadata routes
+app.use("/api/admin", adminContactRoutes);
 
 app.get("/__demo", (_req, res) => {
   res.json({
