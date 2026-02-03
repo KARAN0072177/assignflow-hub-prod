@@ -24,6 +24,9 @@ import AdminSystem from "./pages/admin/AdminSystem";
 import FeedbackPage from "./pages/FeedbackPage";
 import ContactPage from "./pages/ContactPage";
 import AdminInboxPage from "./admin/pages/AdminInboxPage";
+import PrivacyPage from "./pages/Privacy";
+import TermsPage from "./pages/Terms";
+import CookiePolicyPage from "./pages/cookies";
 
 function AppRoutes() {
   const location = useLocation();
@@ -45,6 +48,9 @@ function AppRoutes() {
         <Route path="/login" element={<Login />} />
         <Route path="/feedback" element={<FeedbackPage />} />
         <Route path="/contact" element={<ContactPage />} />
+        <Route path="/privacy" element={<PrivacyPage />} />
+        <Route path="/terms" element={<TermsPage />} />
+        <Route path="/cookies" element={<CookiePolicyPage />} />
 
         {/* Dashboard layout */}
         <Route path="/dashboard" element={<DashboardLayout />}>

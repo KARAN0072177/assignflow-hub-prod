@@ -1,8 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import ContactMessageCard from "./ContactMessageCard";
 import { 
   getAdminContacts, 
-  markMessageAsRead, 
   markMessagesAsReadBulk 
 } from "../../services/adminContact.api";
 import { useAdminSocket } from "../AdminSocketProvider";
@@ -13,21 +12,48 @@ import {
   RefreshCw, 
   Loader2, 
   Inbox, 
-  Filter, 
   CheckCircle, 
   Eye,
   CheckCheck,
-  AlertCircle,
-  AlertTriangle} from "lucide-react";
+  AlertTriangle,
+  Search,
+  Calendar,
+  ChevronLeft,
+  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
+  User,
+  SortAsc,
+  SortDesc,
+  X,
+  EyeOff} from "lucide-react";
+
+const ITEMS_PER_PAGE = 10;
+
+type SortField = 'date' | 'name' | 'email';
+type SortDirection = 'asc' | 'desc';
+type FilterStatus = 'all' | 'unread' | 'read';
+type DateFilter = 'all' | 'today' | 'yesterday' | 'last7days' | 'last30days' | 'custom';
 
 const ContactInbox = () => {
   const [messages, setMessages] = useState<AdminContactMessage[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [filter, setFilter] = useState<"all" | "unread">("all");
   const [selectedMessages, setSelectedMessages] = useState<string[]>([]);
   const [markingAsRead, setMarkingAsRead] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  
+  // Advanced filtering states
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterStatus, setFilterStatus] = useState<FilterStatus>('all');
+  const [dateFilter, setDateFilter] = useState<DateFilter>('all');
+  const [customStartDate, setCustomStartDate] = useState('');
+  const [customEndDate, setCustomEndDate] = useState('');
+  const [sortField, setSortField] = useState<SortField>('date');
+  const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
+  
+  // Pagination states
+  const [currentPage, setCurrentPage] = useState(1);
   const { lastEvent } = useAdminSocket();
 
   const fetchMessages = async () => {
@@ -40,6 +66,7 @@ const ContactInbox = () => {
       const data = await getAdminContacts(token);
       setMessages(data);
       setSelectedMessages([]); // Clear selection on refresh
+      setCurrentPage(1); // Reset to first page on refresh
     } catch (error) {
       console.error("Failed to fetch messages:", error);
       setError("Failed to load messages. Please try again.");
@@ -60,6 +87,97 @@ const ContactInbox = () => {
     }
   }, [lastEvent]);
 
+  // Filter and sort messages
+  const filteredAndSortedMessages = useMemo(() => {
+    let filtered = [...messages];
+
+    // Status filter
+    if (filterStatus === 'read') {
+      filtered = filtered.filter(msg => msg.isRead);
+    } else if (filterStatus === 'unread') {
+      filtered = filtered.filter(msg => !msg.isRead);
+    }
+
+    // Date filter
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+    const last7Days = new Date(today);
+    last7Days.setDate(last7Days.getDate() - 7);
+    const last30Days = new Date(today);
+    last30Days.setDate(last30Days.getDate() - 30);
+
+    filtered = filtered.filter(msg => {
+      const msgDate = new Date(msg.createdAt);
+      
+      switch (dateFilter) {
+        case 'today':
+          return msgDate >= today;
+        case 'yesterday':
+          return msgDate >= yesterday && msgDate < today;
+        case 'last7days':
+          return msgDate >= last7Days;
+        case 'last30days':
+          return msgDate >= last30Days;
+        case 'custom':
+          if (!customStartDate || !customEndDate) return true;
+          const start = new Date(customStartDate);
+          const end = new Date(customEndDate);
+          end.setHours(23, 59, 59, 999);
+          return msgDate >= start && msgDate <= end;
+        default:
+          return true;
+      }
+    });
+
+    // Search filter
+    if (searchTerm.trim()) {
+      const term = searchTerm.toLowerCase();
+      filtered = filtered.filter(msg => 
+        msg.name.toLowerCase().includes(term) ||
+        msg.email.toLowerCase().includes(term) ||
+        (msg.phone && msg.phone.includes(term)) ||
+        msg.message.toLowerCase().includes(term)
+      );
+    }
+
+    // Sorting
+    filtered.sort((a, b) => {
+      let aValue, bValue;
+      
+      switch (sortField) {
+        case 'name':
+          aValue = a.name.toLowerCase();
+          bValue = b.name.toLowerCase();
+          break;
+        case 'email':
+          aValue = a.email.toLowerCase();
+          bValue = b.email.toLowerCase();
+          break;
+        case 'date':
+        default:
+          aValue = new Date(a.createdAt).getTime();
+          bValue = new Date(b.createdAt).getTime();
+      }
+
+      if (sortDirection === 'asc') {
+        return aValue > bValue ? 1 : -1;
+      } else {
+        return aValue < bValue ? 1 : -1;
+      }
+    });
+
+    return filtered;
+  }, [messages, filterStatus, dateFilter, customStartDate, customEndDate, searchTerm, sortField, sortDirection]);
+
+  // Pagination
+  const totalPages = Math.ceil(filteredAndSortedMessages.length / ITEMS_PER_PAGE);
+  const paginatedMessages = useMemo(() => {
+    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+    return filteredAndSortedMessages.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+  }, [filteredAndSortedMessages, currentPage]);
+
   const handleMessageSelect = (messageId: string) => {
     setSelectedMessages(prev => 
       prev.includes(messageId) 
@@ -69,12 +187,17 @@ const ContactInbox = () => {
   };
 
   const handleSelectAll = () => {
-    const unreadMessages = messages.filter(msg => !msg.isRead).map(msg => msg.id);
-    if (selectedMessages.length === unreadMessages.length) {
+    const visibleUnread = paginatedMessages.filter(msg => !msg.isRead).map(msg => msg.id);
+    if (selectedMessages.length === visibleUnread.length) {
       setSelectedMessages([]);
     } else {
-      setSelectedMessages(unreadMessages);
+      setSelectedMessages(visibleUnread);
     }
+  };
+
+  const handleSelectAllFiltered = () => {
+    const allFilteredUnread = filteredAndSortedMessages.filter(msg => !msg.isRead).map(msg => msg.id);
+    setSelectedMessages(allFilteredUnread);
   };
 
   const handleMarkAsRead = async () => {
@@ -86,18 +209,9 @@ const ContactInbox = () => {
     setMarkingAsRead(true);
     setError(null);
     try {
-      // Try bulk endpoint first, fallback to individual calls
-      try {
-        const response = await markMessagesAsReadBulk(token, selectedMessages);
-        console.log("Bulk mark as read response:", response);
-      } catch (bulkError) {
-        console.log("Bulk endpoint not available, falling back to individual calls");
-        // Fallback to individual calls
-        await Promise.all(selectedMessages.map(id => 
-          markMessageAsRead(token, id)
-        ));
-      }
-
+      const response = await markMessagesAsReadBulk(token, selectedMessages);
+      console.log("Bulk mark as read response:", response);
+      
       // Update local state
       setMessages(prev => prev.map(msg => 
         selectedMessages.includes(msg.id) 
@@ -119,25 +233,15 @@ const ContactInbox = () => {
     const token = localStorage.getItem("authToken");
     if (!token) return;
 
-    const unreadMessages = messages.filter(msg => !msg.isRead);
+    const unreadMessages = filteredAndSortedMessages.filter(msg => !msg.isRead);
     if (unreadMessages.length === 0) return;
 
     setMarkingAsRead(true);
     setError(null);
     try {
       const unreadIds = unreadMessages.map(msg => msg.id);
-      
-      // Try bulk endpoint first
-      try {
-        const response = await markMessagesAsReadBulk(token, unreadIds);
-        console.log("Mark all as read response:", response);
-      } catch (bulkError) {
-        console.log("Bulk endpoint not available, falling back to individual calls");
-        // Fallback to individual calls
-        await Promise.all(unreadIds.map(id => 
-          markMessageAsRead(token, id)
-        ));
-      }
+      const response = await markMessagesAsReadBulk(token, unreadIds);
+      console.log("Mark all as read response:", response);
 
       // Update local state
       setMessages(prev => prev.map(msg => 
@@ -158,12 +262,39 @@ const ContactInbox = () => {
     setSelectedMessages([]);
   };
 
-  const filteredMessages = filter === "unread" 
-    ? messages.filter(msg => !msg.isRead) 
-    : messages;
+  const handleClearFilters = () => {
+    setSearchTerm('');
+    setFilterStatus('all');
+    setDateFilter('all');
+    setCustomStartDate('');
+    setCustomEndDate('');
+    setSortField('date');
+    setSortDirection('desc');
+    setCurrentPage(1);
+  };
+
+  const handleSort = (field: SortField) => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortDirection('desc');
+    }
+  };
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    // Scroll to top of messages container
+    const container = document.getElementById('messages-container');
+    if (container) {
+      container.scrollTop = 0;
+    }
+  };
 
   const unreadCount = messages.filter(msg => !msg.isRead).length;
   const selectedCount = selectedMessages.length;
+  const filteredCount = filteredAndSortedMessages.length;
+  const readCount = messages.filter(msg => msg.isRead).length;
 
   if (loading) {
     return (
@@ -269,7 +400,7 @@ const ContactInbox = () => {
 
   return (
     <div className="space-y-6">
-      {/* Header with Controls */}
+      {/* Header with Stats */}
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -297,32 +428,13 @@ const ContactInbox = () => {
                 Contact Messages
               </h2>
               <p className="text-sm text-slate-400">
-                {messages.length} total • {unreadCount} unread • {selectedCount} selected
+                {messages.length} total • {unreadCount} unread • {readCount} read
               </p>
             </div>
           </div>
         </div>
 
         <div className="flex items-center gap-3">
-          {/* Filter Toggle */}
-          <div className="flex items-center gap-1 p-1 bg-slate-800/50 rounded-xl border border-slate-700/50">
-            {(["all", "unread"] as const).map((option) => (
-              <button
-                key={option}
-                onClick={() => {
-                  setFilter(option);
-                  setSelectedMessages([]); // Clear selection when changing filter
-                }}
-                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-200 ${filter === option
-                  ? "bg-gradient-to-r from-blue-500/20 to-emerald-500/20 text-white"
-                  : "text-slate-400 hover:text-white"
-                }`}
-              >
-                {option === "all" ? "All" : "Unread"}
-              </button>
-            ))}
-          </div>
-
           {/* Refresh Button */}
           <motion.button
             whileHover={{ scale: 1.05 }}
@@ -330,6 +442,7 @@ const ContactInbox = () => {
             onClick={fetchMessages}
             disabled={refreshing}
             className="p-2.5 bg-gradient-to-r from-slate-800 to-slate-900 border border-slate-700/50 rounded-xl text-slate-300 hover:text-white transition-all duration-200 disabled:opacity-50"
+            title="Refresh messages"
           >
             {refreshing ? (
               <Loader2 className="w-4 h-4 animate-spin" />
@@ -340,6 +453,138 @@ const ContactInbox = () => {
         </div>
       </motion.div>
 
+      {/* Advanced Filters */}
+      <motion.div
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="space-y-4"
+      >
+        {/* Search Bar */}
+        <div className="relative">
+          <div className="absolute left-3 top-1/2 transform -translate-y-1/2">
+            <Search className="w-4 h-4 text-slate-500" />
+          </div>
+          <input
+            type="text"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            placeholder="Search by name, email, phone, or message..."
+            className="w-full pl-10 pr-10 py-3 bg-slate-800/50 border border-slate-700/50 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/30 transition-all"
+          />
+          {searchTerm && (
+            <button
+              onClick={() => setSearchTerm('')}
+              className="absolute right-3 top-1/2 transform -translate-y-1/2 p-1 hover:bg-slate-700/50 rounded"
+            >
+              <X className="w-4 h-4 text-slate-500" />
+            </button>
+          )}
+        </div>
+
+        {/* Filter Controls */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+          {/* Status Filter */}
+          <div className="space-y-2">
+            <label className="text-xs text-slate-400 font-medium">Status</label>
+            <div className="flex gap-1 p-1 bg-slate-800/50 rounded-xl border border-slate-700/50">
+              {(['all', 'unread', 'read'] as const).map((status) => (
+                <button
+                  key={status}
+                  onClick={() => setFilterStatus(status)}
+                  className={`flex-1 px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-200 ${filterStatus === status
+                    ? "bg-gradient-to-r from-blue-500/20 to-emerald-500/20 text-white"
+                    : "text-slate-400 hover:text-white"
+                  }`}
+                >
+                  {status === 'all' ? 'All' : status === 'unread' ? 'Unread' : 'Read'}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Date Filter */}
+          <div className="space-y-2">
+            <label className="text-xs text-slate-400 font-medium">Date Range</label>
+            <select
+              value={dateFilter}
+              onChange={(e) => setDateFilter(e.target.value as DateFilter)}
+              className="w-full px-3 py-2 bg-slate-800/50 border border-slate-700/50 rounded-xl text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/30"
+            >
+              <option value="all">All Time</option>
+              <option value="today">Today</option>
+              <option value="yesterday">Yesterday</option>
+              <option value="last7days">Last 7 Days</option>
+              <option value="last30days">Last 30 Days</option>
+              <option value="custom">Custom Range</option>
+            </select>
+          </div>
+
+          {/* Custom Date Range */}
+          {dateFilter === 'custom' && (
+            <div className="lg:col-span-2 space-y-2">
+              <label className="text-xs text-slate-400 font-medium">Custom Date Range</label>
+              <div className="flex gap-2">
+                <input
+                  type="date"
+                  value={customStartDate}
+                  onChange={(e) => setCustomStartDate(e.target.value)}
+                  className="flex-1 px-3 py-2 bg-slate-800/50 border border-slate-700/50 rounded-xl text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/30"
+                />
+                <span className="text-slate-500 self-center">to</span>
+                <input
+                  type="date"
+                  value={customEndDate}
+                  onChange={(e) => setCustomEndDate(e.target.value)}
+                  className="flex-1 px-3 py-2 bg-slate-800/50 border border-slate-700/50 rounded-xl text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/30"
+                />
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Sort Controls & Clear Filters */}
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <span className="text-sm text-slate-400">Sort by:</span>
+            <div className="flex gap-2">
+              {(['date', 'name', 'email'] as const).map((field) => (
+                <button
+                  key={field}
+                  onClick={() => handleSort(field)}
+                  className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-200 ${sortField === field
+                    ? "bg-gradient-to-r from-blue-500/20 to-emerald-500/20 text-white"
+                    : "text-slate-400 hover:text-white hover:bg-slate-800/30"
+                  }`}
+                >
+                  {field === 'date' ? <Calendar className="w-3 h-3" /> :
+                   field === 'name' ? <User className="w-3 h-3" /> :
+                   <Mail className="w-3 h-3" />}
+                  {field === 'date' ? 'Date' : field === 'name' ? 'Name' : 'Email'}
+                  {sortField === field && (
+                    sortDirection === 'asc' ? 
+                      <SortAsc className="w-3 h-3" /> : 
+                      <SortDesc className="w-3 h-3" />
+                  )}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-slate-400">
+              Showing {filteredCount} of {messages.length} messages
+            </span>
+            <button
+              onClick={handleClearFilters}
+              className="flex items-center gap-1 px-3 py-1.5 text-sm text-slate-400 hover:text-white hover:bg-slate-800/30 rounded-lg transition-all"
+            >
+              <X className="w-3 h-3" />
+              Clear Filters
+            </button>
+          </div>
+        </div>
+      </motion.div>
+
       {/* Action Bar - Shows when messages are selected */}
       <AnimatePresence>
         {selectedCount > 0 && (
@@ -347,7 +592,7 @@ const ContactInbox = () => {
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
-            className="flex items-center justify-between p-4 bg-gradient-to-r from-blue-900/20 to-emerald-900/20 border border-blue-500/30 rounded-2xl"
+            className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 bg-gradient-to-r from-blue-900/20 to-emerald-900/20 border border-blue-500/30 rounded-2xl"
           >
             <div className="flex items-center gap-3">
               <motion.div
@@ -370,17 +615,23 @@ const ContactInbox = () => {
               </div>
             </div>
             
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <motion.button
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={handleSelectAll}
                 className="px-3 py-1.5 text-sm text-slate-300 hover:text-white bg-slate-800/30 rounded-lg"
               >
-                {selectedMessages.length === filteredMessages.filter(msg => !msg.isRead).length 
-                  ? "Deselect All" 
-                  : "Select All Unread"
-                }
+                Select All on Page
+              </motion.button>
+              
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={handleSelectAllFiltered}
+                className="px-3 py-1.5 text-sm text-slate-300 hover:text-white bg-slate-800/30 rounded-lg"
+              >
+                Select All Filtered
               </motion.button>
               
               <motion.button
@@ -404,13 +655,16 @@ const ContactInbox = () => {
         )}
       </AnimatePresence>
 
-      {/* Mark All as Read Button */}
-      {unreadCount > 0 && selectedCount === 0 && (
+      {/* Mark All Filtered as Read Button */}
+      {filteredAndSortedMessages.filter(msg => !msg.isRead).length > 0 && selectedCount === 0 && (
         <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="flex justify-end"
+          className="flex justify-between items-center"
         >
+          <span className="text-sm text-slate-400">
+            {filteredAndSortedMessages.filter(msg => !msg.isRead).length} unread in current filter
+          </span>
           <motion.button
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
@@ -424,7 +678,7 @@ const ContactInbox = () => {
               <Eye className="w-4 h-4" />
             )}
             <span className="text-sm font-medium">
-              {markingAsRead ? 'Processing...' : `Mark All (${unreadCount}) as Read`}
+              {markingAsRead ? 'Processing...' : 'Mark All Filtered as Read'}
             </span>
           </motion.button>
         </motion.div>
@@ -448,107 +702,224 @@ const ContactInbox = () => {
         </motion.div>
       )}
 
-      {/* Messages Grid */}
-      <AnimatePresence mode="wait">
-        <motion.div
-          key={filter}
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -20 }}
-          transition={{ duration: 0.3 }}
-          className="space-y-4"
-        >
-          {filteredMessages.length === 0 ? (
+      {/* Messages Container with Fixed Height */}
+      <div 
+        id="messages-container"
+        className="bg-gradient-to-br from-slate-800/20 to-slate-900/20 border border-slate-700/30 rounded-2xl overflow-hidden"
+        style={{ height: 'calc(100vh - 400px)', minHeight: '500px', maxHeight: '800px' }}
+      >
+        <AnimatePresence mode="wait">
+          {paginatedMessages.length === 0 ? (
             <motion.div
+              key="no-results"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              className="text-center py-12 bg-gradient-to-br from-slate-800/30 to-slate-900/30 border border-slate-700/50 rounded-2xl"
+              exit={{ opacity: 0 }}
+              className="flex flex-col items-center justify-center h-full p-8"
             >
-              {filter === "unread" ? (
-                <>
-                  <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-br from-emerald-500/10 to-emerald-600/10 rounded-full flex items-center justify-center">
-                    <CheckCheck className="w-8 h-8 text-emerald-400" />
-                  </div>
-                  <h3 className="text-lg font-semibold text-white mb-2">
-                    All caught up!
-                  </h3>
-                  <p className="text-slate-400">
-                    No unread messages. All messages have been marked as read.
-                  </p>
-                </>
-              ) : (
-                <>
-                  <Filter className="w-12 h-12 text-slate-600 mx-auto mb-4" />
-                  <h3 className="text-lg font-semibold text-white mb-2">
-                    No messages found
-                  </h3>
-                  <p className="text-slate-400">
-                    Try changing the filter to see different messages.
-                  </p>
-                </>
+              <div className="w-20 h-20 bg-gradient-to-br from-slate-800/50 to-slate-900/50 rounded-2xl flex items-center justify-center border border-slate-700/50 mb-6">
+                <Search className="w-10 h-10 text-slate-600" />
+              </div>
+              <h3 className="text-lg font-semibold text-white mb-2">
+                No messages found
+              </h3>
+              <p className="text-slate-400 text-center max-w-md">
+                {searchTerm || filterStatus !== 'all' || dateFilter !== 'all' 
+                  ? "Try adjusting your filters or search terms"
+                  : "No messages match your criteria"}
+              </p>
+              {(searchTerm || filterStatus !== 'all' || dateFilter !== 'all') && (
+                <button
+                  onClick={handleClearFilters}
+                  className="mt-4 text-sm text-blue-400 hover:text-blue-300"
+                >
+                  Clear all filters
+                </button>
               )}
             </motion.div>
           ) : (
-            <>
-              {/* Messages List */}
-              {filteredMessages.map((msg, index) => (
-                <motion.div
-                  key={msg.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.05 }}
-                  layout
-                  className="relative"
-                >
-                  {/* Selection Checkbox */}
-                  {!msg.isRead && (
-                    <motion.div
-                      whileHover={{ scale: 1.1 }}
-                      className="absolute top-4 left-4 z-10"
-                    >
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleMessageSelect(msg.id);
-                        }}
-                        className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all duration-200 ${selectedMessages.includes(msg.id)
-                          ? "bg-gradient-to-br from-blue-500 to-emerald-500 border-transparent"
-                          : "bg-slate-800/50 border-slate-600 hover:border-blue-400"
-                        }`}
+            <div key="messages" className="h-full overflow-y-auto p-4">
+              <div className="space-y-4">
+                {paginatedMessages.map((msg) => (
+                  <motion.div
+                    key={msg.id}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -20 }}
+                    layout
+                    className="relative"
+                  >
+                    {/* Selection Checkbox */}
+                    {!msg.isRead && (
+                      <motion.div
+                        whileHover={{ scale: 1.1 }}
+                        className="absolute top-4 left-4 z-10"
                       >
-                        {selectedMessages.includes(msg.id) && (
-                          <CheckCheck className="w-3 h-3 text-white" />
-                        )}
-                      </button>
-                    </motion.div>
-                  )}
-                  
-                  <div className={!msg.isRead ? "pl-12" : ""}>
-                    <ContactMessageCard 
-                      message={msg} 
-                      isSelected={selectedMessages.includes(msg.id)}
-                      onSelectToggle={() => handleMessageSelect(msg.id)}
-                    />
-                  </div>
-                </motion.div>
-              ))}
-            </>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleMessageSelect(msg.id);
+                          }}
+                          className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all duration-200 ${selectedMessages.includes(msg.id)
+                            ? "bg-gradient-to-br from-blue-500 to-emerald-500 border-transparent"
+                            : "bg-slate-800/50 border-slate-600 hover:border-blue-400"
+                          }`}
+                        >
+                          {selectedMessages.includes(msg.id) && (
+                            <CheckCheck className="w-3 h-3 text-white" />
+                          )}
+                        </button>
+                      </motion.div>
+                    )}
+                    
+                    <div className={!msg.isRead ? "pl-12" : ""}>
+                      <ContactMessageCard 
+                        message={msg} 
+                        isSelected={selectedMessages.includes(msg.id)}
+                        onSelectToggle={() => handleMessageSelect(msg.id)}
+                      />
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+            </div>
           )}
-        </motion.div>
-      </AnimatePresence>
+        </AnimatePresence>
+      </div>
 
-      {/* Selection Hint */}
-      {unreadCount > 0 && selectedCount === 0 && (
+      {/* Pagination Controls */}
+      {filteredAndSortedMessages.length > ITEMS_PER_PAGE && (
         <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.5 }}
-          className="flex items-center justify-center gap-2 text-sm text-slate-500"
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 bg-slate-800/20 border border-slate-700/30 rounded-2xl"
         >
-          <AlertCircle className="w-4 h-4" />
-          <span>Click the checkbox on unread messages to select multiple</span>
+          <div className="text-sm text-slate-400">
+            Showing {(currentPage - 1) * ITEMS_PER_PAGE + 1} to {Math.min(currentPage * ITEMS_PER_PAGE, filteredAndSortedMessages.length)} of {filteredAndSortedMessages.length} messages
+          </div>
+          
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => handlePageChange(1)}
+              disabled={currentPage === 1}
+              className="p-2 bg-slate-800/50 border border-slate-700/50 rounded-xl text-slate-400 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+            >
+              <ChevronsLeft className="w-4 h-4" />
+            </button>
+            
+            <button
+              onClick={() => handlePageChange(currentPage - 1)}
+              disabled={currentPage === 1}
+              className="p-2 bg-slate-800/50 border border-slate-700/50 rounded-xl text-slate-400 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+            
+            <div className="flex items-center gap-1">
+              {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                let pageNum;
+                if (totalPages <= 5) {
+                  pageNum = i + 1;
+                } else if (currentPage <= 3) {
+                  pageNum = i + 1;
+                } else if (currentPage >= totalPages - 2) {
+                  pageNum = totalPages - 4 + i;
+                } else {
+                  pageNum = currentPage - 2 + i;
+                }
+                
+                return (
+                  <button
+                    key={pageNum}
+                    onClick={() => handlePageChange(pageNum)}
+                    className={`w-8 h-8 rounded-lg text-sm font-medium transition-all ${currentPage === pageNum
+                      ? "bg-gradient-to-r from-blue-500/20 to-emerald-500/20 text-white"
+                      : "text-slate-400 hover:text-white hover:bg-slate-800/30"
+                    }`}
+                  >
+                    {pageNum}
+                  </button>
+                );
+              })}
+              
+              {totalPages > 5 && currentPage < totalPages - 2 && (
+                <>
+                  <span className="text-slate-500">...</span>
+                  <button
+                    onClick={() => handlePageChange(totalPages)}
+                    className={`w-8 h-8 rounded-lg text-sm font-medium transition-all ${currentPage === totalPages
+                      ? "bg-gradient-to-r from-blue-500/20 to-emerald-500/20 text-white"
+                      : "text-slate-400 hover:text-white hover:bg-slate-800/30"
+                    }`}
+                  >
+                    {totalPages}
+                  </button>
+                </>
+              )}
+            </div>
+            
+            <button
+              onClick={() => handlePageChange(currentPage + 1)}
+              disabled={currentPage === totalPages}
+              className="p-2 bg-slate-800/50 border border-slate-700/50 rounded-xl text-slate-400 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+            >
+              <ChevronRight className="w-4 h-4" />
+            </button>
+            
+            <button
+              onClick={() => handlePageChange(totalPages)}
+              disabled={currentPage === totalPages}
+              className="p-2 bg-slate-800/50 border border-slate-700/50 rounded-xl text-slate-400 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+            >
+              <ChevronsRight className="w-4 h-4" />
+            </button>
+          </div>
         </motion.div>
       )}
+
+      {/* Quick Stats */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.3 }}
+        className="grid grid-cols-1 sm:grid-cols-3 gap-4"
+      >
+        <div className="p-4 bg-gradient-to-br from-blue-900/20 to-blue-900/10 border border-blue-800/30 rounded-xl">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-blue-500/20 rounded-lg">
+              <Inbox className="w-4 h-4 text-blue-400" />
+            </div>
+            <div>
+              <p className="text-sm text-slate-400">Total Messages</p>
+              <p className="text-xl font-bold text-white">{messages.length}</p>
+            </div>
+          </div>
+        </div>
+        
+        <div className="p-4 bg-gradient-to-br from-emerald-900/20 to-emerald-900/10 border border-emerald-800/30 rounded-xl">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-emerald-500/20 rounded-lg">
+              <Eye className="w-4 h-4 text-emerald-400" />
+            </div>
+            <div>
+              <p className="text-sm text-slate-400">Read</p>
+              <p className="text-xl font-bold text-white">{readCount}</p>
+            </div>
+          </div>
+        </div>
+        
+        <div className="p-4 bg-gradient-to-br from-amber-900/20 to-amber-900/10 border border-amber-800/30 rounded-xl">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-amber-500/20 rounded-lg">
+              <EyeOff className="w-4 h-4 text-amber-400" />
+            </div>
+            <div>
+              <p className="text-sm text-slate-400">Unread</p>
+              <p className="text-xl font-bold text-white">{unreadCount}</p>
+            </div>
+          </div>
+        </div>
+      </motion.div>
     </div>
   );
 };
