@@ -27,17 +27,20 @@ export const handleContactSubmission = async ({
     message: cleanMessage,
   });
 
-  // 1.5️⃣ Real-time admin notification (WebSocket)
+
+  // 🔔 Notify admins in real time (non-blocking)
   try {
     const io = getIO();
+
     io.emit("contact:new", {
       id: record._id,
-      name: record.name,
-      email: record.email,
       createdAt: record.createdAt,
     });
-  } catch {
-    // Socket failure must NEVER break contact submission
+
+    console.log("📨 contact:new emitted"); // 👈 HERE
+  } catch (err) {
+    // Socket failure should NEVER break contact submission
+    console.warn("⚠️ Socket emit failed:", err);
   }
 
   // 2️⃣ Email to admin (Professional notification)

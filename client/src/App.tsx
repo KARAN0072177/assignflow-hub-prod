@@ -23,6 +23,7 @@ import Footer from "./components/Footer";
 import AdminSystem from "./pages/admin/AdminSystem";
 import FeedbackPage from "./pages/FeedbackPage";
 import ContactPage from "./pages/ContactPage";
+import AdminInboxPage from "./admin/pages/AdminInboxPage";
 
 function AppRoutes() {
   const location = useLocation();
@@ -60,6 +61,7 @@ function AppRoutes() {
           <Route path="dashboard" element={<AdminDashboard />} />
           <Route path="audit-logs" element={<AdminAuditLogs />} />
           <Route path="system" element={<AdminSystem />} />
+          <Route path="inbox" element={<AdminInboxPage />} />
         </Route>
       </Routes>
 
