@@ -34,6 +34,7 @@ const AdminNavbar = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [, setShowUserMenu] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
 
   const [notifications, setNotifications] = useState<
     AdminNotification[]
@@ -49,6 +50,10 @@ const AdminNavbar = () => {
     if (!lastEvent) return;
 
     if (lastEvent.type === "contact:new") {
+      // Increment unread counter (NO LIMIT)
+      setUnreadCount((prev) => prev + 1);
+
+      // Update dropdown list (LIMITED to 3)
       setNotifications((prev) => {
         const newNotification: AdminNotification = {
           id: crypto.randomUUID(),
@@ -115,10 +120,9 @@ const AdminNavbar = () => {
   ];
 
   const navLinkClass = ({ isActive }: { isActive: boolean }) =>
-    `flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 ${
-      isActive
-        ? "bg-gradient-to-r from-blue-600/20 to-emerald-600/20 text-white border-l-4 border-blue-500"
-        : "text-slate-300 hover:bg-white/5 hover:text-white"
+    `flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 ${isActive
+      ? "bg-gradient-to-r from-blue-600/20 to-emerald-600/20 text-white border-l-4 border-blue-500"
+      : "text-slate-300 hover:bg-white/5 hover:text-white"
     }`;
 
   /* =====================
@@ -190,14 +194,19 @@ const AdminNavbar = () => {
                 onClick={() => {
                   setShowNotifications(!showNotifications);
                   setShowUserMenu(false);
+
+                  // Mark all as seen
+                  if (!showNotifications) {
+                    setUnreadCount(0);
+                  }
                 }}
                 className="relative p-2.5 rounded-xl bg-slate-800/50 border border-slate-700/50"
               >
                 <Bell className="w-5 h-5 text-slate-300" />
 
-                {notifications.length > 0 && (
+                {unreadCount > 0 && (
                   <span className="absolute -top-1 -right-1 w-6 h-6 bg-red-500 text-xs rounded-full flex items-center justify-center border-2 border-slate-900">
-                    {notifications.length}
+                    {unreadCount > 99 ? "99+" : unreadCount}
                   </span>
                 )}
               </button>
