@@ -1,3 +1,5 @@
+// server/modules/newsletter/admin.newsletter.controller.ts
+
 import { Request, Response } from "express";
 import { z } from "zod";
 import {
@@ -7,7 +9,7 @@ import {
 
 const sendSchema = z.object({
   subject: z.string().min(3),
-  html: z.string().min(10),
+  content: z.string().min(10),
 });
 
 // GET /api/admin/newsletter/subscribers?status=subscribed
@@ -29,7 +31,7 @@ export const sendCampaign = async (req: Request, res: Response) => {
 
   const result = await sendNewsletterCampaign(
     parsed.data.subject,
-    parsed.data.html
+    parsed.data.content
   );
 
   res.json({

@@ -12,17 +12,19 @@ export const fetchSubscribers = async (status: string) => {
     `${API_BASE_URL}/api/admin/newsletter/subscribers?status=${status}`,
     { headers: getAuthHeaders() }
   );
+
   return res.data;
 };
 
 export const sendNewsletter = async (payload: {
   subject: string;
-  html: string;
+  content: string;
 }) => {
   const res = await axios.post(
     `${API_BASE_URL}/api/admin/newsletter/send`,
     payload,
     { headers: getAuthHeaders() }
   );
+
   return res.data;
 };
