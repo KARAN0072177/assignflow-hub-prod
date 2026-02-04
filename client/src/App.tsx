@@ -27,6 +27,7 @@ import AdminInboxPage from "./admin/pages/AdminInboxPage";
 import PrivacyPage from "./pages/Privacy";
 import TermsPage from "./pages/Terms";
 import CookiePolicyPage from "./pages/cookies";
+import HelpCenterPage from "./pages/help";
 
 function AppRoutes() {
   const location = useLocation();
@@ -51,6 +52,7 @@ function AppRoutes() {
         <Route path="/privacy" element={<PrivacyPage />} />
         <Route path="/terms" element={<TermsPage />} />
         <Route path="/cookies" element={<CookiePolicyPage />} />
+        <Route path="/help" element={<HelpCenterPage />} />
 
         {/* Dashboard layout */}
         <Route path="/dashboard" element={<DashboardLayout />}>
