@@ -28,6 +28,8 @@ import PrivacyPage from "./pages/Privacy";
 import TermsPage from "./pages/Terms";
 import CookiePolicyPage from "./pages/cookies";
 import HelpCenterPage from "./pages/help";
+import Unsubscribe from "./pages/Unsubscribe";
+import NewsletterPage from "./admin/newsletter/NewsletterPage";
 
 function AppRoutes() {
   const location = useLocation();
@@ -53,6 +55,7 @@ function AppRoutes() {
         <Route path="/terms" element={<TermsPage />} />
         <Route path="/cookies" element={<CookiePolicyPage />} />
         <Route path="/help" element={<HelpCenterPage />} />
+        <Route path="/unsubscribe" element={<Unsubscribe />} />
 
         {/* Dashboard layout */}
         <Route path="/dashboard" element={<DashboardLayout />}>
@@ -70,6 +73,7 @@ function AppRoutes() {
           <Route path="audit-logs" element={<AdminAuditLogs />} />
           <Route path="system" element={<AdminSystem />} />
           <Route path="inbox" element={<AdminInboxPage />} />
+          <Route path="newsletter" element={<NewsletterPage />} />
         </Route>
       </Routes>
 

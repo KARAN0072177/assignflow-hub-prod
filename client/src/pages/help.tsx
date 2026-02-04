@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
+  HelpCircle,
   Search,
   BookOpen,
   GraduationCap,
@@ -311,15 +312,49 @@ const HelpCenterPage = () => {
   }, []);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50/30 relative">
-      {/* Background Elements - SIMPLIFIED */}
-      <div className="fixed inset-0 bg-grid-slate-100 [mask-image:radial-gradient(ellipse_at_center,white,transparent_70%)] pointer-events-none z-0" />
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50/30 relative overflow-x-hidden">
+      {/* Background Elements with subtle animations */}
+      <div className="absolute inset-0 bg-grid-slate-100 [mask-image:radial-gradient(ellipse_at_center,white,transparent_70%)] pointer-events-none" />
       
-      {/* Floating Gradient Orbs - SIMPLIFIED */}
-      <div className="fixed top-0 left-1/4 w-[600px] h-[600px] bg-gradient-to-br from-blue-500/10 via-transparent to-emerald-500/10 rounded-full blur-3xl pointer-events-none z-0" />
-      <div className="fixed bottom-0 right-1/4 w-[500px] h-[500px] bg-gradient-to-tl from-purple-500/5 via-transparent to-blue-500/5 rounded-full blur-3xl pointer-events-none z-0" />
+      {/* Animated gradient orbs */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 0.1 }}
+        transition={{ duration: 1 }}
+        className="absolute top-0 left-1/4 w-[600px] h-[600px] bg-gradient-to-br from-blue-500/10 via-transparent to-emerald-500/10 rounded-full blur-3xl pointer-events-none"
+      />
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 0.1 }}
+        transition={{ duration: 1, delay: 0.5 }}
+        className="absolute bottom-0 right-1/4 w-[500px] h-[500px] bg-gradient-to-tl from-purple-500/5 via-transparent to-blue-500/5 rounded-full blur-3xl pointer-events-none"
+      />
 
-      {/* Content */}
+      {/* Floating icons with subtle animation */}
+      {[1, 2, 3, 4].map((i) => (
+        <motion.div
+          key={i}
+          className={`absolute ${i % 2 === 0 ? 'right-8' : 'left-8'} ${
+            i === 1 ? 'top-32' : i === 2 ? 'top-1/3' : i === 3 ? 'bottom-1/3' : 'bottom-32'
+          } pointer-events-none`}
+          initial={{ y: 0 }}
+          animate={{ y: [0, -15, 0] }}
+          transition={{
+            duration: 4,
+            repeat: Infinity,
+            ease: "easeInOut",
+            delay: i * 0.5,
+          }}
+        >
+          <div className="w-10 h-10 bg-white/70 backdrop-blur-sm rounded-lg shadow-md border border-slate-200/50 flex items-center justify-center text-blue-500">
+            {i === 1 && <HelpCircle className="w-5 h-5" />}
+            {i === 2 && <BookOpen className="w-5 h-5" />}
+            {i === 3 && <Shield className="w-5 h-5" />}
+            {i === 4 && <MessageSquare className="w-5 h-5" />}
+          </div>
+        </motion.div>
+      ))}
+
       <div className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-24">
         {/* Header */}
         <motion.div
@@ -328,12 +363,17 @@ const HelpCenterPage = () => {
           transition={{ duration: 0.5 }}
           className="text-center mb-12"
         >
-          <div className="inline-flex items-center gap-3 px-6 py-3 bg-gradient-to-r from-blue-500/10 via-emerald-500/10 to-purple-500/10 backdrop-blur-sm border border-white/30 rounded-full shadow-lg mb-8">
+          <motion.div
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ delay: 0.2 }}
+            className="inline-flex items-center gap-3 px-6 py-3 bg-gradient-to-r from-blue-500/10 via-emerald-500/10 to-purple-500/10 backdrop-blur-sm border border-white/30 rounded-full shadow-lg mb-8"
+          >
             <Sparkles className="w-5 h-5 text-amber-500" />
             <span className="text-sm font-semibold text-slate-800">
               Clear Guidance for Every User
             </span>
-          </div>
+          </motion.div>
 
           <motion.h1
             initial={{ opacity: 0, y: 20 }}
@@ -365,16 +405,23 @@ const HelpCenterPage = () => {
           </motion.p>
         </motion.div>
 
-        {/* Search Bar - SIMPLIFIED */}
+        {/* Search Bar with animations */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
           className="max-w-2xl mx-auto mb-16 search-container relative z-30"
         >
-          <div className="relative">
-            <div 
-              className="absolute inset-0 bg-gradient-to-r from-blue-500/10 to-emerald-500/10 rounded-2xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"
+          <motion.div 
+            className="relative group"
+            whileHover={{ scale: 1.01 }}
+            transition={{ duration: 0.2 }}
+          >
+            <motion.div 
+              className="absolute inset-0 bg-gradient-to-r from-blue-500/10 to-emerald-500/10 rounded-2xl blur-xl"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: isSearchFocused ? 0.3 : 0 }}
+              transition={{ duration: 0.3 }}
             />
             
             <div className="relative">
@@ -388,51 +435,66 @@ const HelpCenterPage = () => {
                 onBlur={handleSearchBlur}
                 onClick={handleSearchClick}
                 placeholder="Search for help topics..."
-                className="w-full pl-12 pr-4 py-4 bg-white/90 backdrop-blur-sm border-2 border-slate-200/50 rounded-2xl text-slate-700 placeholder-slate-500 focus:outline-none focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20 transition-all duration-300 cursor-text relative z-20"
+                className="w-full pl-12 pr-4 py-4 bg-white/90 backdrop-blur-sm border-2 border-slate-200/50 rounded-2xl text-slate-700 placeholder-slate-500 focus:outline-none focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20 transition-all duration-300 cursor-text relative z-20 hover:border-slate-300/70"
               />
             </div>
 
             <AnimatePresence>
               {isSearchFocused && searchQuery && filteredItems.length > 0 && (
                 <motion.div
-                  initial={{ opacity: 0, y: -10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10 }}
-                  className="absolute top-full left-0 right-0 mt-2 bg-white backdrop-blur-sm border border-slate-200 rounded-2xl shadow-xl z-40 max-h-96 overflow-y-auto"
+                  initial={{ opacity: 0, y: -10, scale: 0.95 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: -10, scale: 0.95 }}
+                  className="absolute top-full left-0 right-0 mt-2 bg-white/95 backdrop-blur-sm border border-white/50 rounded-2xl shadow-2xl z-40 max-h-96 overflow-y-auto"
                 >
                   <div className="py-2">
                     <div className="px-4 py-2 text-xs font-semibold text-slate-500 border-b border-slate-200/50">
                       {filteredItems.length} result{filteredItems.length !== 1 ? 's' : ''} found
                     </div>
-                    {filteredItems.map((item) => (
-                      <button
+                    {filteredItems.map((item, index) => (
+                      <motion.button
                         key={item.id}
+                        initial={{ opacity: 0, x: -10 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: index * 0.05 }}
+                        whileHover={{ backgroundColor: "rgba(248, 250, 252, 0.8)" }}
+                        whileTap={{ scale: 0.98 }}
                         onClick={(e) => {
                           e.preventDefault();
                           e.stopPropagation();
                           handleSearchItemClick(item);
                         }}
-                        className="w-full text-left px-4 py-3 hover:bg-slate-50 transition-colors duration-200 border-b border-slate-200/30 last:border-b-0 active:bg-slate-100 flex items-start gap-3"
+                        className="w-full text-left px-4 py-3 transition-colors duration-200 border-b border-slate-200/30 last:border-b-0 flex items-start gap-3 group/result"
                       >
-                        <div className={`w-8 h-8 rounded-lg bg-gradient-to-br ${item.sectionColor} p-1.5 flex-shrink-0`}>
+                        <motion.div 
+                          className={`w-8 h-8 rounded-lg bg-gradient-to-br ${item.sectionColor} p-1.5 flex-shrink-0`}
+                          whileHover={{ scale: 1.1 }}
+                          transition={{ duration: 0.2 }}
+                        >
                           <item.sectionIcon className="w-5 h-5 text-white" />
-                        </div>
+                        </motion.div>
                         <div className="flex-1 min-w-0">
                           <div className="text-xs font-medium text-slate-500 mb-1 truncate">
                             {item.sectionTitle}
                           </div>
-                          <div className="font-medium text-slate-900 truncate">
+                          <div className="font-medium text-slate-900 truncate group-hover/result:text-blue-600 transition-colors duration-200">
                             {item.title}
                           </div>
                         </div>
-                        <ArrowRight className="w-4 h-4 text-slate-400 flex-shrink-0 mt-1" />
-                      </button>
+                        <motion.div
+                          initial={{ x: -5, opacity: 0 }}
+                          animate={{ x: 0, opacity: 1 }}
+                          transition={{ delay: index * 0.05 + 0.1 }}
+                        >
+                          <ArrowRight className="w-4 h-4 text-slate-400 flex-shrink-0 mt-1 group-hover/result:text-blue-500 group-hover/result:translate-x-1 transition-all duration-200" />
+                        </motion.div>
+                      </motion.button>
                     ))}
                   </div>
                 </motion.div>
               )}
             </AnimatePresence>
-          </div>
+          </motion.div>
           
           {/* Show message when no results */}
           {searchQuery && filteredItems.length === 0 && (
@@ -452,7 +514,7 @@ const HelpCenterPage = () => {
           )}
         </motion.div>
 
-        {/* Quick Stats */}
+        {/* Quick Stats with hover effects */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -465,9 +527,14 @@ const HelpCenterPage = () => {
             { icon: Clock, value: "24h", label: "Response Goal", color: "text-purple-600" },
             { icon: CheckCircle, value: "100%", label: "Real Features", color: "text-amber-600" },
           ].map((stat, index) => (
-            <div
+            <motion.div
               key={index}
-              className="p-4 bg-white/80 backdrop-blur-sm border border-white/50 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-200 cursor-pointer active:scale-[0.98]"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.5 + index * 0.1 }}
+              whileHover={{ y: -4, scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              className="p-4 bg-white/90 backdrop-blur-sm border border-white/50 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-200 cursor-pointer overflow-hidden group"
               onClick={() => {
                 if (stat.value === "3 Roles") {
                   setExpandedSection("getting-started");
@@ -476,155 +543,261 @@ const HelpCenterPage = () => {
                 }
               }}
             >
-              <div className="flex items-center gap-3">
-                <div className={`w-10 h-10 rounded-xl bg-gradient-to-br from-blue-50 to-emerald-50 flex items-center justify-center ${stat.color}`}>
+              <motion.div 
+                className="absolute inset-0 bg-gradient-to-r from-blue-500/5 to-emerald-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+              />
+              <div className="relative flex items-center gap-3">
+                <motion.div 
+                  className={`w-10 h-10 rounded-xl bg-gradient-to-br from-blue-50 to-emerald-50 flex items-center justify-center ${stat.color} group-hover:scale-110 transition-transform duration-300`}
+                  whileHover={{ rotate: 5 }}
+                >
                   <stat.icon className="w-5 h-5" />
-                </div>
+                </motion.div>
                 <div>
-                  <div className="text-lg font-bold text-slate-900">{stat.value}</div>
-                  <div className="text-sm text-slate-600">{stat.label}</div>
+                  <div className="text-lg font-bold text-slate-900 group-hover:text-slate-800 transition-colors duration-200">
+                    {stat.value}
+                  </div>
+                  <div className="text-sm text-slate-600 group-hover:text-slate-700 transition-colors duration-200">
+                    {stat.label}
+                  </div>
                 </div>
               </div>
-            </div>
+            </motion.div>
           ))}
         </motion.div>
 
-        {/* Main Content - SIMPLIFIED */}
+        {/* Main Content with smooth animations */}
         <div className="space-y-4 relative z-10">
-          {sections.map((section) => (
-            <div
+          {sections.map((section, sectionIndex) => (
+            <motion.div
               key={section.id}
-              className="bg-white/90 backdrop-blur-sm border border-white/50 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-200 overflow-hidden"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1 * sectionIndex }}
+              className="group/section"
             >
-              {/* Section Header */}
-              <button
-                onClick={() => toggleSection(section.id)}
-                className="w-full p-6 text-left flex items-center justify-between gap-4 hover:bg-slate-50/50 transition-colors duration-200 active:bg-slate-100"
-                type="button"
-              >
-                <div className="flex items-center gap-4">
-                  <div className={`w-12 h-12 rounded-lg bg-gradient-to-br ${section.color} p-2.5 flex-shrink-0`}>
-                    <section.icon className="w-7 h-7 text-white" />
-                  </div>
-                  <div className="text-left">
-                    <h2 className="text-xl font-bold text-slate-900 mb-1">
-                      {section.title}
-                    </h2>
-                    <p className="text-slate-600 text-sm">{section.description}</p>
-                  </div>
-                </div>
-                <div className="flex-shrink-0">
-                  <ChevronDown 
-                    className={`w-6 h-6 text-slate-400 transition-transform duration-300 ${
-                      expandedSection === section.id ? 'rotate-0' : '-rotate-90'
-                    }`}
+              {/* Glow effect on hover */}
+              <motion.div 
+                className="absolute inset-0 bg-gradient-to-r from-blue-500/5 to-emerald-500/5 rounded-2xl blur-xl opacity-0 group-hover/section:opacity-100 transition-opacity duration-500 pointer-events-none"
+                whileHover={{ opacity: 0.3 }}
+              />
+              
+              <div className="relative bg-white/95 backdrop-blur-sm border border-white/50 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden">
+                {/* Section Header */}
+                <motion.button
+                  whileHover={{ backgroundColor: "rgba(249, 250, 251, 0.5)" }}
+                  whileTap={{ scale: 0.995 }}
+                  onClick={() => toggleSection(section.id)}
+                  className="w-full p-6 text-left flex items-center justify-between gap-4 transition-colors duration-200 relative overflow-hidden"
+                  type="button"
+                >
+                  {/* Animated background effect */}
+                  <motion.div 
+                    className="absolute inset-0 bg-gradient-to-r from-blue-50/30 to-emerald-50/30 opacity-0 group-hover/section:opacity-100 transition-opacity duration-300"
+                    initial={false}
+                    animate={expandedSection === section.id ? { opacity: 1 } : { opacity: 0 }}
                   />
-                </div>
-              </button>
-
-              {/* Section Content */}
-              {expandedSection === section.id && (
-                <div className="border-t border-slate-100">
-                  <div className="p-6">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {section.items.map((item) => (
-                        <div
-                          key={item.id}
-                          id={item.id}
-                          className="p-4 bg-gradient-to-r from-blue-50/50 to-emerald-50/50 border border-white rounded-lg hover:shadow-md transition-all duration-200 cursor-pointer"
-                          onClick={() => {
-                            const element = document.getElementById(item.id);
-                            if (element) {
-                              element.scrollIntoView({ 
-                                behavior: 'smooth',
-                                block: 'center'
-                              });
-                              element.classList.add('highlight-item');
-                              setTimeout(() => {
-                                element.classList.remove('highlight-item');
-                              }, 2000);
-                            }
-                          }}
-                        >
-                          <div className="flex items-start gap-3 mb-2">
-                            <div className={`w-8 h-8 rounded-md bg-gradient-to-br ${section.color} p-1.5 flex-shrink-0`}>
-                              <section.icon className="w-5 h-5 text-white" />
-                            </div>
-                            <h3 className="font-semibold text-slate-900 text-sm pt-0.5">
-                              {item.title}
-                            </h3>
-                          </div>
-                          <p className="text-slate-700 text-sm whitespace-pre-line">
-                            {item.content}
-                          </p>
-                        </div>
-                      ))}
-                    </div>
-
-                    {/* Section Footer */}
-                    <div className="mt-6 pt-4 border-t border-slate-200/50">
-                      <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-                        <div className="text-sm text-slate-600">
-                          {section.items.length} topic{section.items.length !== 1 ? 's' : ''} in this section
-                        </div>
-                        <div className="flex gap-3">
-                          <button
-                            onClick={() => setExpandedSection(null)}
-                            className="px-3 py-1.5 text-sm font-medium text-slate-700 hover:text-slate-900 hover:bg-slate-100/50 rounded-lg transition-all duration-200 active:scale-95"
-                          >
-                            Collapse Section
-                          </button>
-                          {section.id === "contact-support" && (
-                            <a
-                              href="/contact"
-                              className="px-3 py-1.5 bg-gradient-to-r from-blue-600 to-emerald-500 text-white text-sm font-medium rounded-lg hover:shadow-lg transition-all duration-200 active:scale-95"
-                            >
-                              Contact Support
-                            </a>
-                          )}
-                        </div>
-                      </div>
+                  
+                  <div className="relative flex items-center gap-4">
+                    <motion.div 
+                      className={`w-12 h-12 rounded-lg bg-gradient-to-br ${section.color} p-2.5 flex-shrink-0 group-hover/section:scale-110 transition-transform duration-300`}
+                      whileHover={{ rotate: [0, -5, 5, 0] }}
+                      transition={{ duration: 0.5 }}
+                    >
+                      <section.icon className="w-7 h-7 text-white" />
+                    </motion.div>
+                    <div className="text-left">
+                      <motion.h2 
+                        className="text-xl font-bold text-slate-900 mb-1 group-hover/section:text-slate-800 transition-colors duration-200"
+                        whileHover={{ x: 2 }}
+                      >
+                        {section.title}
+                      </motion.h2>
+                      <p className="text-slate-600 text-sm group-hover/section:text-slate-700 transition-colors duration-200">
+                        {section.description}
+                      </p>
                     </div>
                   </div>
-                </div>
-              )}
-            </div>
+                  <motion.div
+                    className="flex-shrink-0"
+                    animate={{ rotate: expandedSection === section.id ? 0 : -90 }}
+                    transition={{ duration: 0.3, type: "spring" }}
+                  >
+                    <ChevronDown className="w-6 h-6 text-slate-400 group-hover/section:text-slate-600 transition-colors duration-200" />
+                  </motion.div>
+                </motion.button>
+
+                {/* Section Content with AnimatePresence */}
+                <AnimatePresence>
+                  {expandedSection === section.id && (
+                    <motion.div
+                      key={`content-${section.id}`}
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: "auto", opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: 0.3, ease: "easeInOut" }}
+                      className="border-t border-slate-100 overflow-hidden"
+                    >
+                      <div className="p-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          {section.items.map((item, itemIndex) => (
+                            <motion.div
+                              key={item.id}
+                              id={item.id}
+                              initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                              animate={{ opacity: 1, y: 0, scale: 1 }}
+                              transition={{ delay: itemIndex * 0.05 }}
+                              whileHover={{ y: -2, scale: 1.01 }}
+                              whileTap={{ scale: 0.98 }}
+                              className="p-4 bg-gradient-to-r from-blue-50/50 to-emerald-50/50 border border-white rounded-lg hover:shadow-md transition-all duration-200 cursor-pointer group/item relative overflow-hidden"
+                              onClick={() => {
+                                const element = document.getElementById(item.id);
+                                if (element) {
+                                  element.scrollIntoView({ 
+                                    behavior: 'smooth',
+                                    block: 'center'
+                                  });
+                                  element.classList.add('highlight-item');
+                                  setTimeout(() => {
+                                    element.classList.remove('highlight-item');
+                                  }, 2000);
+                                }
+                              }}
+                            >
+                              {/* Hover glow effect */}
+                              <motion.div 
+                                className="absolute inset-0 bg-gradient-to-r from-blue-500/10 to-emerald-500/10 opacity-0 group-hover/item:opacity-100 transition-opacity duration-300 pointer-events-none"
+                                whileHover={{ opacity: 0.2 }}
+                              />
+                              
+                              <div className="relative flex items-start gap-3 mb-2">
+                                <motion.div 
+                                  className={`w-8 h-8 rounded-md bg-gradient-to-br ${section.color} p-1.5 flex-shrink-0 group-hover/item:scale-110 transition-transform duration-300`}
+                                  whileHover={{ rotate: 5 }}
+                                >
+                                  <section.icon className="w-5 h-5 text-white" />
+                                </motion.div>
+                                <motion.h3 
+                                  className="font-semibold text-slate-900 text-sm pt-0.5 group-hover/item:text-blue-700 transition-colors duration-200"
+                                  whileHover={{ x: 2 }}
+                                >
+                                  {item.title}
+                                </motion.h3>
+                              </div>
+                              <motion.p 
+                                className="text-slate-700 text-sm whitespace-pre-line relative group-hover/item:text-slate-800 transition-colors duration-200"
+                                initial={{ opacity: 0.9 }}
+                                whileHover={{ opacity: 1 }}
+                              >
+                                {item.content}
+                              </motion.p>
+                            </motion.div>
+                          ))}
+                        </div>
+
+                        {/* Section Footer */}
+                        <motion.div
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: 0.2 }}
+                          className="mt-6 pt-4 border-t border-slate-200/50"
+                        >
+                          <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+                            <div className="text-sm text-slate-600">
+                              {section.items.length} topic{section.items.length !== 1 ? 's' : ''} in this section
+                            </div>
+                            <div className="flex gap-3">
+                              <motion.button
+                                whileHover={{ scale: 1.05, backgroundColor: "rgba(248, 250, 252, 0.8)" }}
+                                whileTap={{ scale: 0.95 }}
+                                onClick={() => setExpandedSection(null)}
+                                className="px-3 py-1.5 text-sm font-medium text-slate-700 hover:text-slate-900 hover:bg-slate-100/50 rounded-lg transition-all duration-200"
+                              >
+                                Collapse Section
+                              </motion.button>
+                              {section.id === "contact-support" && (
+                                <motion.a
+                                  whileHover={{ scale: 1.05, boxShadow: "0 10px 25px -5px rgba(59, 130, 246, 0.3)" }}
+                                  whileTap={{ scale: 0.95 }}
+                                  href="/contact"
+                                  className="px-3 py-1.5 bg-gradient-to-r from-blue-600 to-emerald-500 text-white text-sm font-medium rounded-lg hover:shadow-lg transition-all duration-200 relative overflow-hidden group/contact"
+                                >
+                                  <motion.div 
+                                    className="absolute inset-0 bg-gradient-to-r from-blue-700 to-emerald-600 opacity-0 group-hover/contact:opacity-100 transition-opacity duration-300"
+                                  />
+                                  <span className="relative">Contact Support</span>
+                                </motion.a>
+                              )}
+                            </div>
+                          </div>
+                        </motion.div>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            </motion.div>
           ))}
         </div>
 
-        {/* CTA Section */}
+        {/* CTA Section with animations */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.8 }}
           className="mt-16 text-center relative z-10"
         >
-          <div className="p-8 bg-gradient-to-br from-blue-50/50 to-emerald-50/50 border border-blue-200/30 rounded-3xl">
-            <div className="max-w-2xl mx-auto">
-              <h3 className="text-2xl font-bold text-slate-900 mb-4">
+          <motion.div 
+            className="p-8 bg-gradient-to-br from-blue-50/50 to-emerald-50/50 border border-blue-200/30 rounded-3xl overflow-hidden"
+            whileHover={{ scale: 1.01 }}
+            transition={{ duration: 0.3 }}
+          >
+            {/* Animated background */}
+            <motion.div 
+              className="absolute inset-0 bg-gradient-to-r from-blue-500/10 via-emerald-500/10 to-purple-500/10 opacity-0 hover:opacity-100 transition-opacity duration-500"
+              whileHover={{ opacity: 0.3 }}
+            />
+            
+            <div className="relative max-w-2xl mx-auto">
+              <motion.h3 
+                className="text-2xl font-bold text-slate-900 mb-4"
+                whileHover={{ scale: 1.02 }}
+                transition={{ duration: 0.2 }}
+              >
                 Still Need Help?
-              </h3>
-              <p className="text-slate-600 mb-6">
+              </motion.h3>
+              <motion.p 
+                className="text-slate-600 mb-6"
+                whileHover={{ scale: 1.01 }}
+                transition={{ duration: 0.2 }}
+              >
                 Can't find what you're looking for? Our support team is here to help.
-              </p>
+              </motion.p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                <a
+                <motion.a
+                  whileHover={{ scale: 1.05, boxShadow: "0 20px 25px -5px rgba(59, 130, 246, 0.3)" }}
+                  whileTap={{ scale: 0.95 }}
                   href="/contact"
-                  className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-emerald-500 text-white font-semibold rounded-xl hover:shadow-lg transition-all duration-200 active:scale-95"
+                  className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-emerald-500 text-white font-semibold rounded-xl hover:shadow-lg transition-all duration-200 relative overflow-hidden group/cta"
                 >
-                  <MessageSquare className="w-5 h-5" />
-                  Contact Support
-                </a>
-                <a
+                  <motion.div 
+                    className="absolute inset-0 bg-gradient-to-r from-blue-700 to-emerald-600 opacity-0 group-hover/cta:opacity-100 transition-opacity duration-300"
+                  />
+                  <MessageSquare className="w-5 h-5 relative z-10" />
+                  <span className="relative z-10">Contact Support</span>
+                </motion.a>
+                <motion.a
+                  whileHover={{ scale: 1.05, backgroundColor: "rgba(255, 255, 255, 0.9)", borderColor: "rgb(147, 197, 253)" }}
+                  whileTap={{ scale: 0.95 }}
                   href="/"
-                  className="inline-flex items-center gap-2 px-6 py-3 bg-white/80 backdrop-blur-sm border border-slate-300 text-slate-700 font-semibold rounded-xl hover:border-blue-300 hover:text-blue-700 transition-all duration-200 active:scale-95"
+                  className="inline-flex items-center gap-2 px-6 py-3 bg-white/80 backdrop-blur-sm border border-slate-300 text-slate-700 font-semibold rounded-xl hover:border-blue-300 hover:text-blue-700 transition-all duration-200"
                 >
                   <ArrowRight className="w-5 h-5" />
                   Return to Home
-                </a>
+                </motion.a>
               </div>
             </div>
-          </div>
+          </motion.div>
         </motion.div>
       </div>
 
@@ -648,6 +821,14 @@ const HelpCenterPage = () => {
             box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
           }
         }
+        @keyframes float {
+          0%, 100% {
+            transform: translateY(0px);
+          }
+          50% {
+            transform: translateY(-10px);
+          }
+        }
         .animate-gradient {
           background-size: 200% 200%;
           animation: gradient 3s ease infinite;
@@ -658,22 +839,14 @@ const HelpCenterPage = () => {
         .highlight-item {
           animation: highlight 2s ease;
         }
+        .float-animation {
+          animation: float 4s ease-in-out infinite;
+        }
         
         /* Fix z-index issues */
         .search-container {
           position: relative;
           z-index: 30;
-        }
-        
-        /* Ensure search results are on top */
-        .search-results {
-          z-index: 50 !important;
-          position: absolute !important;
-        }
-        
-        /* Remove problematic blur effects */
-        .no-blur {
-          backdrop-filter: none !important;
         }
         
         /* Improve clickability */
@@ -682,9 +855,14 @@ const HelpCenterPage = () => {
           -webkit-tap-highlight-color: transparent;
         }
         
-        button:active, a:active {
-          transform: scale(0.98);
-          transition: transform 0.1s;
+        /* Remove blue highlight on mobile */
+        button:focus, a:focus {
+          outline: none;
+        }
+        
+        /* Smooth transitions */
+        * {
+          transition: background-color 0.3s ease, border-color 0.3s ease, transform 0.3s ease;
         }
         
         /* Mobile touch improvements */
@@ -695,14 +873,8 @@ const HelpCenterPage = () => {
           }
           
           input {
-            font-size: 16px; /* Prevents iOS zoom on focus */
+            font-size: 16px;
           }
-        }
-        
-        /* Prevent text selection on buttons */
-        button {
-          user-select: none;
-          -webkit-user-select: none;
         }
       `}</style>
     </div>

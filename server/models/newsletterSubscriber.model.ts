@@ -8,7 +8,7 @@ export interface INewsletterSubscriber extends Document {
   subscribedAt: Date;
   unsubscribedAt?: Date;
   unsubscribeReason?: string;
-  source: "footer" | "signup" | "settings" | "manual";
+  source: "footer" | "signup" | "settings" | "manual" | "website";
   createdAt: Date;
   updatedAt: Date;
 }
@@ -46,8 +46,8 @@ const NewsletterSubscriberSchema = new Schema<INewsletterSubscriber>(
 
     source: {
       type: String,
-      enum: ["footer", "signup", "settings", "manual"],
-      default: "footer",
+      enum: ["footer", "signup", "settings", "manual","website"],
+      default: "website",
     },
   },
   {

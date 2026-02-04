@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import Testimonials from "../components/Testimonials";
 import Features from "../components/Features";
+import NewsletterSubscribe from "../components/NewsletterSubscribe";
 
 const Home = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -357,6 +358,7 @@ const Home = () => {
 
     <Features />
     <Testimonials />
+    <NewsletterSubscribe />
     </>
   );
 };

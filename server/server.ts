@@ -37,6 +37,10 @@ import contactRoutes from "./modules/contact/contact.routes";
 
 import adminContactRoutes from "./modules/admin/admin.contact.routes";
 
+import newsletterRoutes from "./modules/newsletter/newsletter.routes";
+
+import adminNewsletterRoutes from "./modules/newsletter/admin.newsletter.routes";
+
 
 // websockets imports
 
@@ -98,6 +102,7 @@ app.use("/api/admin", adminRoutes);              // admin management routes
 app.use("/api/admin", adminAnalyticsRoutes);     // admin analytics routes
 app.use("/api/admin", adminSystemRoutes);       // admin system metadata routes
 app.use("/api/admin", adminContactRoutes);
+app.use("/api/admin/newsletter", adminNewsletterRoutes);
 
 app.get("/__demo", (_req, res) => {
   res.json({
@@ -115,6 +120,7 @@ app.post("/__demo-post", (req, res) => {
 
 app.use("/api/feedback", feedbackRoutes);
 app.use("/api/contact", contactRoutes);
+app.use("/api/newsletter", newsletterRoutes);
 
 const demoRouter = Router();
 
