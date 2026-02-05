@@ -1,7 +1,7 @@
 import axios from "axios";
 import type { RegisterPayload, LoginPayload, LoginResponse } from "../types/auth.types";
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
 export const registerUser = async (payload: RegisterPayload) => {
   const response = await axios.post(

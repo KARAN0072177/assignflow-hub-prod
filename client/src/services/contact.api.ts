@@ -2,7 +2,7 @@ import axios from "axios";
 import type { ContactPayload } from "../types/contact.types";
 
 const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
+  import.meta.env.VITE_API_BASE_URL;
 
 /**
  * Submit contact form

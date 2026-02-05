@@ -2,6 +2,7 @@ import { useState } from "react";
 import { loginUser } from "../services/auth.api";
 import { useNavigate, Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
+
 import {
   Lock,
   Mail,
@@ -49,7 +50,13 @@ const Login = () => {
 
       window.dispatchEvent(new Event("storage"));
 
-      navigate("/dashboard");
+      // 👇 role-based redirect
+      if (data.user.role === "ADMIN") {
+        navigate("/admin/dashboard");
+      } else {
+        navigate("/dashboard");
+      }
+
     } catch (err: any) {
       setError(err?.response?.data?.message || "Login failed. Please check your credentials.");
     } finally {
@@ -131,12 +138,6 @@ const Login = () => {
                 <label className="block text-sm font-semibold text-slate-800">
                   Password
                 </label>
-                <Link
-                  to="/forgot-password"
-                  className="text-sm text-blue-600 hover:text-blue-800 transition-colors"
-                >
-                  Forgot password?
-                </Link>
               </div>
               <div className="relative">
                 <input

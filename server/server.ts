@@ -54,8 +54,25 @@ const app = express();
 /**
  * Global middlewares
  */
+
+// CORS MUST BE FIRST
+app.use(
+  cors({
+    origin: [
+      "https://assignflowhub.karanart.com",
+      "http://localhost:5173",
+      "http://localhost:4173",
+    ],
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+  })
+);
+
+// Handle preflight explicitly
+app.options("*", cors());
+
 app.use(helmet());
-app.use(cors());
 
 
 
@@ -104,33 +121,11 @@ app.use("/api/admin", adminSystemRoutes);       // admin system metadata routes
 app.use("/api/admin", adminContactRoutes);
 app.use("/api/admin/newsletter", adminNewsletterRoutes);
 
-app.get("/__demo", (_req, res) => {
-  res.json({
-    ok: true,
-    message: "Demo GET route working",
-  });
-});
 
-app.post("/__demo-post", (req, res) => {
-  res.json({
-    ok: true,
-    receivedBody: req.body,
-  });
-});
 
 app.use("/api/feedback", feedbackRoutes);
 app.use("/api/contact", contactRoutes);
 app.use("/api/newsletter", newsletterRoutes);
-
-const demoRouter = Router();
-
-demoRouter.get("/ping", (_req, res) => {
-  res.json({ ok: true, route: "/api/demo/ping" });
-});
-
-app.use("/api/demo", demoRouter);
-
-
 
 
 app.get("/api/test-auth", requireAuth, (req, res) => {
@@ -144,6 +139,17 @@ app.use(
   bullmqAuth,
   bullBoardAdapter.getRouter()
 );
+
+// ===============================
+// Global Error Handler (LAST)
+// ===============================
+app.use((err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
+  console.error("🔥 Unhandled Error:", err);
+
+  res.status(err.status || 500).json({
+    message: err.message || "Internal server error",
+  });
+});
 
 
 const server = http.createServer(app);
@@ -172,6 +178,10 @@ const startServer = async () => {
     process.exit(1);
   }
 };
+
+app.get("/socket-health", (req, res) => {
+  res.json({ socket: "ok" });
+});
 
 startServer();
 

@@ -19,6 +19,7 @@ import {
   ExternalLink,
   Mail,
   BellRing,
+  MessageCircle,
 } from "lucide-react";
 
 /* =====================
@@ -120,6 +121,13 @@ const AdminNavbar = () => {
       path: "/admin/inbox",
       label: "Inbox",
       icon: Mail,
+      exact: false,
+      color: "amber",
+    },
+        {
+      path: "/admin/newsletter",
+      label: "Newsletters",
+      icon: MessageCircle,
       exact: false,
       color: "amber",
     },
