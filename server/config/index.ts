@@ -39,5 +39,5 @@ export const config = {
   gmailUser: process.env.GMAIL_USER!,
   gmailAppPassword:process.env.GMAIL_APP_PASSWORD!,
   resendApiKey: process.env.RESEND_API_KEY!,
-  ADMIN_CONTACT_EMAIL:process.env.ADMIN_CONTACT_EMAIL,
+  ADMIN_CONTACT_EMAIL:process.env.ADMIN_CONTACT_EMAIL!,
 };
