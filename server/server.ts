@@ -21,7 +21,7 @@ import gradeRoutes from "./modules/grades/grade.routes";
 import { registerRepeatableJobs } from "./queues/scheduler";  // import the scheduler
 
 import adminRoutes from "./modules/admin/admin.routes"; // import admin routes
-import { setupBullMQDashboard } from "./admin/bullmq";
+
 import { adminGuard } from "./middleware/adminGuard";
 import { bullmqAuth } from "./middleware/bullmqAuth";
 
@@ -132,13 +132,6 @@ app.get("/api/test-auth", requireAuth, (req, res) => {
   res.json({ message: "Authenticated access granted", user: req.user });
 });
 
-const bullBoardAdapter = setupBullMQDashboard();
-
-app.use(
-  "/admin/queues",
-  bullmqAuth,
-  bullBoardAdapter.getRouter()
-);
 
 // ===============================
 // Global Error Handler (LAST)
@@ -165,8 +158,20 @@ const startServer = async () => {
   try {
     await connectDB();
 
-    // 🔁 Register background jobs AFTER DB is ready
-    await registerRepeatableJobs();
+    if (process.env.NODE_ENV === "production") {
+      // 🔥 Lazy-load BullMQ dashboard ONLY in prod
+      const { setupBullMQDashboard } = await import("./admin/bullmq");
+      const bullBoardAdapter = setupBullMQDashboard();
+
+      app.use(
+        "/admin/queues",
+        bullmqAuth,
+        bullBoardAdapter.getRouter()
+      );
+
+      await registerRepeatableJobs();
+      await import("./worker/worker");
+    }
 
     server.listen(config.port, () => {
       console.log(
@@ -178,12 +183,6 @@ const startServer = async () => {
     process.exit(1);
   }
 };
-
-app.get("/socket-health", (req, res) => {
-  res.json({ socket: "ok" });
-});
-
-startServer();
 
 /**
  * Graceful shutdown
