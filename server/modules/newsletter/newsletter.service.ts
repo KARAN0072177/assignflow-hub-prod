@@ -22,11 +22,13 @@ export const subscribeToNewsletter = async (
 
     await existing.save();
 
-    // 📧 confirmation mail
-    await sendMail({
+    // 📧 confirmation mail (NON-BLOCKING)
+    sendMail({
       to: email,
       subject: "You're subscribed to AssignFlow Hub Newsletter",
       html: newsletterSubscribedTemplate(email),
+    }).catch((err) => {
+      console.error("❌ Newsletter resubscribe email failed:", err);
     });
 
     return { resubscribed: true };
@@ -38,11 +40,13 @@ export const subscribeToNewsletter = async (
     source,
   });
 
-  // 📧 confirmation mail
-  await sendMail({
+  // 📧 confirmation mail (NON-BLOCKING)
+  sendMail({
     to: email,
     subject: "You're subscribed to AssignFlow Hub Newsletter",
     html: newsletterSubscribedTemplate(email),
+  }).catch((err) => {
+    console.error("❌ Newsletter subscribe email failed:", err);
   });
 
   return { subscribed: true };
