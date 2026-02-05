@@ -43,12 +43,16 @@ export const handleContactSubmission = async ({
     console.warn("⚠️ Socket emit failed:", err);
   }
 
-  // 2️⃣ Email to admin (Professional notification)
+// 2️⃣ Email to admin (NON-BLOCKING)
+try {
   await sendMail({
     to: process.env.ADMIN_CONTACT_EMAIL!,
     subject: `📬 New Contact Message from ${name}`,
     html: generateAdminEmail({ name, email, phone, message: cleanMessage }),
   });
+} catch (err) {
+  console.error("❌ Admin email failed:", err);
+}
 
   // 3️⃣ Confirmation to user (Professional receipt)
   await sendMail({
