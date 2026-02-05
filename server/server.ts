@@ -173,9 +173,11 @@ const startServer = async () => {
       await import("./worker/worker");
     }
 
-    server.listen(config.port, () => {
+    const PORT = Number(process.env.PORT) || config.port || 5000;
+
+    server.listen(PORT, () => {
       console.log(
-        `🚀 AssignFlow Hub API + WebSocket running on port ${config.port} (${config.env})`
+        `🚀 AssignFlow Hub API + WebSocket running on port ${PORT} (${config.env})`
       );
     });
   } catch (error) {
