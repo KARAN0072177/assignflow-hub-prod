@@ -175,7 +175,7 @@ const startServer = async () => {
 
     const PORT = Number(process.env.PORT) || config.port || 5000;
 
-    server.listen(PORT, () => {
+    server.listen(PORT, "0.0.0.0" ,() => {
       console.log(
         `🚀 AssignFlow Hub API + WebSocket running on port ${PORT} (${config.env})`
       );
