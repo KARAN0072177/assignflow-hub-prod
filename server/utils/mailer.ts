@@ -1,15 +1,7 @@
-import nodemailer from "nodemailer";
+import { Resend } from "resend";
 import { config } from "../config";
 
-export const mailer = nodemailer.createTransport({
-  host: "smtp.gmail.com",
-  port: 465,
-  secure: true, // IMPORTANT
-  auth: {
-    user: config.gmailUser,
-    pass: config.gmailAppPassword, // App Password ONLY
-  },
-});
+const resend = new Resend(config.resendApiKey);
 
 export const sendMail = async ({
   to,
@@ -21,14 +13,14 @@ export const sendMail = async ({
   html: string;
 }) => {
   try {
-    await mailer.sendMail({
-      from: `"AssignFlow Hub" <${config.gmailUser}>`,
+    await resend.emails.send({
+      from: "AssignFlow Hub <onboarding@resend.dev>",
       to,
       subject,
       html,
     });
   } catch (err) {
-    console.error("❌ EMAIL FAILED:", err);
-    throw err; // or swallow depending on logic
+    console.error("❌ EMAIL FAILED (Resend):", err);
+    // DO NOT throw — email must never break requests
   }
 };

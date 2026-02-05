@@ -36,7 +36,8 @@ export const config = {
   jwtSecret: parsedEnv.data.JWT_SECRET,
   bullmqAdminUser: process.env.BULLMQ_ADMIN_USER!,
   bullmqAdminPass: process.env.BULLMQ_ADMIN_PASS!,
-  gmailUser: process.env.GMAIL_USER,
-  gmailAppPassword:process.env.GMAIL_APP_PASSWORD,
+  gmailUser: process.env.GMAIL_USER!,
+  gmailAppPassword:process.env.GMAIL_APP_PASSWORD!,
+  resendApiKey: process.env.RESEND_API_KEY!,
   // ADMIN_CONTACT_EMAIL:process.env.ADMIN_CONTACT_EMAIL,
 };
