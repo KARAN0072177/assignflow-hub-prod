@@ -2,10 +2,12 @@ import nodemailer from "nodemailer";
 import { config } from "../config";
 
 export const mailer = nodemailer.createTransport({
-  service: "gmail",
+  host: "smtp.gmail.com",
+  port: 465,
+  secure: true, // IMPORTANT
   auth: {
     user: config.gmailUser,
-    pass: config.gmailAppPassword,
+    pass: config.gmailAppPassword, // App Password ONLY
   },
 });
 
@@ -18,10 +20,15 @@ export const sendMail = async ({
   subject: string;
   html: string;
 }) => {
-  await mailer.sendMail({
-    from: `"AssignFlow Hub" <${config.gmailUser}>`,
-    to,
-    subject,
-    html,
-  });
+  try {
+    await mailer.sendMail({
+      from: `"AssignFlow Hub" <${config.gmailUser}>`,
+      to,
+      subject,
+      html,
+    });
+  } catch (err) {
+    console.error("❌ EMAIL FAILED:", err);
+    throw err; // or swallow depending on logic
+  }
 };
