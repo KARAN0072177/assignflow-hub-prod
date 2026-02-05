@@ -56,31 +56,33 @@ const app = express();
  */
 
 // CORS MUST BE FIRST
-app.use(
-  cors({
-    origin: (origin, callback) => {
-      const allowedOrigins = [
-        "https://assignflowhub.karanart.com",
-        "http://localhost:5173",
-        "http://localhost:4173",
-      ];
+const corsOptions: cors.CorsOptions = {
+  origin: (origin, callback) => {
+    const allowedOrigins = [
+      "https://assignflowhub.karanart.com",
+      "http://localhost:5173",
+      "http://localhost:4173",
+    ];
 
-      if (
-        !origin ||
-        allowedOrigins.includes(origin) ||
-        origin.endsWith(".onrender.com")
-      ) {
-        callback(null, true);
-      } else {
-        callback(new Error("Not allowed by CORS"));
-      }
-    },
-    credentials: true,
-  })
-);
+    if (
+      !origin ||
+      allowedOrigins.includes(origin) ||
+      origin.endsWith(".onrender.com")
+    ) {
+      callback(null, true);
+    } else {
+      callback(new Error("Not allowed by CORS"));
+    }
+  },
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+};
+// CORS MUST BE FIRST
+app.use(cors(corsOptions));
 
-// Handle preflight explicitly
-app.options("*", cors());
+// Handle preflight explicitly (IMPORTANT)
+app.options("*", cors(corsOptions));
 
 app.use(helmet());
 
