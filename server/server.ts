@@ -58,14 +58,24 @@ const app = express();
 // CORS MUST BE FIRST
 app.use(
   cors({
-    origin: [
-      "https://assignflowhub.karanart.com",
-      "http://localhost:5173",
-      "http://localhost:4173",
-    ],
+    origin: (origin, callback) => {
+      const allowedOrigins = [
+        "https://assignflowhub.karanart.com",
+        "http://localhost:5173",
+        "http://localhost:4173",
+      ];
+
+      if (
+        !origin ||
+        allowedOrigins.includes(origin) ||
+        origin.endsWith(".onrender.com")
+      ) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
     credentials: true,
-    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"],
   })
 );
 
@@ -175,7 +185,7 @@ const startServer = async () => {
 
     const PORT = Number(process.env.PORT) || config.port || 5000;
 
-    server.listen(PORT, "0.0.0.0" ,() => {
+    server.listen(PORT, "0.0.0.0", () => {
       console.log(
         `🚀 AssignFlow Hub API + WebSocket running on port ${PORT} (${config.env})`
       );
