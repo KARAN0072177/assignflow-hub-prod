@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
+import { BrowserRouter, Routes, Route, useLocation, Navigate } from "react-router-dom";
 
 import Register from "./pages/Register";
 import Login from "./pages/Login";
@@ -30,6 +30,8 @@ import CookiePolicyPage from "./pages/cookies";
 import HelpCenterPage from "./pages/help";
 import Unsubscribe from "./pages/Unsubscribe";
 import NewsletterPage from "./admin/newsletter/NewsletterPage";
+import NotFound from "./pages/NotFound";
+import About from "./pages/About";
 
 function AppRoutes() {
   const location = useLocation();
@@ -47,8 +49,11 @@ function AppRoutes() {
       <Routes>
         {/* Public routes */}
         <Route path="/home" element={<Home />} />
+        <Route path="*" element={<NotFound />} />
+        <Route path="/" element={<Navigate to="/home" />} />
         <Route path="/register" element={<Register />} />
         <Route path="/login" element={<Login />} />
+        <Route path="/about" element={<About />} />
         <Route path="/feedback" element={<FeedbackPage />} />
         <Route path="/contact" element={<ContactPage />} />
         <Route path="/privacy" element={<PrivacyPage />} />
