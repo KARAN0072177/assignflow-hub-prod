@@ -11,6 +11,11 @@ export const mailer = nodemailer.createTransport({
   },
 });
 
+mailer.verify((err) => {
+  if (err) console.error("❌ SMTP ERROR:", err);
+  else console.log("✅ SMTP server ready");
+});
+
 export const sendMail = async ({
   to,
   subject,

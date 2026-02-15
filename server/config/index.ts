@@ -13,6 +13,10 @@ const envSchema = z.object({
   PORT: z.string().transform(Number),
   MONGO_URI: z.string().min(1, "MONGO_URI is required"),
   JWT_SECRET: z.string().min(10, "JWT_SECRET must be at least 10 characters"),
+
+  // ✅ ADD THESE
+  GMAIL_USER: z.string().email("GMAIL_USER is required"),
+  GMAIL_APP_PASSWORD: z.string().min(8, "GMAIL_APP_PASSWORD is required"),
 });
 
 /**
@@ -34,9 +38,10 @@ export const config = {
   port: parsedEnv.data.PORT,
   mongoUri: parsedEnv.data.MONGO_URI,
   jwtSecret: parsedEnv.data.JWT_SECRET,
+
   bullmqAdminUser: process.env.BULLMQ_ADMIN_USER!,
   bullmqAdminPass: process.env.BULLMQ_ADMIN_PASS!,
-  gmailUser: process.env.GMAIL_USER,
-  gmailAppPassword:process.env.GMAIL_APP_PASSWORD,
-  // ADMIN_CONTACT_EMAIL:process.env.ADMIN_CONTACT_EMAIL,
+
+  gmailUser: parsedEnv.data.GMAIL_USER,
+  gmailAppPassword: parsedEnv.data.GMAIL_APP_PASSWORD,
 };
