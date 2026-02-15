@@ -1,3 +1,5 @@
+// server/middleware/rateLimiter.ts
+
 import rateLimit from "express-rate-limit";
 import { logRateLimitHit } from "../utils/securityLogger";
 
@@ -7,29 +9,16 @@ const getClientIp = (req: any) =>
   req.connection.remoteAddress ||
   "unknown";
 
-// Auth rate limiter
-export const authRateLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 5,
-  standardHeaders: true,
-  legacyHeaders: false,
+/* -----------------------------
+   REMOVE AUTH RATE LIMITER
+--------------------------------*/
 
-  handler: async (req, res) => {
-    await logRateLimitHit({
-      ip: getClientIp(req),
-      endpoint: req.originalUrl,
-      method: req.method,
-      userAgent: req.headers["user-agent"],
-    });
+// ❌ DELETE authRateLimiter COMPLETELY
 
-    res.status(429).json({
-      message:
-        "Too many authentication attempts. Please try again later.",
-    });
-  },
-});
+/* -----------------------------
+   KEEP UPLOAD LIMITER
+--------------------------------*/
 
-// Upload rate limiter
 export const uploadRateLimiter = rateLimit({
   windowMs: 10 * 60 * 1000,
   max: 10,
@@ -45,8 +34,7 @@ export const uploadRateLimiter = rateLimit({
     });
 
     res.status(429).json({
-      message:
-        "Too many upload attempts. Please slow down.",
+      message: "Too many upload attempts. Please slow down.",
     });
   },
 });

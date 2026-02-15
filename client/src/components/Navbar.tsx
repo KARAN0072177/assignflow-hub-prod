@@ -10,7 +10,8 @@ import {
   BookOpen,
   LayoutDashboard,
   Contact,
-  Info} from "lucide-react";
+  Info
+} from "lucide-react";
 
 const Navbar = () => {
   const navigate = useNavigate();
@@ -48,7 +49,7 @@ const Navbar = () => {
       const token = localStorage.getItem("authToken");
 
       if (token) {
-        await fetch("http://localhost:5000/api/auth/logout", {
+        await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/auth/logout`, {
           method: "POST",
           headers: {
             Authorization: `Bearer ${token}`,
@@ -130,16 +131,15 @@ const Navbar = () => {
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center gap-6">
             <div className="flex items-center gap-1">
-              {navItems.map((item) => 
+              {navItems.map((item) =>
                 item.show && (
                   <Link
                     key={item.path}
                     to={item.path}
-                    className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
-                      location.pathname === item.path
+                    className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${location.pathname === item.path
                         ? 'bg-blue-50 text-blue-700'
                         : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900'
-                    }`}
+                      }`}
                   >
                     {item.icon}
                     {item.label}
@@ -198,23 +198,22 @@ const Navbar = () => {
             className="md:hidden mt-4 border-t border-slate-200 pt-4"
           >
             <div className="space-y-2">
-              {navItems.map((item) => 
+              {navItems.map((item) =>
                 item.show && (
                   <Link
                     key={item.path}
                     to={item.path}
-                    className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200 ${
-                      location.pathname === item.path
+                    className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200 ${location.pathname === item.path
                         ? 'bg-blue-50 text-blue-700'
                         : 'text-slate-700 hover:bg-slate-100'
-                    }`}
+                      }`}
                   >
                     {item.icon}
                     {item.label}
                   </Link>
                 )
               )}
-              
+
               {/* Mobile Auth Section */}
               <div className="pt-4 border-t border-slate-200">
                 {!isLoggedIn ? (

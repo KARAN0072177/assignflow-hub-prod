@@ -5,6 +5,11 @@ import { UserRole } from "../../models/user.model";
 import { logAuditEvent } from "../../utils/auditLogger";
 import { AuthenticatedRequest } from "../../middleware/requireAuth";
 import { Types } from "mongoose";
+import {
+  isLoginBlocked,
+  recordFailedLogin,
+  resetLoginAttempts,
+} from "../../utils/loginAttemptLimiter";
 
 const registerSchema = z.object({
   email: z.string().email(),
@@ -52,8 +57,25 @@ export const login = async (req: Request, res: Response) => {
 
   const { email, password } = parsed.data;
 
+  // ✅ GET CLIENT IP
+  const ip =
+    req.ip ||
+    req.headers["x-forwarded-for"] ||
+    req.connection.remoteAddress ||
+    "unknown";
+
+  // ✅ BLOCK IF TOO MANY FAILED ATTEMPTS
+  if (isLoginBlocked(ip as string)) {
+    return res.status(429).json({
+      message: "Too many failed login attempts. Try again later.",
+    });
+  }
+
   try {
     const result = await loginUser(email, password);
+
+    // ✅ RESET FAILED ATTEMPTS ON SUCCESS
+    resetLoginAttempts(ip as string);
 
     // 🔍 Audit log
     await logAuditEvent({
@@ -67,6 +89,9 @@ export const login = async (req: Request, res: Response) => {
 
     res.status(200).json(result);
   } catch (error: any) {
+    // ✅ RECORD FAILED ATTEMPT
+    recordFailedLogin(ip as string);
+
     res.status(401).json({ message: error.message });
   }
 };
