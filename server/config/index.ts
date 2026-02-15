@@ -14,9 +14,7 @@ const envSchema = z.object({
   MONGO_URI: z.string().min(1, "MONGO_URI is required"),
   JWT_SECRET: z.string().min(10, "JWT_SECRET must be at least 10 characters"),
 
-  // ✅ ADD THESE
-  GMAIL_USER: z.string().email("GMAIL_USER is required"),
-  GMAIL_APP_PASSWORD: z.string().min(8, "GMAIL_APP_PASSWORD is required"),
+  RESEND_API_KEY: z.string().min(10),
 });
 
 /**
@@ -42,6 +40,5 @@ export const config = {
   bullmqAdminUser: process.env.BULLMQ_ADMIN_USER!,
   bullmqAdminPass: process.env.BULLMQ_ADMIN_PASS!,
 
-  gmailUser: parsedEnv.data.GMAIL_USER,
-  gmailAppPassword: parsedEnv.data.GMAIL_APP_PASSWORD,
+  resendApiKey: parsedEnv.data.RESEND_API_KEY,
 };
