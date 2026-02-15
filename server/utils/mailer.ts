@@ -12,14 +12,16 @@ export const sendMail = async ({
   html: string;
 }) => {
   try {
-    await resend.emails.send({
-      from: "AssignFlow Hub <onboarding@resend.dev>",
+    const response = await resend.emails.send({
+      from: "AssignFlow Hub <no-reply@karanart.com>",
       to,
       subject,
       html,
     });
+
+    console.log("📨 RESEND RESPONSE:", response);
   } catch (err) {
-    console.error("❌ EMAIL FAILED:", err);
+    console.error("❌ RESEND ERROR:", err);
     throw err;
   }
 };
