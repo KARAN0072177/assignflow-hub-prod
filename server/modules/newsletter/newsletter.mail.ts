@@ -1,5 +1,5 @@
 export const newsletterSubscribedTemplate = (email: string) => {
-  const unsubscribeUrl = `http://localhost:5173/unsubscribe?email=${encodeURIComponent(
+  const unsubscribeUrl = `${process.env.FRONTEND_URL}/unsubscribe?email=${encodeURIComponent(
     email
   )}`;
 
