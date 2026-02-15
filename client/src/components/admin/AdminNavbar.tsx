@@ -135,7 +135,7 @@ const AdminNavbar = () => {
 
   const externalLinks = [
     {
-      href: "http://localhost:5000/admin/queues",
+      href: `${import.meta.env.VITE_API_BASE_URL}/admin/queues`,
       label: "Job Monitor",
       icon: Activity,
       badge: "Live",
