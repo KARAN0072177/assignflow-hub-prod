@@ -32,6 +32,9 @@ import Unsubscribe from "./pages/Unsubscribe";
 import NewsletterPage from "./admin/newsletter/NewsletterPage";
 import NotFound from "./pages/NotFound";
 import About from "./pages/About";
+import BlogPage from "./pages/admin/blog/BlogPage";
+import BlogListPage from "./pages/BlogListPage";
+import BlogDetailPage from "./pages/BlogDetailPage";
 
 function AppRoutes() {
   const location = useLocation();
@@ -61,6 +64,8 @@ function AppRoutes() {
         <Route path="/cookies" element={<CookiePolicyPage />} />
         <Route path="/help" element={<HelpCenterPage />} />
         <Route path="/unsubscribe" element={<Unsubscribe />} />
+        <Route path="/blog" element={<BlogListPage />} />
+        <Route path="/blog/:slug" element={<BlogDetailPage />} />
 
         {/* Dashboard layout */}
         <Route path="/dashboard" element={<DashboardLayout />}>
@@ -79,6 +84,7 @@ function AppRoutes() {
           <Route path="system" element={<AdminSystem />} />
           <Route path="inbox" element={<AdminInboxPage />} />
           <Route path="newsletter" element={<NewsletterPage />} />
+          <Route path="blogs" element={<BlogPage />} />
         </Route>
       </Routes>
 

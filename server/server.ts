@@ -46,6 +46,7 @@ import adminNewsletterRoutes from "./modules/newsletter/admin.newsletter.routes"
 
 import http from "http";
 import { initSocket } from "./socket";
+import blogRoutes from "./modules/blog/blog.routes";
 
 
 
@@ -138,6 +139,8 @@ app.use("/api/admin/newsletter", adminNewsletterRoutes);
 app.use("/api/feedback", feedbackRoutes);
 app.use("/api/contact", contactRoutes);
 app.use("/api/newsletter", newsletterRoutes);
+
+app.use("/api/blogs", blogRoutes);
 
 
 app.get("/api/test-auth", requireAuth, (req, res) => {
