@@ -17,7 +17,8 @@ import {
   Edit2,
   Award,
   FolderOpen,
-  ArrowLeft
+  ArrowLeft,
+  CalendarX // Add this icon for overdue
 } from "lucide-react";
 
 const API_BASE_URL =
@@ -107,6 +108,12 @@ const ClassroomDetail = () => {
     });
   };
 
+  // Add this function to check if due date has passed
+  const isDueDatePassed = (dueDate?: string) => {
+    if (!dueDate) return false;
+    return new Date(dueDate) < new Date();
+  };
+
   const getAssignmentStatusColor = (state: string, type: string) => {
     if (state === "PUBLISHED") {
       return type === "GRADED" ? "bg-emerald-100 text-emerald-800" : "bg-blue-100 text-blue-800";
@@ -119,16 +126,53 @@ const ClassroomDetail = () => {
     return <FolderOpen className="w-4 h-4" />;
   };
 
-  const getSubmissionStatus = (submission: any) => {
-    if (!submission) return null;
+  const getSubmissionStatus = (submission: any, dueDate?: string) => {
+    const duePassed = isDueDatePassed(dueDate);
+    
+    if (!submission) {
+      if (duePassed) {
+        return (
+          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs bg-red-100 text-red-800">
+            <CalendarX className="w-3 h-3" /> Due Date Passed
+          </span>
+        );
+      }
+      return null;
+    }
     
     switch (submission.state) {
       case "DRAFT":
-        return <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs bg-amber-100 text-amber-800"><Edit2 className="w-3 h-3" /> Draft</span>;
+        if (duePassed) {
+          return (
+            <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs bg-red-100 text-red-800">
+              <CalendarX className="w-3 h-3" /> Overdue - Draft
+            </span>
+          );
+        }
+        return (
+          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs bg-amber-100 text-amber-800">
+            <Edit2 className="w-3 h-3" /> Draft
+          </span>
+        );
       case "SUBMITTED":
-        return <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs bg-emerald-100 text-emerald-800"><CheckCircle className="w-3 h-3" /> Submitted</span>;
+        if (duePassed) {
+          return (
+            <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs bg-amber-100 text-amber-800">
+              <CheckCircle className="w-3 h-3" /> Submitted (Late)
+            </span>
+          );
+        }
+        return (
+          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs bg-emerald-100 text-emerald-800">
+            <CheckCircle className="w-3 h-3" /> Submitted
+          </span>
+        );
       case "LOCKED":
-        return <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs bg-red-100 text-red-800"><Lock className="w-3 h-3" /> Locked</span>;
+        return (
+          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs bg-red-100 text-red-800">
+            <Lock className="w-3 h-3" /> Locked
+          </span>
+        );
       default:
         return null;
     }
@@ -261,96 +305,119 @@ const ClassroomDetail = () => {
               </motion.div>
             ) : (
               <div className="space-y-4">
-                {assignments.map((assignment, index) => (
-                  <motion.div
-                    key={assignment.id}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.3, delay: index * 0.05 }}
-                    whileHover={{ y: -2 }}
-                    className="bg-white border border-slate-300 rounded-xl p-5 shadow-sm hover:shadow-md transition-all duration-200"
-                  >
-                    {/* Assignment Header */}
-                    <div className="flex items-start justify-between mb-4">
-                      <div className="flex items-start gap-3">
-                        <div className={`p-2 ${assignment.type === "GRADED" ? 'bg-emerald-50' : 'bg-blue-50'} rounded-lg`}>
-                          {getAssignmentIcon(assignment.type)}
-                        </div>
-                        <div>
-                          <h3 className="font-semibold text-slate-800 text-lg">{assignment.title}</h3>
-                          <div className="flex items-center gap-3 mt-2">
-                            <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium ${getAssignmentStatusColor(assignment.state, assignment.type)}`}>
-                              {assignment.state === "PUBLISHED" ? "Published" : "Draft"}
-                            </span>
-                            <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium ${assignment.type === "GRADED" ? 'bg-emerald-50 text-emerald-800' : 'bg-blue-50 text-blue-800'}`}>
-                              {assignment.type === "GRADED" ? "Graded" : "Material"}
-                            </span>
+                {assignments.map((assignment, index) => {
+                  const duePassed = isDueDatePassed(assignment.dueDate);
+                  const dueDateColor = duePassed ? 'text-red-600' : 'text-slate-600';
+                  
+                  return (
+                    <motion.div
+                      key={assignment.id}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.3, delay: index * 0.05 }}
+                      whileHover={{ y: -2 }}
+                      className="bg-white border border-slate-300 rounded-xl p-5 shadow-sm hover:shadow-md transition-all duration-200"
+                    >
+                      {/* Assignment Header */}
+                      <div className="flex items-start justify-between mb-4">
+                        <div className="flex items-start gap-3">
+                          <div className={`p-2 ${assignment.type === "GRADED" ? 'bg-emerald-50' : 'bg-blue-50'} rounded-lg`}>
+                            {getAssignmentIcon(assignment.type)}
+                          </div>
+                          <div>
+                            <h3 className="font-semibold text-slate-800 text-lg">{assignment.title}</h3>
+                            <div className="flex items-center gap-3 mt-2">
+                              <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium ${getAssignmentStatusColor(assignment.state, assignment.type)}`}>
+                                {assignment.state === "PUBLISHED" ? "Published" : "Draft"}
+                              </span>
+                              <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium ${assignment.type === "GRADED" ? 'bg-emerald-50 text-emerald-800' : 'bg-blue-50 text-blue-800'}`}>
+                                {assignment.type === "GRADED" ? "Graded" : "Material"}
+                              </span>
+                            </div>
                           </div>
                         </div>
-                      </div>
-                      {!isTeacher && assignment.submission && (
-                        <div className="flex-shrink-0">
-                          {getSubmissionStatus(assignment.submission)}
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Assignment Description */}
-                    {assignment.description && (
-                      <p className="text-slate-600 mb-4">{assignment.description}</p>
-                    )}
-
-                    {/* Assignment Details */}
-                    <div className="flex items-center justify-between pt-4 border-t border-slate-200">
-                      <div className="flex items-center gap-4 text-sm text-slate-600">
-                        {assignment.dueDate && (
-                          <div className="flex items-center gap-1">
-                            <Clock className="w-4 h-4" />
-                            <span>Due: {formatDate(assignment.dueDate)}</span>
+                        {!isTeacher && (
+                          <div className="flex-shrink-0">
+                            {getSubmissionStatus(assignment.submission, assignment.dueDate)}
                           </div>
                         )}
                       </div>
 
-                      {/* Student Actions */}
-                      {!isTeacher && assignment.type === "GRADED" && assignment.state === "PUBLISHED" && (
-                        <div className="flex items-center gap-3">
-                          {assignment.submission === null && (
-                            <div className="text-right">
-                              <p className="text-sm text-slate-600 mb-1">No submission yet</p>
-                              <SubmissionBox assignmentId={assignment.id} />
-                            </div>
-                          )}
-                          
-                          {assignment.submission?.state === "DRAFT" && (
-                            <div className="text-right">
-                              <p className="text-sm text-amber-600 mb-1">Draft in progress</p>
-                              <SubmissionBox assignmentId={assignment.id} />
-                            </div>
-                          )}
-                          
-                          {assignment.submission?.state === "SUBMITTED" && (
-                            <div className="flex items-center gap-2 text-emerald-600">
-                              <CheckCircle className="w-5 h-5" />
-                              <span className="font-medium">Submitted</span>
-                            </div>
-                          )}
-                          
-                          {assignment.submission?.state === "LOCKED" && (
-                            <div className="flex items-center gap-2 text-red-600">
-                              <Lock className="w-5 h-5" />
-                              <span className="font-medium">Submission Locked</span>
+                      {/* Assignment Description */}
+                      {assignment.description && (
+                        <p className="text-slate-600 mb-4">{assignment.description}</p>
+                      )}
+
+                      {/* Assignment Details */}
+                      <div className="flex items-center justify-between pt-4 border-t border-slate-200">
+                        <div className="flex items-center gap-4 text-sm text-slate-600">
+                          {assignment.dueDate && (
+                            <div className={`flex items-center gap-1 ${dueDateColor}`}>
+                              {duePassed ? <CalendarX className="w-4 h-4" /> : <Clock className="w-4 h-4" />}
+                              <span className={duePassed ? 'font-medium' : ''}>
+                                Due: {formatDate(assignment.dueDate)}
+                                {duePassed && <span className="ml-1 text-red-600">(Past due)</span>}
+                              </span>
                             </div>
                           )}
                         </div>
-                      )}
 
-                      {/* Teacher Actions */}
-                      {isTeacher && assignment.type === "GRADED" && (
-                        <TeacherSubmissions assignmentId={assignment.id} />
-                      )}
-                    </div>
-                  </motion.div>
-                ))}
+                        {/* Student Actions - Only show if due date hasn't passed */}
+                        {!isTeacher && 
+                         assignment.type === "GRADED" && 
+                         assignment.state === "PUBLISHED" && 
+                         !duePassed && (
+                          <div className="flex items-center gap-3">
+                            {assignment.submission === null && (
+                              <div className="text-right">
+                                <p className="text-sm text-slate-600 mb-1">No submission yet</p>
+                                <SubmissionBox assignmentId={assignment.id} />
+                              </div>
+                            )}
+                            
+                            {assignment.submission?.state === "DRAFT" && (
+                              <div className="text-right">
+                                <p className="text-sm text-amber-600 mb-1">Draft in progress</p>
+                                <SubmissionBox assignmentId={assignment.id} />
+                              </div>
+                            )}
+                            
+                            {assignment.submission?.state === "SUBMITTED" && (
+                              <div className="flex items-center gap-2 text-emerald-600">
+                                <CheckCircle className="w-5 h-5" />
+                                <span className="font-medium">Submitted</span>
+                              </div>
+                            )}
+                            
+                            {assignment.submission?.state === "LOCKED" && (
+                              <div className="flex items-center gap-2 text-red-600">
+                                <Lock className="w-5 h-5" />
+                                <span className="font-medium">Submission Locked</span>
+                              </div>
+                            )}
+                          </div>
+                        )}
+
+                        {/* Show message when due date passed and no submission */}
+                        {!isTeacher && 
+                         assignment.type === "GRADED" && 
+                         assignment.state === "PUBLISHED" && 
+                         duePassed && 
+                         !assignment.submission && (
+                          <div className="flex items-center gap-2 text-red-600">
+                            <CalendarX className="w-5 h-5" />
+                            <span className="font-medium">Submission Closed</span>
+                          </div>
+                        )}
+
+                        {/* Teacher Actions */}
+                        {isTeacher && assignment.type === "GRADED" && (
+                          <TeacherSubmissions assignmentId={assignment.id} />
+                        )}
+                      </div>
+                    </motion.div>
+                  );
+                })}
               </div>
             )}
           </AnimatePresence>
