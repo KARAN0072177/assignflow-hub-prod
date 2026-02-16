@@ -35,6 +35,8 @@ import About from "./pages/About";
 import BlogPage from "./pages/admin/blog/BlogPage";
 import BlogListPage from "./pages/BlogListPage";
 import BlogDetailPage from "./pages/BlogDetailPage";
+import SitemapPage from "./pages/SiteMap";
+import AccessibilityPage from "./pages/Accessibility";
 
 function AppRoutes() {
   const location = useLocation();
@@ -65,6 +67,8 @@ function AppRoutes() {
         <Route path="/help" element={<HelpCenterPage />} />
         <Route path="/unsubscribe" element={<Unsubscribe />} />
         <Route path="/blog" element={<BlogListPage />} />
+        <Route path="/sitemap" element={<SitemapPage />} />
+        <Route path="/accessibility" element={<AccessibilityPage />} />
         <Route path="/blog/:slug" element={<BlogDetailPage />} />
 
         {/* Dashboard layout */}

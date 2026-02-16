@@ -41,6 +41,9 @@ import newsletterRoutes from "./modules/newsletter/newsletter.routes";
 
 import adminNewsletterRoutes from "./modules/newsletter/admin.newsletter.routes";
 
+import sitemapRoutes from "./modules/seo/sitemap.routes"; // new import for sitemap route
+
+import robotsRoutes from "./modules/seo/robots.routes"; // new import for robots.txt route 
 
 // websockets imports
 
@@ -141,6 +144,10 @@ app.use("/api/contact", contactRoutes);
 app.use("/api/newsletter", newsletterRoutes);
 
 app.use("/api/blogs", blogRoutes);
+
+app.use("/", sitemapRoutes);
+
+app.use("/", robotsRoutes);
 
 
 app.get("/api/test-auth", requireAuth, (req, res) => {
