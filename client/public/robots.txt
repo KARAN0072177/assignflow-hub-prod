@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://assignflowhub.karanart.com/sitemap.xml
