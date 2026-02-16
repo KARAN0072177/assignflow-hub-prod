@@ -52,10 +52,13 @@ const Footer = () => {
             className="space-y-4"
           >
             <Link to="/" className="flex items-center gap-2 group">
-              <div className="p-2 bg-white/10 rounded-lg group-hover:bg-blue-600 transition-colors duration-200">
-                <BookOpen className="w-6 h-6" />
+              <div className="p-1 rounded-lg">
+                <img
+                  src="/logo.png"
+                  alt="AssignFlow Hub Logo"
+                  className="h-16 w-auto object-contain"
+                />
               </div>
-              <span className="text-xl font-bold">AssignFlow Hub</span>
             </Link>
             <p className="text-slate-300 text-sm max-w-xs">
               Empowering educators and students with seamless classroom management and learning tools.

@@ -7,7 +7,6 @@ import {
   LogOut,
   Home,
   User,
-  BookOpen,
   LayoutDashboard,
   Contact,
   Info
@@ -112,18 +111,27 @@ const Navbar = () => {
             to="/"
             className="flex items-center gap-2 group"
           >
+            {/* Logo */}
             <motion.div
-              whileHover={{ rotate: 5 }}
-              className="p-2 bg-blue-50 rounded-lg group-hover:bg-blue-100 transition-colors duration-200"
+              whileHover={{ rotate: 5 , scale: 1.05 , transition: { duration: 0.3 } }}
+              className="p-2 rounded-lg transition-colors duration-200 group-hover:bg-blue-50"
             >
-              <BookOpen className="w-5 h-5 text-blue-600" />
+              <img
+                src="/logo.png"
+                alt="AssignFlow Hub Logo"
+                className="h-12 w-auto object-contain"
+              />
             </motion.div>
-            <span className="font-bold text-lg text-slate-800 group-hover:text-blue-600 transition-colors duration-200">
-              AssignFlow Hub
-            </span>
+
+            {/* Role Badge */}
             {userRole && (
-              <span className={`ml-2 px-2 py-1 text-xs rounded-full ${userRole === 'TEACHER' ? 'bg-blue-100 text-blue-800' : 'bg-emerald-100 text-emerald-800'}`}>
-                {userRole === 'TEACHER' ? 'Teacher' : 'Student'}
+              <span
+                className={`ml-2 px-2 py-1 text-xs rounded-full ${userRole === "TEACHER"
+                    ? "bg-blue-100 text-blue-800"
+                    : "bg-emerald-100 text-emerald-800"
+                  }`}
+              >
+                {userRole === "TEACHER" ? "Teacher" : "Student"}
               </span>
             )}
           </Link>
@@ -137,8 +145,8 @@ const Navbar = () => {
                     key={item.path}
                     to={item.path}
                     className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${location.pathname === item.path
-                        ? 'bg-blue-50 text-blue-700'
-                        : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900'
+                      ? 'bg-blue-50 text-blue-700'
+                      : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900'
                       }`}
                   >
                     {item.icon}
@@ -204,8 +212,8 @@ const Navbar = () => {
                     key={item.path}
                     to={item.path}
                     className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200 ${location.pathname === item.path
-                        ? 'bg-blue-50 text-blue-700'
-                        : 'text-slate-700 hover:bg-slate-100'
+                      ? 'bg-blue-50 text-blue-700'
+                      : 'text-slate-700 hover:bg-slate-100'
                       }`}
                   >
                     {item.icon}

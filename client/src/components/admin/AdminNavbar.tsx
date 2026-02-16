@@ -10,7 +10,6 @@ import {
   LogOut,
   Menu,
   X,
-  Shield,
   Bell,
   Server,
   AlertCircle,
@@ -143,10 +142,10 @@ const AdminNavbar = () => {
         const itemWidth = 100;
         const availableWidth = navWidth - 50; // Subtract some buffer
         const maxItems = Math.floor(availableWidth / itemWidth);
-        
+
         // Always show at least 3 items, and show all if they fit
         const itemsToShow = Math.min(allNavItems.length, Math.max(3, maxItems));
-        
+
         setVisibleItems(allNavItems.slice(0, itemsToShow));
         setMoreMenuItems(allNavItems.slice(itemsToShow));
       }
@@ -327,12 +326,10 @@ const AdminNavbar = () => {
               whileHover={{ scale: 1.05 }}
               className="flex items-center gap-2 group cursor-pointer flex-shrink-0"
             >
+              {/* Logo */}
               <motion.div
-                whileHover={{ rotate: 15 }}
-                className="relative w-9 h-9 bg-gradient-to-br from-blue-600 to-emerald-500 rounded-xl flex items-center justify-center overflow-hidden"
-                style={{
-                  boxShadow: "0 8px 32px rgba(59, 130, 246, 0.3)"
-                }}
+                whileHover={{  }}
+                className="relative w-full h-12 rounded-xl flex items-center justify-center overflow-hidden"
               >
                 <motion.div
                   animate={{ rotate: 360 }}
@@ -341,20 +338,19 @@ const AdminNavbar = () => {
                     repeat: Infinity,
                     ease: "linear"
                   }}
-                  className="absolute inset-0 bg-gradient-to-br from-blue-500/30 via-transparent to-emerald-500/30"
+                  className="absolute inset-0"
                 />
-                <Shield className="w-5 h-5 text-white relative z-10" />
+
+                <img
+                  src="/logo.png"
+                  alt="AssignFlow Hub Logo"
+                  className="h-10 w-auto object-contain relative z-10"
+                />
               </motion.div>
+
+              {/* Admin Label */}
               <div className="hidden sm:block">
-                <motion.h1
-                  initial={{ opacity: 0, x: -10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.1 }}
-                  className="text-sm lg:text-base font-bold bg-gradient-to-r from-blue-300 to-emerald-300 bg-clip-text text-transparent truncate max-w-[120px]"
-                >
-                  AssignFlow
-                </motion.h1>
-                <p className="text-[10px] text-slate-500 flex items-center gap-1">
+                <p className="text-xs text-slate-500 flex items-center gap-1">
                   <span>Admin</span>
                   <motion.span
                     animate={{ opacity: [0.5, 1, 0.5] }}
