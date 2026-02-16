@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { 
+import {
   HelpCircle,
   Search,
   BookOpen,
@@ -18,6 +18,7 @@ import {
   Users,
   ChevronDown
 } from "lucide-react";
+import { Helmet } from "react-helmet-async";
 
 const HelpCenterPage = () => {
   const [searchQuery, setSearchQuery] = useState("");
@@ -241,7 +242,7 @@ const HelpCenterPage = () => {
     }
   ];
 
-  const allItems = sections.flatMap(section => 
+  const allItems = sections.flatMap(section =>
     section.items.map(item => ({
       ...item,
       sectionId: section.id,
@@ -252,10 +253,10 @@ const HelpCenterPage = () => {
   );
 
   const filteredItems = searchQuery
-    ? allItems.filter(item => 
-        item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        item.content.toLowerCase().includes(searchQuery.toLowerCase())
-      )
+    ? allItems.filter(item =>
+      item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      item.content.toLowerCase().includes(searchQuery.toLowerCase())
+    )
     : [];
 
   const toggleSection = (sectionId: string) => {
@@ -281,11 +282,11 @@ const HelpCenterPage = () => {
     setSearchQuery("");
     setIsSearchFocused(false);
     setExpandedSection(item.sectionId);
-    
+
     setTimeout(() => {
       const element = document.getElementById(item.id);
       if (element) {
-        element.scrollIntoView({ 
+        element.scrollIntoView({
           behavior: 'smooth',
           block: 'center'
         });
@@ -312,497 +313,508 @@ const HelpCenterPage = () => {
   }, []);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50/30 relative overflow-x-hidden">
-      {/* Background Elements with subtle animations */}
-      <div className="absolute inset-0 bg-grid-slate-100 [mask-image:radial-gradient(ellipse_at_center,white,transparent_70%)] pointer-events-none" />
-      
-      {/* Animated gradient orbs */}
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 0.1 }}
-        transition={{ duration: 1 }}
-        className="absolute top-0 left-1/4 w-[600px] h-[600px] bg-gradient-to-br from-blue-500/10 via-transparent to-emerald-500/10 rounded-full blur-3xl pointer-events-none"
-      />
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 0.1 }}
-        transition={{ duration: 1, delay: 0.5 }}
-        className="absolute bottom-0 right-1/4 w-[500px] h-[500px] bg-gradient-to-tl from-purple-500/5 via-transparent to-blue-500/5 rounded-full blur-3xl pointer-events-none"
-      />
 
-      {/* Floating icons with subtle animation */}
-      {[1, 2, 3, 4].map((i) => (
-        <motion.div
-          key={i}
-          className={`absolute ${i % 2 === 0 ? 'right-8' : 'left-8'} ${
-            i === 1 ? 'top-32' : i === 2 ? 'top-1/3' : i === 3 ? 'bottom-1/3' : 'bottom-32'
-          } pointer-events-none`}
-          initial={{ y: 0 }}
-          animate={{ y: [0, -15, 0] }}
-          transition={{
-            duration: 4,
-            repeat: Infinity,
-            ease: "easeInOut",
-            delay: i * 0.5,
-          }}
-        >
-          <div className="w-10 h-10 bg-white/70 backdrop-blur-sm rounded-lg shadow-md border border-slate-200/50 flex items-center justify-center text-blue-500">
-            {i === 1 && <HelpCircle className="w-5 h-5" />}
-            {i === 2 && <BookOpen className="w-5 h-5" />}
-            {i === 3 && <Shield className="w-5 h-5" />}
-            {i === 4 && <MessageSquare className="w-5 h-5" />}
-          </div>
-        </motion.div>
-      ))}
+    <>
 
-      <div className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-24">
-        {/* Header */}
+      <Helmet>
+        <title>Help Center | AssignFlow Hub Support</title>
+        <meta
+          name="description"
+          content="Find guides, FAQs, and troubleshooting resources to help you use AssignFlow Hub effectively."
+        />
+        <link rel="canonical" href="https://assignflowhub.karanart.com/help" />
+      </Helmet>
+
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50/30 relative overflow-x-hidden">
+        {/* Background Elements with subtle animations */}
+        <div className="absolute inset-0 bg-grid-slate-100 [mask-image:radial-gradient(ellipse_at_center,white,transparent_70%)] pointer-events-none" />
+
+        {/* Animated gradient orbs */}
         <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="text-center mb-12"
-        >
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 0.1 }}
+          transition={{ duration: 1 }}
+          className="absolute top-0 left-1/4 w-[600px] h-[600px] bg-gradient-to-br from-blue-500/10 via-transparent to-emerald-500/10 rounded-full blur-3xl pointer-events-none"
+        />
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 0.1 }}
+          transition={{ duration: 1, delay: 0.5 }}
+          className="absolute bottom-0 right-1/4 w-[500px] h-[500px] bg-gradient-to-tl from-purple-500/5 via-transparent to-blue-500/5 rounded-full blur-3xl pointer-events-none"
+        />
+
+        {/* Floating icons with subtle animation */}
+        {[1, 2, 3, 4].map((i) => (
           <motion.div
-            initial={{ scale: 0.9, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            transition={{ delay: 0.2 }}
-            className="inline-flex items-center gap-3 px-6 py-3 bg-gradient-to-r from-blue-500/10 via-emerald-500/10 to-purple-500/10 backdrop-blur-sm border border-white/30 rounded-full shadow-lg mb-8"
+            key={i}
+            className={`absolute ${i % 2 === 0 ? 'right-8' : 'left-8'} ${i === 1 ? 'top-32' : i === 2 ? 'top-1/3' : i === 3 ? 'bottom-1/3' : 'bottom-32'
+              } pointer-events-none`}
+            initial={{ y: 0 }}
+            animate={{ y: [0, -15, 0] }}
+            transition={{
+              duration: 4,
+              repeat: Infinity,
+              ease: "easeInOut",
+              delay: i * 0.5,
+            }}
           >
-            <Sparkles className="w-5 h-5 text-amber-500" />
-            <span className="text-sm font-semibold text-slate-800">
-              Clear Guidance for Every User
-            </span>
+            <div className="w-10 h-10 bg-white/70 backdrop-blur-sm rounded-lg shadow-md border border-slate-200/50 flex items-center justify-center text-blue-500">
+              {i === 1 && <HelpCircle className="w-5 h-5" />}
+              {i === 2 && <BookOpen className="w-5 h-5" />}
+              {i === 3 && <Shield className="w-5 h-5" />}
+              {i === 4 && <MessageSquare className="w-5 h-5" />}
+            </div>
           </motion.div>
+        ))}
 
-          <motion.h1
-            initial={{ opacity: 0, y: 20 }}
+        <div className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-24">
+          {/* Header */}
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
-            className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight mb-6"
+            transition={{ duration: 0.5 }}
+            className="text-center mb-12"
           >
-            <span className="block text-slate-900">Help</span>
-            <span className="block mt-2">
-              <span className="relative inline-block">
-                <span className="relative z-10 text-transparent bg-clip-text bg-gradient-to-r from-blue-600 via-blue-500 to-emerald-500 animate-gradient">
-                  Center
-                </span>
-                <span className="absolute inset-0 text-transparent bg-clip-text bg-gradient-to-r from-blue-600/30 via-blue-500/30 to-emerald-500/30 blur-xl">
-                  Center
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ delay: 0.2 }}
+              className="inline-flex items-center gap-3 px-6 py-3 bg-gradient-to-r from-blue-500/10 via-emerald-500/10 to-purple-500/10 backdrop-blur-sm border border-white/30 rounded-full shadow-lg mb-8"
+            >
+              <Sparkles className="w-5 h-5 text-amber-500" />
+              <span className="text-sm font-semibold text-slate-800">
+                Clear Guidance for Every User
+              </span>
+            </motion.div>
+
+            <motion.h1
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1 }}
+              className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight mb-6"
+            >
+              <span className="block text-slate-900">Help</span>
+              <span className="block mt-2">
+                <span className="relative inline-block">
+                  <span className="relative z-10 text-transparent bg-clip-text bg-gradient-to-r from-blue-600 via-blue-500 to-emerald-500 animate-gradient">
+                    Center
+                  </span>
+                  <span className="absolute inset-0 text-transparent bg-clip-text bg-gradient-to-r from-blue-600/30 via-blue-500/30 to-emerald-500/30 blur-xl">
+                    Center
+                  </span>
                 </span>
               </span>
-            </span>
-          </motion.h1>
+            </motion.h1>
 
-          <motion.p
+            <motion.p
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+              className="text-xl text-slate-600 max-w-3xl mx-auto"
+            >
+              Everything you need to use AssignFlow Hub effectively.
+              Clear answers for students, teachers, and administrators.
+            </motion.p>
+          </motion.div>
+
+          {/* Search Bar with animations */}
+          <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-            className="text-xl text-slate-600 max-w-3xl mx-auto"
+            transition={{ delay: 0.3 }}
+            className="max-w-2xl mx-auto mb-16 search-container relative z-30"
           >
-            Everything you need to use AssignFlow Hub effectively.
-            Clear answers for students, teachers, and administrators.
-          </motion.p>
-        </motion.div>
-
-        {/* Search Bar with animations */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
-          className="max-w-2xl mx-auto mb-16 search-container relative z-30"
-        >
-          <motion.div 
-            className="relative group"
-            whileHover={{ scale: 1.01 }}
-            transition={{ duration: 0.2 }}
-          >
-            <motion.div 
-              className="absolute inset-0 bg-gradient-to-r from-blue-500/10 to-emerald-500/10 rounded-2xl blur-xl"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: isSearchFocused ? 0.3 : 0 }}
-              transition={{ duration: 0.3 }}
-            />
-            
-            <div className="relative">
-              <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-slate-400 z-20" />
-              <input
-                ref={searchRef}
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                onFocus={handleSearchFocus}
-                onBlur={handleSearchBlur}
-                onClick={handleSearchClick}
-                placeholder="Search for help topics..."
-                className="w-full pl-12 pr-4 py-4 bg-white/90 backdrop-blur-sm border-2 border-slate-200/50 rounded-2xl text-slate-700 placeholder-slate-500 focus:outline-none focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20 transition-all duration-300 cursor-text relative z-20 hover:border-slate-300/70"
+            <motion.div
+              className="relative group"
+              whileHover={{ scale: 1.01 }}
+              transition={{ duration: 0.2 }}
+            >
+              <motion.div
+                className="absolute inset-0 bg-gradient-to-r from-blue-500/10 to-emerald-500/10 rounded-2xl blur-xl"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: isSearchFocused ? 0.3 : 0 }}
+                transition={{ duration: 0.3 }}
               />
-            </div>
 
-            <AnimatePresence>
-              {isSearchFocused && searchQuery && filteredItems.length > 0 && (
-                <motion.div
-                  initial={{ opacity: 0, y: -10, scale: 0.95 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: -10, scale: 0.95 }}
-                  className="absolute top-full left-0 right-0 mt-2 bg-white/95 backdrop-blur-sm border border-white/50 rounded-2xl shadow-2xl z-40 max-h-96 overflow-y-auto"
-                >
-                  <div className="py-2">
-                    <div className="px-4 py-2 text-xs font-semibold text-slate-500 border-b border-slate-200/50">
-                      {filteredItems.length} result{filteredItems.length !== 1 ? 's' : ''} found
+              <div className="relative">
+                <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-slate-400 z-20" />
+                <input
+                  ref={searchRef}
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onFocus={handleSearchFocus}
+                  onBlur={handleSearchBlur}
+                  onClick={handleSearchClick}
+                  placeholder="Search for help topics..."
+                  className="w-full pl-12 pr-4 py-4 bg-white/90 backdrop-blur-sm border-2 border-slate-200/50 rounded-2xl text-slate-700 placeholder-slate-500 focus:outline-none focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20 transition-all duration-300 cursor-text relative z-20 hover:border-slate-300/70"
+                />
+              </div>
+
+              <AnimatePresence>
+                {isSearchFocused && searchQuery && filteredItems.length > 0 && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -10, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: -10, scale: 0.95 }}
+                    className="absolute top-full left-0 right-0 mt-2 bg-white/95 backdrop-blur-sm border border-white/50 rounded-2xl shadow-2xl z-40 max-h-96 overflow-y-auto"
+                  >
+                    <div className="py-2">
+                      <div className="px-4 py-2 text-xs font-semibold text-slate-500 border-b border-slate-200/50">
+                        {filteredItems.length} result{filteredItems.length !== 1 ? 's' : ''} found
+                      </div>
+                      {filteredItems.map((item, index) => (
+                        <motion.button
+                          key={item.id}
+                          initial={{ opacity: 0, x: -10 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ delay: index * 0.05 }}
+                          whileHover={{ backgroundColor: "rgba(248, 250, 252, 0.8)" }}
+                          whileTap={{ scale: 0.98 }}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            handleSearchItemClick(item);
+                          }}
+                          className="w-full text-left px-4 py-3 transition-colors duration-200 border-b border-slate-200/30 last:border-b-0 flex items-start gap-3 group/result"
+                        >
+                          <motion.div
+                            className={`w-8 h-8 rounded-lg bg-gradient-to-br ${item.sectionColor} p-1.5 flex-shrink-0`}
+                            whileHover={{ scale: 1.1 }}
+                            transition={{ duration: 0.2 }}
+                          >
+                            <item.sectionIcon className="w-5 h-5 text-white" />
+                          </motion.div>
+                          <div className="flex-1 min-w-0">
+                            <div className="text-xs font-medium text-slate-500 mb-1 truncate">
+                              {item.sectionTitle}
+                            </div>
+                            <div className="font-medium text-slate-900 truncate group-hover/result:text-blue-600 transition-colors duration-200">
+                              {item.title}
+                            </div>
+                          </div>
+                          <motion.div
+                            initial={{ x: -5, opacity: 0 }}
+                            animate={{ x: 0, opacity: 1 }}
+                            transition={{ delay: index * 0.05 + 0.1 }}
+                          >
+                            <ArrowRight className="w-4 h-4 text-slate-400 flex-shrink-0 mt-1 group-hover/result:text-blue-500 group-hover/result:translate-x-1 transition-all duration-200" />
+                          </motion.div>
+                        </motion.button>
+                      ))}
                     </div>
-                    {filteredItems.map((item, index) => (
-                      <motion.button
-                        key={item.id}
-                        initial={{ opacity: 0, x: -10 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: index * 0.05 }}
-                        whileHover={{ backgroundColor: "rgba(248, 250, 252, 0.8)" }}
-                        whileTap={{ scale: 0.98 }}
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          handleSearchItemClick(item);
-                        }}
-                        className="w-full text-left px-4 py-3 transition-colors duration-200 border-b border-slate-200/30 last:border-b-0 flex items-start gap-3 group/result"
-                      >
-                        <motion.div 
-                          className={`w-8 h-8 rounded-lg bg-gradient-to-br ${item.sectionColor} p-1.5 flex-shrink-0`}
-                          whileHover={{ scale: 1.1 }}
-                          transition={{ duration: 0.2 }}
-                        >
-                          <item.sectionIcon className="w-5 h-5 text-white" />
-                        </motion.div>
-                        <div className="flex-1 min-w-0">
-                          <div className="text-xs font-medium text-slate-500 mb-1 truncate">
-                            {item.sectionTitle}
-                          </div>
-                          <div className="font-medium text-slate-900 truncate group-hover/result:text-blue-600 transition-colors duration-200">
-                            {item.title}
-                          </div>
-                        </div>
-                        <motion.div
-                          initial={{ x: -5, opacity: 0 }}
-                          animate={{ x: 0, opacity: 1 }}
-                          transition={{ delay: index * 0.05 + 0.1 }}
-                        >
-                          <ArrowRight className="w-4 h-4 text-slate-400 flex-shrink-0 mt-1 group-hover/result:text-blue-500 group-hover/result:translate-x-1 transition-all duration-200" />
-                        </motion.div>
-                      </motion.button>
-                    ))}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </motion.div>
+
+            {/* Show message when no results */}
+            {searchQuery && filteredItems.length === 0 && (
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="mt-2 p-4 bg-gradient-to-r from-amber-50/50 to-amber-100/30 border border-amber-200 rounded-xl"
+              >
+                <div className="flex items-center gap-3">
+                  <Search className="w-5 h-5 text-amber-600" />
+                  <div>
+                    <p className="text-sm font-medium text-amber-800">No results found for "{searchQuery}"</p>
+                    <p className="text-xs text-amber-700">Try different keywords or browse the sections below</p>
                   </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
+                </div>
+              </motion.div>
+            )}
           </motion.div>
-          
-          {/* Show message when no results */}
-          {searchQuery && filteredItems.length === 0 && (
-            <motion.div
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="mt-2 p-4 bg-gradient-to-r from-amber-50/50 to-amber-100/30 border border-amber-200 rounded-xl"
-            >
-              <div className="flex items-center gap-3">
-                <Search className="w-5 h-5 text-amber-600" />
-                <div>
-                  <p className="text-sm font-medium text-amber-800">No results found for "{searchQuery}"</p>
-                  <p className="text-xs text-amber-700">Try different keywords or browse the sections below</p>
-                </div>
-              </div>
-            </motion.div>
-          )}
-        </motion.div>
 
-        {/* Quick Stats with hover effects */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.4 }}
-          className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-16 relative z-10"
-        >
-          {[
-            { icon: Users, value: "3 Roles", label: "Supported", color: "text-blue-600" },
-            { icon: FileText, value: "7 Sections", label: "Detailed Guides", color: "text-emerald-600" },
-            { icon: Clock, value: "24h", label: "Response Goal", color: "text-purple-600" },
-            { icon: CheckCircle, value: "100%", label: "Real Features", color: "text-amber-600" },
-          ].map((stat, index) => (
-            <motion.div
-              key={index}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.5 + index * 0.1 }}
-              whileHover={{ y: -4, scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              className="p-4 bg-white/90 backdrop-blur-sm border border-white/50 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-200 cursor-pointer overflow-hidden group"
-              onClick={() => {
-                if (stat.value === "3 Roles") {
-                  setExpandedSection("getting-started");
-                } else if (stat.value === "7 Sections") {
-                  setExpandedSection("getting-started");
-                }
-              }}
-            >
-              <motion.div 
-                className="absolute inset-0 bg-gradient-to-r from-blue-500/5 to-emerald-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
-              />
-              <div className="relative flex items-center gap-3">
-                <motion.div 
-                  className={`w-10 h-10 rounded-xl bg-gradient-to-br from-blue-50 to-emerald-50 flex items-center justify-center ${stat.color} group-hover:scale-110 transition-transform duration-300`}
-                  whileHover={{ rotate: 5 }}
-                >
-                  <stat.icon className="w-5 h-5" />
-                </motion.div>
-                <div>
-                  <div className="text-lg font-bold text-slate-900 group-hover:text-slate-800 transition-colors duration-200">
-                    {stat.value}
-                  </div>
-                  <div className="text-sm text-slate-600 group-hover:text-slate-700 transition-colors duration-200">
-                    {stat.label}
+          {/* Quick Stats with hover effects */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.4 }}
+            className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-16 relative z-10"
+          >
+            {[
+              { icon: Users, value: "3 Roles", label: "Supported", color: "text-blue-600" },
+              { icon: FileText, value: "7 Sections", label: "Detailed Guides", color: "text-emerald-600" },
+              { icon: Clock, value: "24h", label: "Response Goal", color: "text-purple-600" },
+              { icon: CheckCircle, value: "100%", label: "Real Features", color: "text-amber-600" },
+            ].map((stat, index) => (
+              <motion.div
+                key={index}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.5 + index * 0.1 }}
+                whileHover={{ y: -4, scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                className="p-4 bg-white/90 backdrop-blur-sm border border-white/50 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-200 cursor-pointer overflow-hidden group"
+                onClick={() => {
+                  if (stat.value === "3 Roles") {
+                    setExpandedSection("getting-started");
+                  } else if (stat.value === "7 Sections") {
+                    setExpandedSection("getting-started");
+                  }
+                }}
+              >
+                <motion.div
+                  className="absolute inset-0 bg-gradient-to-r from-blue-500/5 to-emerald-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+                />
+                <div className="relative flex items-center gap-3">
+                  <motion.div
+                    className={`w-10 h-10 rounded-xl bg-gradient-to-br from-blue-50 to-emerald-50 flex items-center justify-center ${stat.color} group-hover:scale-110 transition-transform duration-300`}
+                    whileHover={{ rotate: 5 }}
+                  >
+                    <stat.icon className="w-5 h-5" />
+                  </motion.div>
+                  <div>
+                    <div className="text-lg font-bold text-slate-900 group-hover:text-slate-800 transition-colors duration-200">
+                      {stat.value}
+                    </div>
+                    <div className="text-sm text-slate-600 group-hover:text-slate-700 transition-colors duration-200">
+                      {stat.label}
+                    </div>
                   </div>
                 </div>
-              </div>
-            </motion.div>
-          ))}
-        </motion.div>
+              </motion.div>
+            ))}
+          </motion.div>
 
-        {/* Main Content with smooth animations */}
-        <div className="space-y-4 relative z-10">
-          {sections.map((section, sectionIndex) => (
+          {/* Main Content with smooth animations */}
+          <div className="space-y-4 relative z-10">
+            {sections.map((section, sectionIndex) => (
+              <motion.div
+                key={section.id}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.1 * sectionIndex }}
+                className="group/section"
+              >
+                {/* Glow effect on hover */}
+                <motion.div
+                  className="absolute inset-0 bg-gradient-to-r from-blue-500/5 to-emerald-500/5 rounded-2xl blur-xl opacity-0 group-hover/section:opacity-100 transition-opacity duration-500 pointer-events-none"
+                  whileHover={{ opacity: 0.3 }}
+                />
+
+                <div className="relative bg-white/95 backdrop-blur-sm border border-white/50 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden">
+                  {/* Section Header */}
+                  <motion.button
+                    whileHover={{ backgroundColor: "rgba(249, 250, 251, 0.5)" }}
+                    whileTap={{ scale: 0.995 }}
+                    onClick={() => toggleSection(section.id)}
+                    className="w-full p-6 text-left flex items-center justify-between gap-4 transition-colors duration-200 relative overflow-hidden"
+                    type="button"
+                  >
+                    {/* Animated background effect */}
+                    <motion.div
+                      className="absolute inset-0 bg-gradient-to-r from-blue-50/30 to-emerald-50/30 opacity-0 group-hover/section:opacity-100 transition-opacity duration-300"
+                      initial={false}
+                      animate={expandedSection === section.id ? { opacity: 1 } : { opacity: 0 }}
+                    />
+
+                    <div className="relative flex items-center gap-4">
+                      <motion.div
+                        className={`w-12 h-12 rounded-lg bg-gradient-to-br ${section.color} p-2.5 flex-shrink-0 group-hover/section:scale-110 transition-transform duration-300`}
+                        whileHover={{ rotate: [0, -5, 5, 0] }}
+                        transition={{ duration: 0.5 }}
+                      >
+                        <section.icon className="w-7 h-7 text-white" />
+                      </motion.div>
+                      <div className="text-left">
+                        <motion.h2
+                          className="text-xl font-bold text-slate-900 mb-1 group-hover/section:text-slate-800 transition-colors duration-200"
+                          whileHover={{ x: 2 }}
+                        >
+                          {section.title}
+                        </motion.h2>
+                        <p className="text-slate-600 text-sm group-hover/section:text-slate-700 transition-colors duration-200">
+                          {section.description}
+                        </p>
+                      </div>
+                    </div>
+                    <motion.div
+                      className="flex-shrink-0"
+                      animate={{ rotate: expandedSection === section.id ? 0 : -90 }}
+                      transition={{ duration: 0.3, type: "spring" }}
+                    >
+                      <ChevronDown className="w-6 h-6 text-slate-400 group-hover/section:text-slate-600 transition-colors duration-200" />
+                    </motion.div>
+                  </motion.button>
+
+                  {/* Section Content with AnimatePresence */}
+                  <AnimatePresence>
+                    {expandedSection === section.id && (
+                      <motion.div
+                        key={`content-${section.id}`}
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: "auto", opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{ duration: 0.3, ease: "easeInOut" }}
+                        className="border-t border-slate-100 overflow-hidden"
+                      >
+                        <div className="p-6">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            {section.items.map((item, itemIndex) => (
+                              <motion.div
+                                key={item.id}
+                                id={item.id}
+                                initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                                animate={{ opacity: 1, y: 0, scale: 1 }}
+                                transition={{ delay: itemIndex * 0.05 }}
+                                whileHover={{ y: -2, scale: 1.01 }}
+                                whileTap={{ scale: 0.98 }}
+                                className="p-4 bg-gradient-to-r from-blue-50/50 to-emerald-50/50 border border-white rounded-lg hover:shadow-md transition-all duration-200 cursor-pointer group/item relative overflow-hidden"
+                                onClick={() => {
+                                  const element = document.getElementById(item.id);
+                                  if (element) {
+                                    element.scrollIntoView({
+                                      behavior: 'smooth',
+                                      block: 'center'
+                                    });
+                                    element.classList.add('highlight-item');
+                                    setTimeout(() => {
+                                      element.classList.remove('highlight-item');
+                                    }, 2000);
+                                  }
+                                }}
+                              >
+                                {/* Hover glow effect */}
+                                <motion.div
+                                  className="absolute inset-0 bg-gradient-to-r from-blue-500/10 to-emerald-500/10 opacity-0 group-hover/item:opacity-100 transition-opacity duration-300 pointer-events-none"
+                                  whileHover={{ opacity: 0.2 }}
+                                />
+
+                                <div className="relative flex items-start gap-3 mb-2">
+                                  <motion.div
+                                    className={`w-8 h-8 rounded-md bg-gradient-to-br ${section.color} p-1.5 flex-shrink-0 group-hover/item:scale-110 transition-transform duration-300`}
+                                    whileHover={{ rotate: 5 }}
+                                  >
+                                    <section.icon className="w-5 h-5 text-white" />
+                                  </motion.div>
+                                  <motion.h3
+                                    className="font-semibold text-slate-900 text-sm pt-0.5 group-hover/item:text-blue-700 transition-colors duration-200"
+                                    whileHover={{ x: 2 }}
+                                  >
+                                    {item.title}
+                                  </motion.h3>
+                                </div>
+                                <motion.p
+                                  className="text-slate-700 text-sm whitespace-pre-line relative group-hover/item:text-slate-800 transition-colors duration-200"
+                                  initial={{ opacity: 0.9 }}
+                                  whileHover={{ opacity: 1 }}
+                                >
+                                  {item.content}
+                                </motion.p>
+                              </motion.div>
+                            ))}
+                          </div>
+
+                          {/* Section Footer */}
+                          <motion.div
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.2 }}
+                            className="mt-6 pt-4 border-t border-slate-200/50"
+                          >
+                            <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+                              <div className="text-sm text-slate-600">
+                                {section.items.length} topic{section.items.length !== 1 ? 's' : ''} in this section
+                              </div>
+                              <div className="flex gap-3">
+                                <motion.button
+                                  whileHover={{ scale: 1.05, backgroundColor: "rgba(248, 250, 252, 0.8)" }}
+                                  whileTap={{ scale: 0.95 }}
+                                  onClick={() => setExpandedSection(null)}
+                                  className="px-3 py-1.5 text-sm font-medium text-slate-700 hover:text-slate-900 hover:bg-slate-100/50 rounded-lg transition-all duration-200"
+                                >
+                                  Collapse Section
+                                </motion.button>
+                                {section.id === "contact-support" && (
+                                  <motion.a
+                                    whileHover={{ scale: 1.05, boxShadow: "0 10px 25px -5px rgba(59, 130, 246, 0.3)" }}
+                                    whileTap={{ scale: 0.95 }}
+                                    href="/contact"
+                                    className="px-3 py-1.5 bg-gradient-to-r from-blue-600 to-emerald-500 text-white text-sm font-medium rounded-lg hover:shadow-lg transition-all duration-200 relative overflow-hidden group/contact"
+                                  >
+                                    <motion.div
+                                      className="absolute inset-0 bg-gradient-to-r from-blue-700 to-emerald-600 opacity-0 group-hover/contact:opacity-100 transition-opacity duration-300"
+                                    />
+                                    <span className="relative">Contact Support</span>
+                                  </motion.a>
+                                )}
+                              </div>
+                            </div>
+                          </motion.div>
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+
+          {/* CTA Section with animations */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.8 }}
+            className="mt-16 text-center relative z-10"
+          >
             <motion.div
-              key={section.id}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.1 * sectionIndex }}
-              className="group/section"
+              className="p-8 bg-gradient-to-br from-blue-50/50 to-emerald-50/50 border border-blue-200/30 rounded-3xl overflow-hidden"
+              whileHover={{ scale: 1.01 }}
+              transition={{ duration: 0.3 }}
             >
-              {/* Glow effect on hover */}
-              <motion.div 
-                className="absolute inset-0 bg-gradient-to-r from-blue-500/5 to-emerald-500/5 rounded-2xl blur-xl opacity-0 group-hover/section:opacity-100 transition-opacity duration-500 pointer-events-none"
+              {/* Animated background */}
+              <motion.div
+                className="absolute inset-0 bg-gradient-to-r from-blue-500/10 via-emerald-500/10 to-purple-500/10 opacity-0 hover:opacity-100 transition-opacity duration-500"
                 whileHover={{ opacity: 0.3 }}
               />
-              
-              <div className="relative bg-white/95 backdrop-blur-sm border border-white/50 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden">
-                {/* Section Header */}
-                <motion.button
-                  whileHover={{ backgroundColor: "rgba(249, 250, 251, 0.5)" }}
-                  whileTap={{ scale: 0.995 }}
-                  onClick={() => toggleSection(section.id)}
-                  className="w-full p-6 text-left flex items-center justify-between gap-4 transition-colors duration-200 relative overflow-hidden"
-                  type="button"
+
+              <div className="relative max-w-2xl mx-auto">
+                <motion.h3
+                  className="text-2xl font-bold text-slate-900 mb-4"
+                  whileHover={{ scale: 1.02 }}
+                  transition={{ duration: 0.2 }}
                 >
-                  {/* Animated background effect */}
-                  <motion.div 
-                    className="absolute inset-0 bg-gradient-to-r from-blue-50/30 to-emerald-50/30 opacity-0 group-hover/section:opacity-100 transition-opacity duration-300"
-                    initial={false}
-                    animate={expandedSection === section.id ? { opacity: 1 } : { opacity: 0 }}
-                  />
-                  
-                  <div className="relative flex items-center gap-4">
-                    <motion.div 
-                      className={`w-12 h-12 rounded-lg bg-gradient-to-br ${section.color} p-2.5 flex-shrink-0 group-hover/section:scale-110 transition-transform duration-300`}
-                      whileHover={{ rotate: [0, -5, 5, 0] }}
-                      transition={{ duration: 0.5 }}
-                    >
-                      <section.icon className="w-7 h-7 text-white" />
-                    </motion.div>
-                    <div className="text-left">
-                      <motion.h2 
-                        className="text-xl font-bold text-slate-900 mb-1 group-hover/section:text-slate-800 transition-colors duration-200"
-                        whileHover={{ x: 2 }}
-                      >
-                        {section.title}
-                      </motion.h2>
-                      <p className="text-slate-600 text-sm group-hover/section:text-slate-700 transition-colors duration-200">
-                        {section.description}
-                      </p>
-                    </div>
-                  </div>
-                  <motion.div
-                    className="flex-shrink-0"
-                    animate={{ rotate: expandedSection === section.id ? 0 : -90 }}
-                    transition={{ duration: 0.3, type: "spring" }}
+                  Still Need Help?
+                </motion.h3>
+                <motion.p
+                  className="text-slate-600 mb-6"
+                  whileHover={{ scale: 1.01 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  Can't find what you're looking for? Our support team is here to help.
+                </motion.p>
+                <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                  <motion.a
+                    whileHover={{ scale: 1.05, boxShadow: "0 20px 25px -5px rgba(59, 130, 246, 0.3)" }}
+                    whileTap={{ scale: 0.95 }}
+                    href="/contact"
+                    className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-emerald-500 text-white font-semibold rounded-xl hover:shadow-lg transition-all duration-200 relative overflow-hidden group/cta"
                   >
-                    <ChevronDown className="w-6 h-6 text-slate-400 group-hover/section:text-slate-600 transition-colors duration-200" />
-                  </motion.div>
-                </motion.button>
-
-                {/* Section Content with AnimatePresence */}
-                <AnimatePresence>
-                  {expandedSection === section.id && (
                     <motion.div
-                      key={`content-${section.id}`}
-                      initial={{ height: 0, opacity: 0 }}
-                      animate={{ height: "auto", opacity: 1 }}
-                      exit={{ height: 0, opacity: 0 }}
-                      transition={{ duration: 0.3, ease: "easeInOut" }}
-                      className="border-t border-slate-100 overflow-hidden"
-                    >
-                      <div className="p-6">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          {section.items.map((item, itemIndex) => (
-                            <motion.div
-                              key={item.id}
-                              id={item.id}
-                              initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                              animate={{ opacity: 1, y: 0, scale: 1 }}
-                              transition={{ delay: itemIndex * 0.05 }}
-                              whileHover={{ y: -2, scale: 1.01 }}
-                              whileTap={{ scale: 0.98 }}
-                              className="p-4 bg-gradient-to-r from-blue-50/50 to-emerald-50/50 border border-white rounded-lg hover:shadow-md transition-all duration-200 cursor-pointer group/item relative overflow-hidden"
-                              onClick={() => {
-                                const element = document.getElementById(item.id);
-                                if (element) {
-                                  element.scrollIntoView({ 
-                                    behavior: 'smooth',
-                                    block: 'center'
-                                  });
-                                  element.classList.add('highlight-item');
-                                  setTimeout(() => {
-                                    element.classList.remove('highlight-item');
-                                  }, 2000);
-                                }
-                              }}
-                            >
-                              {/* Hover glow effect */}
-                              <motion.div 
-                                className="absolute inset-0 bg-gradient-to-r from-blue-500/10 to-emerald-500/10 opacity-0 group-hover/item:opacity-100 transition-opacity duration-300 pointer-events-none"
-                                whileHover={{ opacity: 0.2 }}
-                              />
-                              
-                              <div className="relative flex items-start gap-3 mb-2">
-                                <motion.div 
-                                  className={`w-8 h-8 rounded-md bg-gradient-to-br ${section.color} p-1.5 flex-shrink-0 group-hover/item:scale-110 transition-transform duration-300`}
-                                  whileHover={{ rotate: 5 }}
-                                >
-                                  <section.icon className="w-5 h-5 text-white" />
-                                </motion.div>
-                                <motion.h3 
-                                  className="font-semibold text-slate-900 text-sm pt-0.5 group-hover/item:text-blue-700 transition-colors duration-200"
-                                  whileHover={{ x: 2 }}
-                                >
-                                  {item.title}
-                                </motion.h3>
-                              </div>
-                              <motion.p 
-                                className="text-slate-700 text-sm whitespace-pre-line relative group-hover/item:text-slate-800 transition-colors duration-200"
-                                initial={{ opacity: 0.9 }}
-                                whileHover={{ opacity: 1 }}
-                              >
-                                {item.content}
-                              </motion.p>
-                            </motion.div>
-                          ))}
-                        </div>
-
-                        {/* Section Footer */}
-                        <motion.div
-                          initial={{ opacity: 0, y: 10 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ delay: 0.2 }}
-                          className="mt-6 pt-4 border-t border-slate-200/50"
-                        >
-                          <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-                            <div className="text-sm text-slate-600">
-                              {section.items.length} topic{section.items.length !== 1 ? 's' : ''} in this section
-                            </div>
-                            <div className="flex gap-3">
-                              <motion.button
-                                whileHover={{ scale: 1.05, backgroundColor: "rgba(248, 250, 252, 0.8)" }}
-                                whileTap={{ scale: 0.95 }}
-                                onClick={() => setExpandedSection(null)}
-                                className="px-3 py-1.5 text-sm font-medium text-slate-700 hover:text-slate-900 hover:bg-slate-100/50 rounded-lg transition-all duration-200"
-                              >
-                                Collapse Section
-                              </motion.button>
-                              {section.id === "contact-support" && (
-                                <motion.a
-                                  whileHover={{ scale: 1.05, boxShadow: "0 10px 25px -5px rgba(59, 130, 246, 0.3)" }}
-                                  whileTap={{ scale: 0.95 }}
-                                  href="/contact"
-                                  className="px-3 py-1.5 bg-gradient-to-r from-blue-600 to-emerald-500 text-white text-sm font-medium rounded-lg hover:shadow-lg transition-all duration-200 relative overflow-hidden group/contact"
-                                >
-                                  <motion.div 
-                                    className="absolute inset-0 bg-gradient-to-r from-blue-700 to-emerald-600 opacity-0 group-hover/contact:opacity-100 transition-opacity duration-300"
-                                  />
-                                  <span className="relative">Contact Support</span>
-                                </motion.a>
-                              )}
-                            </div>
-                          </div>
-                        </motion.div>
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
+                      className="absolute inset-0 bg-gradient-to-r from-blue-700 to-emerald-600 opacity-0 group-hover/cta:opacity-100 transition-opacity duration-300"
+                    />
+                    <MessageSquare className="w-5 h-5 relative z-10" />
+                    <span className="relative z-10">Contact Support</span>
+                  </motion.a>
+                  <motion.a
+                    whileHover={{ scale: 1.05, backgroundColor: "rgba(255, 255, 255, 0.9)", borderColor: "rgb(147, 197, 253)" }}
+                    whileTap={{ scale: 0.95 }}
+                    href="/"
+                    className="inline-flex items-center gap-2 px-6 py-3 bg-white/80 backdrop-blur-sm border border-slate-300 text-slate-700 font-semibold rounded-xl hover:border-blue-300 hover:text-blue-700 transition-all duration-200"
+                  >
+                    <ArrowRight className="w-5 h-5" />
+                    Return to Home
+                  </motion.a>
+                </div>
               </div>
             </motion.div>
-          ))}
+          </motion.div>
         </div>
 
-        {/* CTA Section with animations */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.8 }}
-          className="mt-16 text-center relative z-10"
-        >
-          <motion.div 
-            className="p-8 bg-gradient-to-br from-blue-50/50 to-emerald-50/50 border border-blue-200/30 rounded-3xl overflow-hidden"
-            whileHover={{ scale: 1.01 }}
-            transition={{ duration: 0.3 }}
-          >
-            {/* Animated background */}
-            <motion.div 
-              className="absolute inset-0 bg-gradient-to-r from-blue-500/10 via-emerald-500/10 to-purple-500/10 opacity-0 hover:opacity-100 transition-opacity duration-500"
-              whileHover={{ opacity: 0.3 }}
-            />
-            
-            <div className="relative max-w-2xl mx-auto">
-              <motion.h3 
-                className="text-2xl font-bold text-slate-900 mb-4"
-                whileHover={{ scale: 1.02 }}
-                transition={{ duration: 0.2 }}
-              >
-                Still Need Help?
-              </motion.h3>
-              <motion.p 
-                className="text-slate-600 mb-6"
-                whileHover={{ scale: 1.01 }}
-                transition={{ duration: 0.2 }}
-              >
-                Can't find what you're looking for? Our support team is here to help.
-              </motion.p>
-              <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                <motion.a
-                  whileHover={{ scale: 1.05, boxShadow: "0 20px 25px -5px rgba(59, 130, 246, 0.3)" }}
-                  whileTap={{ scale: 0.95 }}
-                  href="/contact"
-                  className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-emerald-500 text-white font-semibold rounded-xl hover:shadow-lg transition-all duration-200 relative overflow-hidden group/cta"
-                >
-                  <motion.div 
-                    className="absolute inset-0 bg-gradient-to-r from-blue-700 to-emerald-600 opacity-0 group-hover/cta:opacity-100 transition-opacity duration-300"
-                  />
-                  <MessageSquare className="w-5 h-5 relative z-10" />
-                  <span className="relative z-10">Contact Support</span>
-                </motion.a>
-                <motion.a
-                  whileHover={{ scale: 1.05, backgroundColor: "rgba(255, 255, 255, 0.9)", borderColor: "rgb(147, 197, 253)" }}
-                  whileTap={{ scale: 0.95 }}
-                  href="/"
-                  className="inline-flex items-center gap-2 px-6 py-3 bg-white/80 backdrop-blur-sm border border-slate-300 text-slate-700 font-semibold rounded-xl hover:border-blue-300 hover:text-blue-700 transition-all duration-200"
-                >
-                  <ArrowRight className="w-5 h-5" />
-                  Return to Home
-                </motion.a>
-              </div>
-            </div>
-          </motion.div>
-        </motion.div>
-      </div>
-
-      {/* Custom Styles */}
-      <style>{`
+        {/* Custom Styles */}
+        <style>{`
         @keyframes gradient {
           0%, 100% {
             background-position: 0% 50%;
@@ -877,7 +889,9 @@ const HelpCenterPage = () => {
           }
         }
       `}</style>
-    </div>
+      </div>
+
+    </>
   );
 };
 
