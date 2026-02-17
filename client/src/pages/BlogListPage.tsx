@@ -13,7 +13,8 @@ import {
   ChevronLeft,
   ChevronRight,
   Filter,
-  RefreshCw
+  RefreshCw,
+  Loader2
 } from "lucide-react";
 
 interface Blog {
@@ -28,7 +29,7 @@ interface Blog {
   image?: string;
 }
 
-// Skeleton Loader Component
+// Skeleton Loader Component - Simplified for production
 const BlogCardSkeleton = () => {
   return (
     <div className="relative h-full">
@@ -36,49 +37,47 @@ const BlogCardSkeleton = () => {
         <div className="p-6 lg:p-8 flex-1 flex flex-col">
           {/* Metadata skeleton */}
           <div className="flex flex-wrap items-center gap-3 mb-4">
-            <div className="h-4 w-20 bg-slate-200 rounded-full animate-pulse" />
-            <div className="h-4 w-16 bg-slate-200 rounded-full animate-pulse" />
-            <div className="h-4 w-12 bg-slate-200 rounded-full animate-pulse" />
+            <div className="h-4 w-20 bg-slate-200 rounded-full" />
+            <div className="h-4 w-16 bg-slate-200 rounded-full" />
+            <div className="h-4 w-12 bg-slate-200 rounded-full" />
           </div>
 
           {/* Title skeleton - 2 lines */}
           <div className="space-y-2 mb-3">
-            <div className="h-6 w-3/4 bg-slate-200 rounded-lg animate-pulse" />
-            <div className="h-6 w-1/2 bg-slate-200 rounded-lg animate-pulse" />
+            <div className="h-6 w-3/4 bg-slate-200 rounded-lg" />
+            <div className="h-6 w-1/2 bg-slate-200 rounded-lg" />
           </div>
 
           {/* Excerpt skeleton - 3 lines */}
           <div className="space-y-2 mb-6 flex-1">
-            <div className="h-4 w-full bg-slate-200 rounded animate-pulse" />
-            <div className="h-4 w-5/6 bg-slate-200 rounded animate-pulse" />
-            <div className="h-4 w-4/6 bg-slate-200 rounded animate-pulse" />
+            <div className="h-4 w-full bg-slate-200 rounded" />
+            <div className="h-4 w-5/6 bg-slate-200 rounded" />
+            <div className="h-4 w-4/6 bg-slate-200 rounded" />
           </div>
 
           {/* Read more skeleton */}
-          <div className="h-5 w-24 bg-slate-200 rounded animate-pulse mt-auto" />
+          <div className="h-5 w-24 bg-slate-200 rounded mt-auto" />
         </div>
       </div>
     </div>
   );
 };
 
-// Filter Skeleton
+// Filter Skeleton - Now properly used
 const FilterSkeleton = () => {
   return (
     <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-10">
       <div className="flex items-center gap-3">
-        <div className="h-8 w-16 bg-slate-200 rounded-xl animate-pulse" />
+        <div className="h-8 w-16 bg-slate-200 rounded-xl" />
         <div className="flex items-center gap-2">
-          <div className="h-10 w-28 bg-slate-200 rounded-xl animate-pulse" />
-          <div className="h-10 w-28 bg-slate-200 rounded-xl animate-pulse" />
+          <div className="h-10 w-28 bg-slate-200 rounded-xl" />
+          <div className="h-10 w-28 bg-slate-200 rounded-xl" />
         </div>
       </div>
-      <div className="h-8 w-48 bg-slate-200 rounded-full animate-pulse" />
+      <div className="h-8 w-48 bg-slate-200 rounded-full" />
     </div>
   );
 };
-
-// Pagination Skeleton
 
 const BlogListPage = () => {
   const [blogs, setBlogs] = useState<Blog[]>([]);
@@ -88,6 +87,7 @@ const BlogListPage = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>('newest');
   const [showFilters, setShowFilters] = useState(false);
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
   
   const postsPerPage = 6;
 
@@ -104,6 +104,7 @@ const BlogListPage = () => {
         console.error('Error loading blogs:', err);
       } finally {
         setIsLoading(false);
+        setIsInitialLoad(false);
       }
     };
 
@@ -146,13 +147,10 @@ const BlogListPage = () => {
     setCurrentPage(pageNumber);
     window.scrollTo({ top: 0, behavior: 'smooth' });
     
-    // Filter loading will be false after new data is rendered
-    // Using requestAnimationFrame to ensure smooth transition
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        setIsFilterLoading(false);
-      });
-    });
+    // Simulate loading time for smooth transition
+    setTimeout(() => {
+      setIsFilterLoading(false);
+    }, 300);
   }, [currentPage, totalPages]);
 
   // Handle sort change
@@ -163,11 +161,9 @@ const BlogListPage = () => {
     setSortOrder(order);
     setCurrentPage(1);
     
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        setIsFilterLoading(false);
-      });
-    });
+    setTimeout(() => {
+      setIsFilterLoading(false);
+    }, 300);
   }, [sortOrder]);
 
   // Retry loading on error
@@ -235,6 +231,17 @@ const BlogListPage = () => {
     return rangeWithDots;
   }, [currentPage, totalPages]);
 
+  // Don't render anything during initial load to prevent flicker
+  if (isInitialLoad && isLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50/30 flex items-center justify-center">
+        <div className="relative">
+          <Loader2 className="w-12 h-12 text-blue-600 animate-spin" />
+        </div>
+      </div>
+    );
+  }
+
   if (error) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50/30 flex items-center justify-center">
@@ -248,7 +255,7 @@ const BlogListPage = () => {
             onClick={handleRetry}
             className="group cursor-pointer relative px-6 py-3 bg-gradient-to-r from-blue-600 to-emerald-500 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden inline-flex items-center gap-2"
           >
-            <RefreshCw className="w-4 h-4" />
+            <RefreshCw className="w-4 h-4 group-hover:rotate-180 transition-transform duration-500" />
             <span>Try Again</span>
           </button>
         </div>
@@ -271,29 +278,31 @@ const BlogListPage = () => {
         {/* Animated Background Grid */}
         <div className="absolute inset-0 bg-grid-slate-100 [mask-image:radial-gradient(ellipse_at_center,white,transparent_70%)]" />
 
-        {/* Floating Particles */}
-        <div className="absolute inset-0 overflow-hidden">
-          {Array.from({ length: 20 }).map((_, i) => (
-            <motion.div
-              key={i}
-              className="absolute w-1 h-1 bg-blue-300/30 rounded-full"
-              initial={{
-                x: Math.random() * 100 + '%',
-                y: Math.random() * 100 + '%',
-              }}
-              animate={{
-                y: [null, `-${Math.random() * 50 + 20}px`],
-                opacity: [0.3, 0.7, 0.3],
-              }}
-              transition={{
-                duration: Math.random() * 3 + 2,
-                repeat: Infinity,
-                ease: "easeInOut",
-                delay: Math.random() * 2,
-              }}
-            />
-          ))}
-        </div>
+        {/* Floating Particles - Only render after initial load */}
+        {!isLoading && (
+          <div className="absolute inset-0 overflow-hidden">
+            {Array.from({ length: 20 }).map((_, i) => (
+              <motion.div
+                key={i}
+                className="absolute w-1 h-1 bg-blue-300/30 rounded-full"
+                initial={{
+                  x: Math.random() * 100 + '%',
+                  y: Math.random() * 100 + '%',
+                }}
+                animate={{
+                  y: [null, `-${Math.random() * 50 + 20}px`],
+                  opacity: [0.3, 0.7, 0.3],
+                }}
+                transition={{
+                  duration: Math.random() * 3 + 2,
+                  repeat: Infinity,
+                  ease: "easeInOut",
+                  delay: Math.random() * 2,
+                }}
+              />
+            ))}
+          </div>
+        )}
 
         {/* Main Content */}
         <div className="relative z-10">
@@ -326,7 +335,7 @@ const BlogListPage = () => {
               </p>
             </motion.div>
 
-            {/* Filters Bar - Show skeleton while loading */}
+            {/* Filters Bar - Show FilterSkeleton when loading */}
             {isLoading ? (
               <FilterSkeleton />
             ) : (
@@ -420,9 +429,7 @@ const BlogListPage = () => {
                         exit={{ opacity: 0 }}
                         className="absolute inset-0 bg-white/50 backdrop-blur-sm z-20 flex items-center justify-center rounded-2xl"
                       >
-                        <div className="relative">
-                          <div className="w-12 h-12 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin" />
-                        </div>
+                        <Loader2 className="w-8 h-8 text-blue-600 animate-spin" />
                       </motion.div>
                     )}
                   </AnimatePresence>
@@ -440,7 +447,6 @@ const BlogListPage = () => {
                         variants={itemVariants}
                         whileHover={{ y: -4 }}
                         className="group relative h-full"
-                        layout
                       >
                         <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 to-emerald-500/10 rounded-2xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                         
@@ -597,19 +603,6 @@ const BlogListPage = () => {
           -webkit-line-clamp: 3;
           -webkit-box-orient: vertical;
           overflow: hidden;
-        }
-
-        @keyframes pulse {
-          0%, 100% {
-            opacity: 1;
-          }
-          50% {
-            opacity: 0.5;
-          }
-        }
-        
-        .animate-pulse {
-          animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
         }
       `}</style>
     </>

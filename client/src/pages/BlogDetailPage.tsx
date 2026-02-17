@@ -14,8 +14,12 @@ import {
   Linkedin,
   Facebook,
   Link as LinkIcon,
-  CheckCircle
-} from "lucide-react";
+  CheckCircle,
+  Sparkles,
+  Hash,
+  Code,
+  Image as ImageIcon,
+  List} from "lucide-react";
 
 const BlogDetailPage = () => {
   const { slug } = useParams();
@@ -60,6 +64,69 @@ const BlogDetailPage = () => {
     }
   };
 
+  // Function to enhance content with theme-aware styling
+  const enhanceContent = (content: string) => {
+    // Add gradient backgrounds to headings
+    let enhanced = content.replace(
+      /<h2>(.*?)<\/h2>/g,
+      '<h2 class="gradient-heading"><span class="gradient-text">$1</span></h2>'
+    );
+    
+    enhanced = enhanced.replace(
+      /<h3>(.*?)<\/h3>/g,
+      '<h3 class="gradient-subheading"><span class="gradient-subtext">$1</span></h3>'
+    );
+
+    // Enhance blockquotes with gradient border and icon
+    enhanced = enhanced.replace(
+      /<blockquote>(.*?)<\/blockquote>/gs,
+      '<blockquote class="themed-blockquote"><Quote class="quote-icon" />$1</blockquote>'
+    );
+
+    // Enhance code blocks with gradient border
+    enhanced = enhanced.replace(
+      /<pre><code>(.*?)<\/code><\/pre>/gs,
+      '<pre class="themed-code-block"><code>$1</code></pre>'
+    );
+
+    // Enhance lists with custom bullets
+    enhanced = enhanced.replace(
+      /<ul>(.*?)<\/ul>/gs,
+      '<ul class="themed-list">$1</ul>'
+    );
+
+    enhanced = enhanced.replace(
+      /<ol>(.*?)<\/ol>/gs,
+      '<ol class="themed-list themed-ordered-list">$1</ol>'
+    );
+
+    // Enhance list items with gradient bullets
+    enhanced = enhanced.replace(
+      /<li>(.*?)<\/li>/g,
+      '<li class="themed-list-item"><span class="bullet-gradient"></span>$1</li>'
+    );
+
+    // Enhance images with gradient overlay on hover
+    enhanced = enhanced.replace(
+      /<img(.*?)>/g,
+      '<div class="themed-image-wrapper"><img$1 /><div class="image-gradient-overlay"></div></div>'
+    );
+
+    // Enhance links with gradient underline
+    enhanced = enhanced.replace(
+      /<a(.*?)>(.*?)<\/a>/g,
+      '<a$1 class="themed-link">$2</a>'
+    );
+
+    // Enhance paragraphs with subtle gradient text
+    enhanced = enhanced.replace(
+      /<p>(.*?)<\/p>/g,
+      '<p class="themed-paragraph">$1</p>'
+    );
+
+    return enhanced;
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50/30 flex items-center justify-center">
@@ -93,6 +160,7 @@ const BlogDetailPage = () => {
   }
 
   const blogUrl = `https://assignflowhub.karanart.com/blog/${blog.slug}`;
+  const enhancedContent = enhanceContent(blog.content);
 
   return (
     <>
@@ -198,9 +266,9 @@ const BlogDetailPage = () => {
               transition={{ duration: 0.5 }}
               className="mb-10"
             >
-              {/* Metadata */}
+              {/* Metadata with badges */}
               <div className="flex flex-wrap items-center gap-4 mb-6">
-                <div className="flex items-center gap-2 text-sm text-slate-600 bg-white/50 backdrop-blur-sm px-4 py-2 rounded-full border border-slate-200/50">
+                <div className="flex items-center gap-2 text-sm text-slate-600 bg-white/80 backdrop-blur-sm px-4 py-2 rounded-full border border-white/50 shadow-sm">
                   <Calendar className="w-4 h-4 text-blue-500" />
                   <time dateTime={blog.publishedAt}>
                     {new Date(blog.publishedAt).toLocaleDateString('en-US', {
@@ -212,32 +280,44 @@ const BlogDetailPage = () => {
                 </div>
                 
                 {blog.readTime && (
-                  <div className="flex items-center gap-2 text-sm text-slate-600 bg-white/50 backdrop-blur-sm px-4 py-2 rounded-full border border-slate-200/50">
+                  <div className="flex items-center gap-2 text-sm text-slate-600 bg-white/80 backdrop-blur-sm px-4 py-2 rounded-full border border-white/50 shadow-sm">
                     <Clock className="w-4 h-4 text-emerald-500" />
                     <span>{blog.readTime} min read</span>
                   </div>
                 )}
                 
                 {blog.views && (
-                  <div className="flex items-center gap-2 text-sm text-slate-600 bg-white/50 backdrop-blur-sm px-4 py-2 rounded-full border border-slate-200/50">
+                  <div className="flex items-center gap-2 text-sm text-slate-600 bg-white/80 backdrop-blur-sm px-4 py-2 rounded-full border border-white/50 shadow-sm">
                     <Eye className="w-4 h-4 text-purple-500" />
                     <span>{blog.views} views</span>
                   </div>
                 )}
+
+                {/* Reading time badge with animation */}
+                <div className="flex items-center gap-2 text-sm bg-gradient-to-r from-blue-500/10 to-emerald-500/10 backdrop-blur-sm px-4 py-2 rounded-full border border-white/30">
+                  <Sparkles className="w-4 h-4 text-amber-500" />
+                  <span className="text-slate-700">Featured Article</span>
+                </div>
               </div>
 
-              {/* Title */}
-              <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold text-slate-900 mb-6 leading-tight">
-                {blog.title}
+              {/* Title with gradient */}
+              <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-6 leading-tight">
+                <span className="block text-slate-900 mb-2">{blog.title.split(' ').slice(0, -1).join(' ')}</span>
+                <span className="block text-transparent bg-clip-text bg-gradient-to-r from-blue-600 via-blue-500 to-emerald-500">
+                  {blog.title.split(' ').slice(-1)}
+                </span>
               </h1>
 
-              {/* Excerpt */}
-              <p className="text-lg md:text-xl text-slate-600 leading-relaxed border-l-4 border-gradient-to-b from-blue-600 to-emerald-500 pl-6">
-                {blog.excerpt}
-              </p>
+              {/* Excerpt with gradient border */}
+              <div className="relative">
+                <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-blue-600 via-emerald-500 to-purple-500 rounded-full" />
+                <p className="text-lg md:text-xl text-slate-600 leading-relaxed pl-6 italic">
+                  {blog.excerpt}
+                </p>
+              </div>
             </motion.div>
 
-            {/* Featured Image */}
+            {/* Featured Image with gradient overlay */}
             {blog.image && (
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
@@ -245,16 +325,25 @@ const BlogDetailPage = () => {
                 transition={{ delay: 0.1, duration: 0.5 }}
                 className="mb-12 relative group"
               >
-                <div className="absolute inset-0 bg-gradient-to-r from-blue-600/20 to-emerald-600/20 rounded-2xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                <div className="absolute -inset-1 bg-gradient-to-r from-blue-600 to-emerald-500 rounded-2xl blur-xl opacity-20 group-hover:opacity-30 transition-opacity duration-300" />
+                <div className="absolute inset-0 bg-gradient-to-t from-slate-900/20 to-transparent rounded-2xl z-10" />
                 <img
                   src={blog.image}
                   alt={blog.title}
-                  className="w-full rounded-2xl shadow-2xl relative z-10"
+                  className="w-full rounded-2xl shadow-2xl relative z-0"
                 />
+                
+                {/* Floating badge */}
+                <div className="absolute top-4 right-4 z-20">
+                  <div className="flex items-center gap-2 px-4 py-2 bg-white/90 backdrop-blur-sm rounded-full shadow-lg border border-white/50">
+                    <ImageIcon className="w-4 h-4 text-blue-600" />
+                    <span className="text-sm font-medium text-slate-700">Featured Image</span>
+                  </div>
+                </div>
               </motion.div>
             )}
 
-            {/* Article Content */}
+            {/* Article Content with Theme Adaptation */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -262,56 +351,113 @@ const BlogDetailPage = () => {
               className="prose prose-lg max-w-none mb-12"
             >
               <div
-                dangerouslySetInnerHTML={{ __html: blog.content }}
-                className="blog-content"
+                dangerouslySetInnerHTML={{ __html: enhancedContent }}
+                className="blog-content-themed"
               />
             </motion.div>
 
-            {/* Share Section */}
+            {/* Content Stats */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.25, duration: 0.5 }}
+              className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-12"
+            >
+              <div className="bg-white/50 backdrop-blur-sm rounded-xl p-4 border border-white/50 text-center">
+                <Hash className="w-5 h-5 text-blue-600 mx-auto mb-2" />
+                <div className="text-2xl font-bold text-slate-900">
+                  {blog.content.split(' ').length}
+                </div>
+                <div className="text-xs text-slate-600">Words</div>
+              </div>
+              <div className="bg-white/50 backdrop-blur-sm rounded-xl p-4 border border-white/50 text-center">
+                <Clock className="w-5 h-5 text-emerald-600 mx-auto mb-2" />
+                <div className="text-2xl font-bold text-slate-900">{blog.readTime || 5}</div>
+                <div className="text-xs text-slate-600">Minutes Read</div>
+              </div>
+              <div className="bg-white/50 backdrop-blur-sm rounded-xl p-4 border border-white/50 text-center">
+                <List className="w-5 h-5 text-purple-600 mx-auto mb-2" />
+                <div className="text-2xl font-bold text-slate-900">
+                  {(blog.content.match(/<li>/g) || []).length}
+                </div>
+                <div className="text-xs text-slate-600">List Items</div>
+              </div>
+              <div className="bg-white/50 backdrop-blur-sm rounded-xl p-4 border border-white/50 text-center">
+                <Code className="w-5 h-5 text-amber-600 mx-auto mb-2" />
+                <div className="text-2xl font-bold text-slate-900">
+                  {(blog.content.match(/<code>/g) || []).length}
+                </div>
+                <div className="text-xs text-slate-600">Code Blocks</div>
+              </div>
+            </motion.div>
+
+            {/* Share Section with enhanced styling */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.3, duration: 0.5 }}
-              className="mt-12 pt-8 border-t border-slate-200/50"
+              className="mt-12 pt-8 border-t border-slate-200/50 relative"
             >
+              {/* Decorative gradient line */}
+              <div className="absolute top-0 left-1/2 -translate-x-1/2 w-24 h-1 bg-gradient-to-r from-blue-600 to-emerald-500 rounded-full" />
+              
               <div className="flex flex-col sm:flex-row items-center justify-between gap-6">
                 <div className="flex items-center gap-3">
-                  <Share2 className="w-5 h-5 text-slate-600" />
+                  <div className="p-2 bg-gradient-to-br from-blue-500/10 to-emerald-500/10 rounded-xl">
+                    <Share2 className="w-5 h-5 text-blue-600" />
+                  </div>
                   <span className="text-sm font-medium text-slate-700">Share this article:</span>
                 </div>
                 
                 <div className="flex items-center gap-3">
                   {/* Twitter */}
-                  <button
+                  <motion.button
+                    whileHover={{ scale: 1.05, y: -2 }}
+                    whileTap={{ scale: 0.95 }}
                     onClick={() => handleShare('twitter')}
-                    className="p-3 bg-white/80 backdrop-blur-sm border border-slate-200/50 rounded-xl hover:bg-blue-50 hover:border-blue-200 hover:text-blue-600 transition-all duration-300 group"
+                    className="p-3 bg-white/80 backdrop-blur-sm border border-white/50 rounded-xl hover:bg-blue-50 hover:border-blue-200 hover:text-blue-600 transition-all duration-300 group relative"
                     aria-label="Share on Twitter"
                   >
                     <Twitter className="w-5 h-5 text-slate-600 group-hover:text-blue-400" />
-                  </button>
+                    <span className="absolute -top-8 left-1/2 -translate-x-1/2 px-2 py-1 bg-slate-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap">
+                      Twitter
+                    </span>
+                  </motion.button>
 
                   {/* LinkedIn */}
-                  <button
+                  <motion.button
+                    whileHover={{ scale: 1.05, y: -2 }}
+                    whileTap={{ scale: 0.95 }}
                     onClick={() => handleShare('linkedin')}
-                    className="p-3 bg-white/80 backdrop-blur-sm border border-slate-200/50 rounded-xl hover:bg-blue-50 hover:border-blue-200 hover:text-blue-600 transition-all duration-300 group"
+                    className="p-3 bg-white/80 backdrop-blur-sm border border-white/50 rounded-xl hover:bg-blue-50 hover:border-blue-200 hover:text-blue-600 transition-all duration-300 group relative"
                     aria-label="Share on LinkedIn"
                   >
                     <Linkedin className="w-5 h-5 text-slate-600 group-hover:text-blue-600" />
-                  </button>
+                    <span className="absolute -top-8 left-1/2 -translate-x-1/2 px-2 py-1 bg-slate-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap">
+                      LinkedIn
+                    </span>
+                  </motion.button>
 
                   {/* Facebook */}
-                  <button
+                  <motion.button
+                    whileHover={{ scale: 1.05, y: -2 }}
+                    whileTap={{ scale: 0.95 }}
                     onClick={() => handleShare('facebook')}
-                    className="p-3 bg-white/80 backdrop-blur-sm border border-slate-200/50 rounded-xl hover:bg-blue-50 hover:border-blue-200 hover:text-blue-600 transition-all duration-300 group"
+                    className="p-3 bg-white/80 backdrop-blur-sm border border-white/50 rounded-xl hover:bg-blue-50 hover:border-blue-200 hover:text-blue-600 transition-all duration-300 group relative"
                     aria-label="Share on Facebook"
                   >
                     <Facebook className="w-5 h-5 text-slate-600 group-hover:text-blue-600" />
-                  </button>
+                    <span className="absolute -top-8 left-1/2 -translate-x-1/2 px-2 py-1 bg-slate-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap">
+                      Facebook
+                    </span>
+                  </motion.button>
 
                   {/* Copy Link */}
-                  <button
+                  <motion.button
+                    whileHover={{ scale: 1.05, y: -2 }}
+                    whileTap={{ scale: 0.95 }}
                     onClick={() => handleShare('copy')}
-                    className="p-3 bg-white/80 backdrop-blur-sm border border-slate-200/50 rounded-xl hover:bg-emerald-50 hover:border-emerald-200 hover:text-emerald-600 transition-all duration-300 group relative"
+                    className="p-3 bg-white/80 backdrop-blur-sm border border-white/50 rounded-xl hover:bg-emerald-50 hover:border-emerald-200 hover:text-emerald-600 transition-all duration-300 group relative"
                     aria-label="Copy link"
                   >
                     {copied ? (
@@ -320,11 +466,10 @@ const BlogDetailPage = () => {
                       <LinkIcon className="w-5 h-5 text-slate-600 group-hover:text-emerald-500" />
                     )}
                     
-                    {/* Tooltip */}
-                    <span className="absolute -top-10 left-1/2 -translate-x-1/2 px-2 py-1 bg-slate-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap">
+                    <span className="absolute -top-8 left-1/2 -translate-x-1/2 px-2 py-1 bg-slate-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap">
                       {copied ? 'Copied!' : 'Copy link'}
                     </span>
-                  </button>
+                  </motion.button>
                 </div>
               </div>
             </motion.div>
@@ -356,84 +501,250 @@ const BlogDetailPage = () => {
         </div>
       </div>
 
-      {/* Custom Styles */}
+      {/* Custom Styles for Themed Content */}
       <style>{`
         .bg-grid-slate-100 {
           background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32' width='32' height='32' fill='none' stroke='rgb(241 245 249 / 0.3)'%3e%3cpath d='M0 .5H31.5V32'/%3e%3c/svg%3e");
           mask-image: linear-gradient(to bottom, transparent, white 20%, white 80%, transparent);
         }
         
-        .blog-content {
-          color: #1e293b;
+        /* Themed Blog Content Styles */
+        .blog-content-themed {
+          color: #334155;
           line-height: 1.8;
+          font-size: 1.125rem;
         }
         
-        .blog-content h2 {
+        /* Gradient Headings */
+        .gradient-heading {
+          margin-top: 3rem;
+          margin-bottom: 1.5rem;
+          position: relative;
+        }
+        
+        .gradient-heading::before {
+          content: '';
+          position: absolute;
+          left: -1rem;
+          top: 0;
+          bottom: 0;
+          width: 4px;
+          background: linear-gradient(to bottom, #2563eb, #10b981);
+          border-radius: 2px;
+        }
+        
+        .gradient-text {
+          font-size: 2.25rem;
+          font-weight: 800;
+          background: linear-gradient(135deg, #2563eb, #10b981);
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+          background-clip: text;
+          display: inline-block;
+        }
+        
+        .gradient-subheading {
+          margin-top: 2rem;
+          margin-bottom: 1rem;
+          position: relative;
+          display: inline-block;
+        }
+        
+        .gradient-subheading::after {
+          content: '';
+          position: absolute;
+          left: 0;
+          bottom: -0.5rem;
+          width: 50%;
+          height: 2px;
+          background: linear-gradient(90deg, #2563eb, #10b981);
+          border-radius: 1px;
+        }
+        
+        .gradient-subtext {
           font-size: 1.875rem;
           font-weight: 700;
-          margin-top: 2.5rem;
-          margin-bottom: 1rem;
           color: #0f172a;
         }
         
-        .blog-content h3 {
-          font-size: 1.5rem;
-          font-weight: 600;
-          margin-top: 2rem;
-          margin-bottom: 0.75rem;
-          color: #0f172a;
-        }
-        
-        .blog-content p {
-          margin-bottom: 1.5rem;
-        }
-        
-        .blog-content a {
-          color: #2563eb;
-          text-decoration: underline;
-          text-underline-offset: 2px;
+        /* Themed Paragraphs */
+        .themed-paragraph {
+          margin-bottom: 1.75rem;
+          color: #334155;
           transition: color 0.3s;
         }
         
-        .blog-content a:hover {
-          color: #059669;
+        .themed-paragraph:hover {
+          color: #1e293b;
         }
         
-        .blog-content ul, .blog-content ol {
-          margin-bottom: 1.5rem;
-          padding-left: 1.5rem;
-        }
-        
-        .blog-content li {
-          margin-bottom: 0.5rem;
-        }
-        
-        .blog-content blockquote {
-          border-left: 4px solid #2563eb;
-          padding-left: 1.5rem;
-          margin: 1.5rem 0;
+        /* Themed Blockquotes */
+        .themed-blockquote {
+          position: relative;
+          margin: 2.5rem 0;
+          padding: 2rem 2rem 2rem 3.5rem;
+          background: linear-gradient(135deg, #f8fafc, #f1f5f9);
+          border-radius: 1rem;
+          border-left: 4px solid transparent;
+          border-image: linear-gradient(to bottom, #2563eb, #10b981);
+          border-image-slice: 1;
           font-style: italic;
-          color: #475569;
+          color: #1e293b;
+          box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
         }
         
-        .blog-content img {
-          border-radius: 0.75rem;
+        .quote-icon {
+          position: absolute;
+          left: 1rem;
+          top: 1.5rem;
+          width: 1.5rem;
+          height: 1.5rem;
+          color: #2563eb;
+          opacity: 0.5;
+        }
+        
+        /* Themed Code Blocks */
+        .themed-code-block {
           margin: 2rem 0;
-          box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
-        }
-        
-        .blog-content pre {
-          background: #0f172a;
-          color: #e2e8f0;
           padding: 1.5rem;
-          border-radius: 0.75rem;
+          background: #0f172a;
+          border-radius: 1rem;
+          border: 1px solid #2563eb;
+          box-shadow: 0 10px 15px -3px rgba(37, 99, 235, 0.2);
           overflow-x: auto;
-          margin: 1.5rem 0;
         }
         
-        .blog-content code {
-          font-family: monospace;
+        .themed-code-block code {
+          color: #e2e8f0;
+          font-family: 'Fira Code', monospace;
           font-size: 0.875rem;
+          line-height: 1.7;
+        }
+        
+        /* Themed Lists */
+        .themed-list {
+          margin: 1.5rem 0;
+          padding-left: 2rem;
+          list-style: none;
+        }
+        
+        .themed-list-item {
+          position: relative;
+          margin-bottom: 0.75rem;
+          padding-left: 1.5rem;
+          color: #334155;
+        }
+        
+        .bullet-gradient {
+          position: absolute;
+          left: 0;
+          top: 0.6rem;
+          width: 0.5rem;
+          height: 0.5rem;
+          background: linear-gradient(135deg, #2563eb, #10b981);
+          border-radius: 50%;
+          transition: transform 0.3s;
+        }
+        
+        .themed-list-item:hover .bullet-gradient {
+          transform: scale(1.2);
+        }
+        
+        .themed-ordered-list {
+          counter-reset: item;
+        }
+        
+        .themed-ordered-list .themed-list-item {
+          counter-increment: item;
+        }
+        
+        .themed-ordered-list .themed-list-item::before {
+          content: counter(item) ".";
+          position: absolute;
+          left: -1rem;
+          top: 0;
+          font-weight: 600;
+          background: linear-gradient(135deg, #2563eb, #10b981);
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+          background-clip: text;
+        }
+        
+        /* Themed Images */
+        .themed-image-wrapper {
+          position: relative;
+          margin: 2.5rem 0;
+          border-radius: 1rem;
+          overflow: hidden;
+          box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+        }
+        
+        .themed-image-wrapper img {
+          width: 100%;
+          height: auto;
+          transition: transform 0.5s;
+        }
+        
+        .themed-image-wrapper:hover img {
+          transform: scale(1.02);
+        }
+        
+        .image-gradient-overlay {
+          position: absolute;
+          inset: 0;
+          background: linear-gradient(135deg, rgba(37, 99, 235, 0.1), rgba(16, 185, 129, 0.1));
+          opacity: 0;
+          transition: opacity 0.3s;
+          pointer-events: none;
+        }
+        
+        .themed-image-wrapper:hover .image-gradient-overlay {
+          opacity: 1;
+        }
+        
+        /* Themed Links */
+        .themed-link {
+          color: #2563eb;
+          text-decoration: none;
+          position: relative;
+          font-weight: 500;
+        }
+        
+        .themed-link::after {
+          content: '';
+          position: absolute;
+          left: 0;
+          bottom: -2px;
+          width: 100%;
+          height: 2px;
+          background: linear-gradient(90deg, #2563eb, #10b981);
+          transform: scaleX(0);
+          transform-origin: right;
+          transition: transform 0.3s;
+        }
+        
+        .themed-link:hover::after {
+          transform: scaleX(1);
+          transform-origin: left;
+        }
+        
+        .themed-link:hover {
+          color: #10b981;
+        }
+        
+        /* Responsive Adjustments */
+        @media (max-width: 640px) {
+          .gradient-text {
+            font-size: 1.875rem;
+          }
+          
+          .gradient-subtext {
+            font-size: 1.5rem;
+          }
+          
+          .themed-blockquote {
+            padding: 1.5rem 1.5rem 1.5rem 3rem;
+          }
         }
       `}</style>
     </>
