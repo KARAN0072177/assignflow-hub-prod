@@ -3,7 +3,7 @@ import { Link, useParams, useNavigate } from "react-router-dom";
 import { fetchBlogBySlug } from "../services/blog.public.api";
 import { Helmet } from "react-helmet-async";
 import { motion } from "framer-motion";
-import { 
+import {
   Calendar,
   Clock,
   ArrowLeft,
@@ -19,7 +19,8 @@ import {
   Hash,
   Code,
   Image as ImageIcon,
-  List} from "lucide-react";
+  List
+} from "lucide-react";
 
 const BlogDetailPage = () => {
   const { slug } = useParams();
@@ -40,7 +41,7 @@ const BlogDetailPage = () => {
   const handleShare = (platform: string) => {
     const url = window.location.href;
     const title = blog?.title || '';
-    
+
     let shareUrl = '';
     switch (platform) {
       case 'twitter':
@@ -48,6 +49,9 @@ const BlogDetailPage = () => {
         break;
       case 'linkedin':
         shareUrl = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(url)}`;
+        break;
+      case 'whatsapp':
+        shareUrl = `https://wa.me/?text=${encodeURIComponent(url)}`;
         break;
       case 'facebook':
         shareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`;
@@ -58,7 +62,7 @@ const BlogDetailPage = () => {
         setTimeout(() => setCopied(false), 2000);
         return;
     }
-    
+
     if (shareUrl) {
       window.open(shareUrl, '_blank', 'noopener,noreferrer');
     }
@@ -71,7 +75,7 @@ const BlogDetailPage = () => {
       /<h2>(.*?)<\/h2>/g,
       '<h2 class="gradient-heading"><span class="gradient-text">$1</span></h2>'
     );
-    
+
     enhanced = enhanced.replace(
       /<h3>(.*?)<\/h3>/g,
       '<h3 class="gradient-subheading"><span class="gradient-subtext">$1</span></h3>'
@@ -242,7 +246,7 @@ const BlogDetailPage = () => {
         {/* Main Content */}
         <div className="relative z-10">
           <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 md:pt-24 pb-20">
-            
+
             {/* Back Button */}
             <motion.div
               initial={{ opacity: 0, x: -20 }}
@@ -278,14 +282,14 @@ const BlogDetailPage = () => {
                     })}
                   </time>
                 </div>
-                
+
                 {blog.readTime && (
                   <div className="flex items-center gap-2 text-sm text-slate-600 bg-white/80 backdrop-blur-sm px-4 py-2 rounded-full border border-white/50 shadow-sm">
                     <Clock className="w-4 h-4 text-emerald-500" />
                     <span>{blog.readTime} min read</span>
                   </div>
                 )}
-                
+
                 {blog.views && (
                   <div className="flex items-center gap-2 text-sm text-slate-600 bg-white/80 backdrop-blur-sm px-4 py-2 rounded-full border border-white/50 shadow-sm">
                     <Eye className="w-4 h-4 text-purple-500" />
@@ -332,7 +336,7 @@ const BlogDetailPage = () => {
                   alt={blog.title}
                   className="w-full rounded-2xl shadow-2xl relative z-0"
                 />
-                
+
                 {/* Floating badge */}
                 <div className="absolute top-4 right-4 z-20">
                   <div className="flex items-center gap-2 px-4 py-2 bg-white/90 backdrop-blur-sm rounded-full shadow-lg border border-white/50">
@@ -400,7 +404,7 @@ const BlogDetailPage = () => {
             >
               {/* Decorative gradient line */}
               <div className="absolute top-0 left-1/2 -translate-x-1/2 w-24 h-1 bg-gradient-to-r from-blue-600 to-emerald-500 rounded-full" />
-              
+
               <div className="flex flex-col sm:flex-row items-center justify-between gap-6">
                 <div className="flex items-center gap-3">
                   <div className="p-2 bg-gradient-to-br from-blue-500/10 to-emerald-500/10 rounded-xl">
@@ -408,7 +412,7 @@ const BlogDetailPage = () => {
                   </div>
                   <span className="text-sm font-medium text-slate-700">Share this article:</span>
                 </div>
-                
+
                 <div className="flex items-center gap-3">
                   {/* Twitter */}
                   <motion.button
@@ -421,6 +425,27 @@ const BlogDetailPage = () => {
                     <Twitter className="w-5 h-5 text-slate-600 group-hover:text-blue-400" />
                     <span className="absolute -top-8 left-1/2 -translate-x-1/2 px-2 py-1 bg-slate-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap">
                       Twitter
+                    </span>
+                  </motion.button>
+
+                  {/* WhatsApp */}
+                  <motion.button
+                    whileHover={{ scale: 1.05, y: -2 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => handleShare('whatsapp')}
+                    className="p-3 bg-white/80 backdrop-blur-sm border border-white/50 rounded-xl hover:bg-green-50 hover:border-green-200 hover:text-green-600 transition-all duration-300 group relative"
+                    aria-label="Share on WhatsApp"
+                  >
+                    <svg
+                      className="w-5 h-5 text-slate-600 group-hover:text-green-500"
+                      fill="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.473-.149-.673.149-.2.297-.767.967-.94 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z" />
+                      <path d="M12 0C5.373 0 0 5.373 0 12c0 2.125.556 4.12 1.533 5.852L.054 23.5l5.913-1.487C8.026 22.822 9.975 23.5 12 23.5c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22c-1.838 0-3.63-.497-5.195-1.436l-.371-.218-4.019 1.01 1.076-3.929-.237-.394C2.518 15.57 2 13.832 2 12 2 6.486 6.486 2 12 2s10 4.486 10 10-4.486 10-10 10z" />
+                    </svg>
+                    <span className="absolute -top-8 left-1/2 -translate-x-1/2 px-2 py-1 bg-slate-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap">
+                      WhatsApp
                     </span>
                   </motion.button>
 
@@ -465,7 +490,7 @@ const BlogDetailPage = () => {
                     ) : (
                       <LinkIcon className="w-5 h-5 text-slate-600 group-hover:text-emerald-500" />
                     )}
-                    
+
                     <span className="absolute -top-8 left-1/2 -translate-x-1/2 px-2 py-1 bg-slate-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap">
                       {copied ? 'Copied!' : 'Copy link'}
                     </span>
