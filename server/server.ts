@@ -45,6 +45,8 @@ import sitemapRoutes from "./modules/seo/sitemap.routes"; // new import for site
 
 import robotsRoutes from "./modules/seo/robots.routes"; // new import for robots.txt route 
 
+import verifyRoutes from "./modules/auth/auth.verify.routes"; // new import for email verification routes
+
 // websockets imports
 
 import http from "http";
@@ -148,6 +150,10 @@ app.use("/api/blogs", blogRoutes);
 app.use("/", sitemapRoutes);
 
 app.use("/", robotsRoutes);
+
+
+
+app.use("/api/auth", verifyRoutes);  // email verification routes
 
 
 app.get("/api/test-auth", requireAuth, (req, res) => {

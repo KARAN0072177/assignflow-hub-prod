@@ -1,5 +1,4 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
 import { registerUser } from "../services/auth.api";
 import { type UserRole } from "../types/auth.types";
 import { Link } from "react-router-dom";
@@ -16,14 +15,12 @@ import {
   User,
   AlertCircle,
   ArrowRight,
-  ShieldCheck,
   CheckCircle2,
   ChevronRight,
   Users
 } from "lucide-react";
 
 const Register = () => {
-  const navigate = useNavigate();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -33,6 +30,7 @@ const Register = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [emailVerified, setEmailVerified] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -58,11 +56,9 @@ const Register = () => {
       await registerUser({ email, password, role });
 
       setSuccess(true);
-      
+
       // Redirect to login after showing success message
-      setTimeout(() => {
-        navigate("/login");
-      }, 1500);
+
     } catch (err: any) {
       setError(err?.response?.data?.message || "Registration failed");
       setLoading(false);
@@ -84,6 +80,25 @@ const Register = () => {
 
   const passwordStrength = getPasswordStrength(password);
 
+  useEffect(() => {
+    const handleStorage = (event: StorageEvent) => {
+      if (event.key === "emailVerified") {
+        setEmailVerified(true);
+      }
+    };
+
+    // If user refreshes and already verified
+    if (localStorage.getItem("emailVerified")) {
+      setEmailVerified(true);
+    }
+
+    window.addEventListener("storage", handleStorage);
+
+    return () => {
+      window.removeEventListener("storage", handleStorage);
+    };
+  }, []);
+
   if (success) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 to-emerald-50 flex items-center justify-center p-4">
@@ -96,15 +111,28 @@ const Register = () => {
           <div className="inline-flex items-center justify-center w-16 h-16 bg-emerald-100 rounded-full mb-6">
             <CheckCircle2 className="w-8 h-8 text-emerald-600" />
           </div>
-          <h2 className="text-2xl font-bold text-slate-800 mb-3">Account Created Successfully!</h2>
+          <h2 className="text-2xl font-bold text-slate-800 mb-3">
+            {emailVerified ? "🎉 Email Verified Successfully!" : "Verify your email!"}
+          </h2>
+
           <p className="text-slate-600 mb-6">
-            Your {role === 'TEACHER' ? 'teacher' : 'student'} account has been created. 
-            You'll be redirected to login shortly.
+            {emailVerified ? (
+              "Your email has been verified. You can now log in with your credentials."
+            ) : (
+              <>
+                We've sent a verification link to <b>{email}</b>.
+                Please check your inbox and verify your email before logging in.
+              </>
+            )}
           </p>
-          <div className="flex items-center justify-center gap-2 text-sm text-emerald-700 bg-emerald-50 p-3 rounded-lg">
-            <ShieldCheck className="w-4 h-4" />
-            <span>You can now sign in with your credentials</span>
-          </div>
+
+          <Link
+            to="/login"
+            className="inline-flex items-center gap-2 text-blue-600 font-medium hover:text-blue-800"
+          >
+            Go to Login
+            <ArrowRight className="w-4 h-4" />
+          </Link>
         </motion.div>
       </div>
     );
@@ -217,12 +245,11 @@ const Register = () => {
                 <div className="space-y-2">
                   <div className="flex items-center justify-between text-xs">
                     <span className="text-slate-600">Password strength:</span>
-                    <span className={`font-medium ${
-                      passwordStrength.score <= 1 ? 'text-red-600' :
+                    <span className={`font-medium ${passwordStrength.score <= 1 ? 'text-red-600' :
                       passwordStrength.score === 2 ? 'text-amber-600' :
-                      passwordStrength.score === 3 ? 'text-blue-600' :
-                      'text-emerald-600'
-                    }`}>
+                        passwordStrength.score === 3 ? 'text-blue-600' :
+                          'text-emerald-600'
+                      }`}>
                       {passwordStrength.label}
                     </span>
                   </div>
@@ -230,11 +257,10 @@ const Register = () => {
                     {[1, 2, 3, 4].map((level) => (
                       <div
                         key={level}
-                        className={`h-1 flex-1 rounded-full ${
-                          level <= passwordStrength.score
-                            ? passwordStrength.color
-                            : 'bg-slate-200'
-                        }`}
+                        className={`h-1 flex-1 rounded-full ${level <= passwordStrength.score
+                          ? passwordStrength.color
+                          : 'bg-slate-200'
+                          }`}
                       />
                     ))}
                   </div>
@@ -253,11 +279,10 @@ const Register = () => {
                   type="button"
                   onClick={() => setRole("STUDENT")}
                   disabled={loading}
-                  className={`flex flex-col items-center justify-center p-4 rounded-lg border transition-all duration-200 ${
-                    role === "STUDENT"
-                      ? 'bg-emerald-50 border-emerald-300 ring-2 ring-emerald-200'
-                      : 'bg-white border-slate-400 hover:bg-slate-50'
-                  } disabled:opacity-60`}
+                  className={`flex flex-col items-center justify-center p-4 rounded-lg border transition-all duration-200 ${role === "STUDENT"
+                    ? 'bg-emerald-50 border-emerald-300 ring-2 ring-emerald-200'
+                    : 'bg-white border-slate-400 hover:bg-slate-50'
+                    } disabled:opacity-60`}
                 >
                   <User className={`w-6 h-6 mb-2 ${role === "STUDENT" ? 'text-emerald-700' : 'text-slate-600'}`} />
                   <span className={`font-medium ${role === "STUDENT" ? 'text-emerald-800' : 'text-slate-700'}`}>
@@ -269,11 +294,10 @@ const Register = () => {
                   type="button"
                   onClick={() => setRole("TEACHER")}
                   disabled={loading}
-                  className={`flex flex-col items-center justify-center p-4 rounded-lg border transition-all duration-200 ${
-                    role === "TEACHER"
-                      ? 'bg-blue-50 border-blue-300 ring-2 ring-blue-200'
-                      : 'bg-white border-slate-400 hover:bg-slate-50'
-                  } disabled:opacity-60`}
+                  className={`flex flex-col items-center justify-center p-4 rounded-lg border transition-all duration-200 ${role === "TEACHER"
+                    ? 'bg-blue-50 border-blue-300 ring-2 ring-blue-200'
+                    : 'bg-white border-slate-400 hover:bg-slate-50'
+                    } disabled:opacity-60`}
                 >
                   <GraduationCap className={`w-6 h-6 mb-2 ${role === "TEACHER" ? 'text-blue-700' : 'text-slate-600'}`} />
                   <span className={`font-medium ${role === "TEACHER" ? 'text-blue-800' : 'text-slate-700'}`}>
@@ -344,9 +368,8 @@ const Register = () => {
           </form>
 
           {/* Role Benefits */}
-          <div className={`mt-6 p-4 rounded-lg ${
-            role === 'TEACHER' ? 'bg-blue-50 border border-blue-200' : 'bg-emerald-50 border border-emerald-200'
-          }`}>
+          <div className={`mt-6 p-4 rounded-lg ${role === 'TEACHER' ? 'bg-blue-50 border border-blue-200' : 'bg-emerald-50 border border-emerald-200'
+            }`}>
             <div className="flex items-center gap-2 mb-2">
               <BookOpen className={`w-5 h-5 ${role === 'TEACHER' ? 'text-blue-700' : 'text-emerald-700'}`} />
               <h4 className="font-medium text-slate-800">

@@ -1,10 +1,12 @@
 import { Request, Response } from "express";
 import { z } from "zod";
-import { loginUser, registerUser } from "./auth.service";
+import { loginUser, registerUser, requestPasswordReset, resetPassword, verifyResetOtp } from "./auth.service";
 import { UserRole } from "../../models/user.model";
 import { logAuditEvent } from "../../utils/auditLogger";
 import { AuthenticatedRequest } from "../../middleware/requireAuth";
 import { Types } from "mongoose";
+import { resendResetPasswordOtp } from "./auth.service";
+
 import {
   isLoginBlocked,
   recordFailedLogin,
@@ -31,19 +33,19 @@ export const register = async (req: Request, res: Response) => {
   const { email, password, role } = parsed.data;
 
   try {
-    const user = await registerUser(email, password, role);
+    const result = await registerUser(email, password, role);
 
     // 🔍 Audit log (optional, but good)
     await logAuditEvent({
       actorRole: "USER",
-      actorId: user.id,
+      actorId: result.user.id,
       action: "USER_REGISTER",
       entityType: "AUTH",
-      entityId: user.id,
+      entityId: result.user.id,
       metadata: { email, role },
     });
 
-    res.status(201).json(user);
+    res.status(201).json(result);
   } catch (error: any) {
     res.status(400).json({ message: error.message });
   }
@@ -93,6 +95,51 @@ export const login = async (req: Request, res: Response) => {
     recordFailedLogin(ip as string);
 
     res.status(401).json({ message: error.message });
+  }
+};
+
+// ============================
+// PASSWORD RESET FLOW (REQUEST OTP, VERIFY OTP, RESET PASSWORD)
+// ============================
+
+export const forgotPassword = async (req: Request, res: Response) => {
+  await requestPasswordReset(req.body.email);
+  res.json({ message: "OTP sent to email" });
+};
+
+export const verifyOtp = async (req: Request, res: Response) => {
+  await verifyResetOtp(req.body.email, req.body.otp);
+  res.json({ message: "OTP verified" });
+};
+
+export const resetPasswordController = async (
+  req: Request,
+  res: Response
+) => {
+  await resetPassword(req.body.email, req.body.password);
+  res.json({ message: "Password reset successful" });
+};
+
+
+// ============================
+// Resend OTP Controller
+// ============================
+
+export const resendResetOtpController = async (req: Request, res: Response) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({ message: "Email is required" });
+    }
+
+    await resendResetPasswordOtp(email);
+
+    res.json({ message: "OTP resent successfully" });
+  } catch (err: any) {
+    res.status(400).json({
+      message: err.message || "Failed to resend OTP",
+    });
   }
 };
 

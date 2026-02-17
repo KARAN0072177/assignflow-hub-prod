@@ -167,6 +167,10 @@ const Login = () => {
               </div>
             </div>
 
+            <Link to="/forgot-password" className="text-sm text-blue-600 hover:text-blue-800 transition-colors duration-200 inline-flex items-center gap-1 group disabled:text-blue-400 disabled:cursor-not-allowed mb-4">
+              Forgot password?
+            </Link>
+
             {/* Remember Me */}
             <div className="flex items-center justify-between">
               <label className="flex items-center gap-2 cursor-pointer">

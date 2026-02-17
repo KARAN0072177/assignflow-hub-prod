@@ -37,11 +37,15 @@ import BlogListPage from "./pages/BlogListPage";
 import BlogDetailPage from "./pages/BlogDetailPage";
 import SitemapPage from "./pages/SiteMap";
 import AccessibilityPage from "./pages/Accessibility";
+import VerifyEmail from "./pages/VerifyEmail";
+import ForgotPassword from "./pages/ForgotPassword";
+import VerifyOtp from "./pages/VerifyOtp";
+import ResetPassword from "./pages/ResetPassword";
 
 function AppRoutes() {
   const location = useLocation();
 
-  const hideLayoutRoutes = ["/login", "/register", "/dashboard", "/admin"];
+  const hideLayoutRoutes = ["/login", "/register", "/dashboard", "/admin", "/verify-email" , "/forgot-password", "/verify-otp", "/reset-password"];
 
   const shouldHideLayout = hideLayoutRoutes.some((path) =>
     location.pathname.startsWith(path)
@@ -58,6 +62,10 @@ function AppRoutes() {
         <Route path="/" element={<Navigate to="/home" />} />
         <Route path="/register" element={<Register />} />
         <Route path="/login" element={<Login />} />
+        <Route path="/verify-email" element={<VerifyEmail />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/verify-otp" element={<VerifyOtp />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/about" element={<About />} />
         <Route path="/feedback" element={<FeedbackPage />} />
         <Route path="/contact" element={<ContactPage />} />
