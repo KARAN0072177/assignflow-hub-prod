@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { registerUser } from "../services/auth.api";
 import { type UserRole } from "../types/auth.types";
 import { Link } from "react-router-dom";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, useMotionValue, useSpring, useTransform } from "framer-motion";
 import {
   UserPlus,
   Mail,
@@ -16,12 +16,15 @@ import {
   AlertCircle,
   ArrowRight,
   CheckCircle2,
-  ChevronRight,
-  Users
+  Users,
+  Sparkles,
+  Shield,
+  Zap,
+  Star,
+  Award
 } from "lucide-react";
 
 const Register = () => {
-
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [role, setRole] = useState<UserRole>("STUDENT");
@@ -30,7 +33,32 @@ const Register = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [success, setSuccess] = useState(false);
-  const [emailVerified, setEmailVerified] = useState(false);
+  const [registeredEmail, setRegisteredEmail] = useState(""); // Store email for success message
+  const [focusedField, setFocusedField] = useState<string | null>(null);
+
+  // Mouse movement for 3D effects
+  const mouseX = useMotionValue(0);
+  const mouseY = useMotionValue(0);
+  
+  const springConfig = { damping: 25, stiffness: 300 };
+  const mouseXSpring = useSpring(mouseX, springConfig);
+  const mouseYSpring = useSpring(mouseY, springConfig);
+  
+  const rotateX = useTransform(mouseYSpring, [-0.5, 0.5], ["5deg", "-5deg"]);
+  const rotateY = useTransform(mouseXSpring, [-0.5, 0.5], ["-5deg", "5deg"]);
+
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const width = rect.width;
+    const height = rect.height;
+    const x = (e.clientX - rect.left) / width - 0.5;
+    const y = (e.clientY - rect.top) / height - 0.5;
+    
+    requestAnimationFrame(() => {
+      mouseX.set(x);
+      mouseY.set(y);
+    });
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -54,11 +82,8 @@ const Register = () => {
     try {
       setLoading(true);
       await registerUser({ email, password, role });
-
+      setRegisteredEmail(email); // Store email for success message
       setSuccess(true);
-
-      // Redirect to login after showing success message
-
     } catch (err: any) {
       setError(err?.response?.data?.message || "Registration failed");
       setLoading(false);
@@ -80,17 +105,19 @@ const Register = () => {
 
   const passwordStrength = getPasswordStrength(password);
 
+  // Check if email is verified (only for when user comes back from email verification)
+  const [emailVerified, setEmailVerified] = useState(false);
+
   useEffect(() => {
     const handleStorage = (event: StorageEvent) => {
       if (event.key === "emailVerified") {
         setEmailVerified(true);
+        // Clear the flag after showing verified message
+        setTimeout(() => {
+          localStorage.removeItem("emailVerified");
+        }, 100);
       }
     };
-
-    // If user refreshes and already verified
-    if (localStorage.getItem("emailVerified")) {
-      setEmailVerified(true);
-    }
 
     window.addEventListener("storage", handleStorage);
 
@@ -99,348 +126,648 @@ const Register = () => {
     };
   }, []);
 
+  // Floating elements for background
+  const floatingElements = [
+    { icon: BookOpen, className: "top-20 left-10 delay-0", color: "text-blue-400" },
+    { icon: GraduationCap, className: "top-40 right-10 delay-100", color: "text-emerald-400" },
+    { icon: Users, className: "bottom-40 left-20 delay-200", color: "text-purple-400" },
+    { icon: Award, className: "bottom-20 right-20 delay-300", color: "text-amber-400" },
+  ];
+
   if (success) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-emerald-50 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-emerald-50/30 overflow-hidden relative flex items-center justify-center p-4">
+        {/* Animated Background */}
+        <div className="absolute inset-0 bg-grid-slate-100 [mask-image:radial-gradient(ellipse_at_center,white,transparent_70%)]" />
+        
+        {/* Floating Particles */}
+        <div className="absolute inset-0 overflow-hidden">
+          {Array.from({ length: 20 }).map((_, i) => (
+            <motion.div
+              key={i}
+              className="absolute w-1 h-1 bg-emerald-300/30 rounded-full"
+              initial={{
+                x: Math.random() * 100 + '%',
+                y: Math.random() * 100 + '%',
+              }}
+              animate={{
+                y: [null, `-${Math.random() * 50 + 20}px`],
+                opacity: [0.3, 0.7, 0.3],
+              }}
+              transition={{
+                duration: Math.random() * 3 + 2,
+                repeat: Infinity,
+                ease: "easeInOut",
+                delay: Math.random() * 2,
+              }}
+            />
+          ))}
+        </div>
+
+        {/* Animated Gradients */}
+        <div className="absolute inset-0 -z-10 overflow-hidden">
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[800px] bg-gradient-to-br from-emerald-500/10 via-transparent to-green-500/10 rounded-full blur-3xl" />
+        </div>
+
         <motion.div
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.3 }}
-          className="w-full max-w-md bg-white rounded-2xl shadow-xl p-8 text-center border border-emerald-200"
+          initial={{ opacity: 0, scale: 0.9, y: 20 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          transition={{ duration: 0.5, type: "spring" }}
+          className="relative z-10 w-full max-w-md"
         >
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-emerald-100 rounded-full mb-6">
-            <CheckCircle2 className="w-8 h-8 text-emerald-600" />
-          </div>
-          <h2 className="text-2xl font-bold text-slate-800 mb-3">
-            {emailVerified ? "🎉 Email Verified Successfully!" : "Verify your email!"}
-          </h2>
+          <div className="bg-white/90 backdrop-blur-xl rounded-3xl shadow-2xl p-8 text-center border border-white/50">
+            <motion.div
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
+              className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-emerald-500 to-green-500 rounded-full mb-6 shadow-lg shadow-emerald-500/30"
+            >
+              {emailVerified ? (
+                <CheckCircle2 className="w-10 h-10 text-white" />
+              ) : (
+                <Mail className="w-10 h-10 text-white" />
+              )}
+            </motion.div>
+            
+            <motion.h2 
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3 }}
+              className="text-2xl font-bold text-slate-800 mb-3"
+            >
+              {emailVerified ? "✨ Email Verified!" : "Verify your email"}
+            </motion.h2>
 
-          <p className="text-slate-600 mb-6">
-            {emailVerified ? (
-              "Your email has been verified. You can now log in with your credentials."
-            ) : (
-              <>
-                We've sent a verification link to <b>{email}</b>.
-                Please check your inbox and verify your email before logging in.
-              </>
+            <motion.p 
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.4 }}
+              className="text-slate-600 mb-8"
+            >
+              {emailVerified ? (
+                "Your email has been verified. You can now log in with your credentials."
+              ) : (
+                <>
+                  We've sent a verification link to <span className="font-semibold text-emerald-600">{registeredEmail}</span>.
+                  Please check your inbox and verify your email before logging in.
+                </>
+              )}
+            </motion.p>
+
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.5 }}
+            >
+              <Link
+                to="/login"
+                className="group inline-flex items-center gap-3 px-6 py-3 bg-gradient-to-r from-blue-600 to-emerald-500 text-white font-semibold rounded-xl shadow-lg shadow-blue-500/30 hover:shadow-xl hover:shadow-blue-500/40 transition-all duration-300"
+              >
+                <span>Go to Login</span>
+                <ArrowRight className="w-5 h-5 transition-transform duration-300 group-hover:translate-x-1" />
+              </Link>
+            </motion.div>
+
+            {/* Email tips for non-verified users */}
+            {!emailVerified && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.6 }}
+                className="mt-6 p-4 bg-blue-50/50 rounded-xl border border-blue-200"
+              >
+                <p className="text-xs text-blue-700 flex items-center gap-2">
+                  <Mail className="w-4 h-4 flex-shrink-0" />
+                  <span>Didn't receive the email? Check your spam folder or wait a few minutes.</span>
+                </p>
+              </motion.div>
             )}
-          </p>
-
-          <Link
-            to="/login"
-            className="inline-flex items-center gap-2 text-blue-600 font-medium hover:text-blue-800"
-          >
-            Go to Login
-            <ArrowRight className="w-4 h-4" />
-          </Link>
+          </div>
         </motion.div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 flex items-center justify-center p-4">
-      <div className="w-full max-w-lg">
-        {/* Header */}
+    <div 
+      className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50/30 overflow-hidden relative flex items-center justify-center p-4"
+      onMouseMove={handleMouseMove}
+    >
+      {/* Animated Background Grid */}
+      <div className="absolute inset-0 bg-grid-slate-100 [mask-image:radial-gradient(ellipse_at_center,white,transparent_70%)]" />
+
+      {/* Floating Particles */}
+      <div className="absolute inset-0 overflow-hidden">
+        {Array.from({ length: 30 }).map((_, i) => (
+          <motion.div
+            key={i}
+            className="absolute w-1 h-1 bg-blue-300/30 rounded-full"
+            initial={{
+              x: Math.random() * 100 + '%',
+              y: Math.random() * 100 + '%',
+            }}
+            animate={{
+              y: [null, `-${Math.random() * 50 + 20}px`],
+              opacity: [0.3, 0.7, 0.3],
+            }}
+            transition={{
+              duration: Math.random() * 3 + 2,
+              repeat: Infinity,
+              ease: "easeInOut",
+              delay: Math.random() * 2,
+            }}
+          />
+        ))}
+      </div>
+
+      {/* Floating Feature Icons */}
+      {floatingElements.map((element, index) => (
+        <motion.div
+          key={index}
+          className={`absolute ${element.className} z-0 hidden lg:block`}
+          animate={{
+            y: [0, -20, 0],
+            rotate: [0, 5, -5, 0],
+          }}
+          transition={{
+            duration: 4,
+            repeat: Infinity,
+            ease: "easeInOut",
+            delay: index * 0.3,
+          }}
+        >
+          <div className="relative">
+            <div className={`w-16 h-16 bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/50 flex items-center justify-center ${element.color}`}>
+              <element.icon className="w-8 h-8" />
+            </div>
+            <div className="absolute inset-0 bg-gradient-to-r from-blue-500/20 to-emerald-500/20 rounded-2xl blur-xl -z-10" />
+          </div>
+        </motion.div>
+      ))}
+
+      {/* Animated Gradient Backgrounds */}
+      <div className="absolute inset-0 -z-10 overflow-hidden">
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[800px] bg-gradient-to-br from-blue-500/10 via-transparent to-emerald-500/10 rounded-full blur-3xl" />
+        <div className="absolute top-1/2 left-1/4 w-[600px] h-[600px] bg-gradient-to-tr from-purple-500/5 via-transparent to-blue-500/5 rounded-full blur-3xl" />
+        <div className="absolute bottom-0 right-1/4 w-[500px] h-[500px] bg-gradient-to-tl from-emerald-500/10 via-transparent to-blue-500/10 rounded-full blur-3xl" />
+      </div>
+
+      <div className="relative z-10 w-full max-w-lg">
+        {/* Header with Badge */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4 }}
+          transition={{ duration: 0.5 }}
           className="text-center mb-8"
         >
-          <div className="flex items-center justify-center gap-3 mb-4">
-            <div className="p-3 bg-blue-600 rounded-xl shadow-lg">
-              <UserPlus className="w-8 h-8 text-white" />
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.5, delay: 0.1 }}
+            className="inline-flex items-center gap-2 px-4 py-2 bg-white/80 backdrop-blur-sm border border-white/50 rounded-full shadow-lg mb-6"
+          >
+            <Sparkles className="w-4 h-4 text-amber-500" />
+            <span className="text-sm font-medium text-slate-700">
+              Join 10,000+ educators & students
+            </span>
+            <div className="flex items-center gap-0.5">
+              {[1, 2, 3, 4, 5].map((i) => (
+                <Star key={i} className="w-3 h-3 text-amber-500 fill-amber-500" />
+              ))}
             </div>
+          </motion.div>
+
+          <div className="flex items-center justify-center gap-4">
+            <motion.div
+              whileHover={{ rotate: 10 }}
+              className="p-3 bg-gradient-to-br from-blue-600 to-emerald-500 rounded-xl shadow-lg shadow-blue-500/30"
+            >
+              <UserPlus className="w-8 h-8 text-white" />
+            </motion.div>
             <div className="text-left">
-              <h1 className="text-3xl font-bold text-slate-800">Join AssignFlow Hub</h1>
-              <p className="text-slate-600 mt-1">Create your educational account</p>
+              <h1 className="text-3xl font-bold text-slate-900">Create Account</h1>
+              <p className="text-slate-600 mt-1">Join the AssignFlow community</p>
             </div>
           </div>
         </motion.div>
 
-        {/* Registration Card */}
+        {/* Registration Card with 3D Effect */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4, delay: 0.1 }}
-          className="bg-white rounded-2xl shadow-xl p-6 sm:p-8 border border-slate-200"
+          style={{ rotateX, rotateY }}
+          className="perspective-1000"
         >
-          {/* Card Header */}
-          <div className="text-center mb-8">
-            <div className="inline-flex items-center justify-center w-14 h-14 bg-blue-100 rounded-full mb-4">
-              <Users className="w-7 h-7 text-blue-600" />
-            </div>
-            <h2 className="text-2xl font-bold text-slate-800">Create Your Account</h2>
-            <p className="text-slate-600 mt-2">Join our educational platform</p>
-          </div>
-
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Email Field */}
-            <div className="space-y-2">
-              <label className="block text-sm font-semibold text-slate-800">
-                Email Address
-                <span className="text-red-600 ml-1">*</span>
-              </label>
-              <div className="relative">
-                <input
-                  type="email"
-                  value={email}
-                  required
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="w-full pl-11 pr-4 py-3.5 bg-white border border-slate-400 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-blue-600 transition-all duration-200 text-slate-900 placeholder-slate-600"
-                  placeholder="student@college.edu"
-                  disabled={loading}
-                />
-                <div className="absolute left-3 top-1/2 -translate-y-1/2">
-                  <Mail className="w-5 h-5 text-slate-500" />
-                </div>
-                {email && validateEmail(email) && (
-                  <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                    <CheckCircle2 className="w-5 h-5 text-emerald-500" />
-                  </div>
-                )}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.2 }}
+            className="bg-white/90 backdrop-blur-xl rounded-3xl shadow-2xl p-6 sm:p-8 border border-white/50"
+          >
+            {/* Progress Indicator */}
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 bg-blue-600 rounded-full animate-pulse" />
+                <span className="text-sm font-medium text-slate-600">Step 1 of 1</span>
               </div>
-              <p className="text-xs text-slate-600">
-                Use your institutional email for better verification
-              </p>
+              <div className="flex gap-1">
+                <div className="w-12 h-1 bg-gradient-to-r from-blue-600 to-emerald-500 rounded-full" />
+              </div>
             </div>
 
-            {/* Password Field */}
-            <div className="space-y-2">
-              <label className="block text-sm font-semibold text-slate-800">
-                Password
-                <span className="text-red-600 ml-1">*</span>
-              </label>
-              <div className="relative">
-                <input
-                  type={showPassword ? "text" : "password"}
-                  value={password}
-                  required
-                  minLength={8}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="w-full pl-11 pr-12 py-3.5 bg-white border border-slate-400 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-blue-600 transition-all duration-200 text-slate-900 placeholder-slate-600"
-                  placeholder="Minimum 8 characters"
-                  disabled={loading}
-                />
-                <div className="absolute left-3 top-1/2 -translate-y-1/2">
-                  <Lock className="w-5 h-5 text-slate-500" />
+            <form onSubmit={handleSubmit} className="space-y-6">
+              {/* Email Field */}
+              <div className="space-y-2">
+                <label className="block text-sm font-semibold text-slate-800">
+                  Email Address
+                  <span className="text-red-600 ml-1">*</span>
+                </label>
+                <div className="relative">
+                  <input
+                    type="email"
+                    value={email}
+                    required
+                    onChange={(e) => setEmail(e.target.value)}
+                    onFocus={() => setFocusedField('email')}
+                    onBlur={() => setFocusedField(null)}
+                    className={`w-full pl-12 pr-12 py-4 bg-white/70 border-2 rounded-xl focus:ring-4 transition-all duration-300 text-slate-900 placeholder-slate-500
+                      ${focusedField === 'email' 
+                        ? 'border-blue-500 ring-blue-500/20 bg-white' 
+                        : 'border-slate-200 hover:border-blue-300'
+                      }
+                      ${email && validateEmail(email) ? 'border-emerald-500 bg-emerald-50/30' : ''}
+                    `}
+                    placeholder="student@college.edu"
+                    disabled={loading}
+                  />
+                  <div className="absolute left-4 top-1/2 -translate-y-1/2">
+                    <Mail className={`w-5 h-5 transition-colors duration-300 
+                      ${focusedField === 'email' ? 'text-blue-600' : 'text-slate-500'}`} 
+                    />
+                  </div>
+                  <AnimatePresence>
+                    {email && validateEmail(email) && (
+                      <motion.div
+                        initial={{ scale: 0 }}
+                        animate={{ scale: 1 }}
+                        exit={{ scale: 0 }}
+                        className="absolute right-4 top-1/2 -translate-y-1/2"
+                      >
+                        <CheckCircle2 className="w-5 h-5 text-emerald-500" />
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-slate-500 hover:text-slate-700 transition-colors"
-                  disabled={loading}
-                >
-                  {showPassword ? (
-                    <EyeOff className="w-5 h-5" />
-                  ) : (
-                    <Eye className="w-5 h-5" />
-                  )}
-                </button>
+                <p className="text-xs text-slate-600 flex items-center gap-1">
+                  <span className="inline-block w-1 h-1 bg-blue-500 rounded-full" />
+                  Use your institutional email for better verification
+                </p>
               </div>
 
-              {/* Password Strength */}
-              {password && (
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="text-slate-600">Password strength:</span>
-                    <span className={`font-medium ${passwordStrength.score <= 1 ? 'text-red-600' :
-                      passwordStrength.score === 2 ? 'text-amber-600' :
-                        passwordStrength.score === 3 ? 'text-blue-600' :
-                          'text-emerald-600'
-                      }`}>
-                      {passwordStrength.label}
-                    </span>
+              {/* Password Field */}
+              <div className="space-y-2">
+                <label className="block text-sm font-semibold text-slate-800">
+                  Password
+                  <span className="text-red-600 ml-1">*</span>
+                </label>
+                <div className="relative">
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    value={password}
+                    required
+                    minLength={8}
+                    onChange={(e) => setPassword(e.target.value)}
+                    onFocus={() => setFocusedField('password')}
+                    onBlur={() => setFocusedField(null)}
+                    className={`w-full pl-12 pr-12 py-4 bg-white/70 border-2 rounded-xl focus:ring-4 transition-all duration-300 text-slate-900 placeholder-slate-500
+                      ${focusedField === 'password' 
+                        ? 'border-blue-500 ring-blue-500/20 bg-white' 
+                        : 'border-slate-200 hover:border-blue-300'
+                      }
+                    `}
+                    placeholder="Minimum 8 characters"
+                    disabled={loading}
+                  />
+                  <div className="absolute left-4 top-1/2 -translate-y-1/2">
+                    <Lock className={`w-5 h-5 transition-colors duration-300 
+                      ${focusedField === 'password' ? 'text-blue-600' : 'text-slate-500'}`} 
+                    />
                   </div>
-                  <div className="flex gap-1">
-                    {[1, 2, 3, 4].map((level) => (
-                      <div
-                        key={level}
-                        className={`h-1 flex-1 rounded-full ${level <= passwordStrength.score
-                          ? passwordStrength.color
-                          : 'bg-slate-200'
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 p-1 text-slate-500 hover:text-slate-700 transition-colors"
+                    disabled={loading}
+                  >
+                    {showPassword ? (
+                      <EyeOff className="w-5 h-5" />
+                    ) : (
+                      <Eye className="w-5 h-5" />
+                    )}
+                  </button>
+                </div>
+
+                {/* Password Strength with Animation */}
+                <AnimatePresence>
+                  {password && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: "auto" }}
+                      exit={{ opacity: 0, height: 0 }}
+                      className="space-y-2 overflow-hidden"
+                    >
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-slate-600">Password strength:</span>
+                        <motion.span 
+                          initial={{ x: -10 }}
+                          animate={{ x: 0 }}
+                          className={`font-medium ${
+                            passwordStrength.score <= 1 ? 'text-red-600' :
+                            passwordStrength.score === 2 ? 'text-amber-600' :
+                            passwordStrength.score === 3 ? 'text-blue-600' :
+                            'text-emerald-600'
                           }`}
-                      />
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
+                        >
+                          {passwordStrength.label}
+                        </motion.span>
+                      </div>
+                      <div className="flex gap-1">
+                        {[1, 2, 3, 4].map((level) => (
+                          <motion.div
+                            key={level}
+                            initial={{ scaleX: 0 }}
+                            animate={{ scaleX: 1 }}
+                            transition={{ delay: level * 0.1 }}
+                            className={`h-1.5 flex-1 rounded-full ${
+                              level <= passwordStrength.score
+                                ? passwordStrength.color
+                                : 'bg-slate-200'
+                            }`}
+                          />
+                        ))}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
 
-            {/* Role Selection */}
-            <div className="space-y-2">
-              <label className="block text-sm font-semibold text-slate-800">
-                Account Type
-                <span className="text-red-600 ml-1">*</span>
-              </label>
-              <div className="grid grid-cols-2 gap-3">
-                <button
-                  type="button"
-                  onClick={() => setRole("STUDENT")}
-                  disabled={loading}
-                  className={`flex flex-col items-center justify-center p-4 rounded-lg border transition-all duration-200 ${role === "STUDENT"
-                    ? 'bg-emerald-50 border-emerald-300 ring-2 ring-emerald-200'
-                    : 'bg-white border-slate-400 hover:bg-slate-50'
+              {/* Role Selection with Enhanced Cards */}
+              <div className="space-y-2">
+                <label className="block text-sm font-semibold text-slate-800">
+                  Account Type
+                  <span className="text-red-600 ml-1">*</span>
+                </label>
+                <div className="grid grid-cols-2 gap-4">
+                  <motion.button
+                    type="button"
+                    onClick={() => setRole("STUDENT")}
+                    disabled={loading}
+                    whileHover={{ scale: 1.02, y: -2 }}
+                    whileTap={{ scale: 0.98 }}
+                    className={`relative overflow-hidden group p-5 rounded-xl border-2 transition-all duration-300 ${
+                      role === "STUDENT"
+                        ? 'border-emerald-500 bg-gradient-to-br from-emerald-50 to-emerald-100/50 shadow-lg shadow-emerald-500/20'
+                        : 'border-slate-200 hover:border-emerald-300 bg-white/50 hover:bg-emerald-50/30'
                     } disabled:opacity-60`}
-                >
-                  <User className={`w-6 h-6 mb-2 ${role === "STUDENT" ? 'text-emerald-700' : 'text-slate-600'}`} />
-                  <span className={`font-medium ${role === "STUDENT" ? 'text-emerald-800' : 'text-slate-700'}`}>
-                    Student
-                  </span>
-                  <span className="text-xs text-slate-500 mt-1">Join classrooms</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setRole("TEACHER")}
-                  disabled={loading}
-                  className={`flex flex-col items-center justify-center p-4 rounded-lg border transition-all duration-200 ${role === "TEACHER"
-                    ? 'bg-blue-50 border-blue-300 ring-2 ring-blue-200'
-                    : 'bg-white border-slate-400 hover:bg-slate-50'
+                  >
+                    <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/10 to-green-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                    <User className={`w-8 h-8 mb-3 mx-auto transition-colors duration-300 ${
+                      role === "STUDENT" ? 'text-emerald-600' : 'text-slate-600 group-hover:text-emerald-600'
+                    }`} />
+                    <span className={`block font-semibold mb-1 ${
+                      role === "STUDENT" ? 'text-emerald-800' : 'text-slate-700'
+                    }`}>
+                      Student
+                    </span>
+                    <span className="text-xs text-slate-600">Join & learn</span>
+                    {role === "STUDENT" && (
+                      <motion.div
+                        layoutId="activeRole"
+                        className="absolute top-2 right-2 w-2 h-2 bg-emerald-500 rounded-full"
+                      />
+                    )}
+                  </motion.button>
+
+                  <motion.button
+                    type="button"
+                    onClick={() => setRole("TEACHER")}
+                    disabled={loading}
+                    whileHover={{ scale: 1.02, y: -2 }}
+                    whileTap={{ scale: 0.98 }}
+                    className={`relative overflow-hidden group p-5 rounded-xl border-2 transition-all duration-300 ${
+                      role === "TEACHER"
+                        ? 'border-blue-500 bg-gradient-to-br from-blue-50 to-blue-100/50 shadow-lg shadow-blue-500/20'
+                        : 'border-slate-200 hover:border-blue-300 bg-white/50 hover:bg-blue-50/30'
                     } disabled:opacity-60`}
-                >
-                  <GraduationCap className={`w-6 h-6 mb-2 ${role === "TEACHER" ? 'text-blue-700' : 'text-slate-600'}`} />
-                  <span className={`font-medium ${role === "TEACHER" ? 'text-blue-800' : 'text-slate-700'}`}>
-                    Teacher
+                  >
+                    <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 to-indigo-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                    <GraduationCap className={`w-8 h-8 mb-3 mx-auto transition-colors duration-300 ${
+                      role === "TEACHER" ? 'text-blue-600' : 'text-slate-600 group-hover:text-blue-600'
+                    }`} />
+                    <span className={`block font-semibold mb-1 ${
+                      role === "TEACHER" ? 'text-blue-800' : 'text-slate-700'
+                    }`}>
+                      Teacher
+                    </span>
+                    <span className="text-xs text-slate-600">Create & teach</span>
+                    {role === "TEACHER" && (
+                      <motion.div
+                        layoutId="activeRole"
+                        className="absolute top-2 right-2 w-2 h-2 bg-blue-500 rounded-full"
+                      />
+                    )}
+                  </motion.button>
+                </div>
+              </div>
+
+              {/* Terms Agreement */}
+              <div className="space-y-2">
+                <label className="flex items-start gap-3 cursor-pointer group">
+                  <input
+                    type="checkbox"
+                    checked={agreedToTerms}
+                    onChange={(e) => setAgreedToTerms(e.target.checked)}
+                    className="w-5 h-5 text-blue-600 rounded focus:ring-blue-500 border-slate-400 mt-1 flex-shrink-0 cursor-pointer"
+                    disabled={loading}
+                  />
+                  <span className="text-sm text-slate-700 group-hover:text-slate-900 transition-colors">
+                    I agree to the{" "}
+                    <Link to="/terms" className="text-blue-600 hover:text-blue-800 font-medium underline-offset-2 hover:underline">
+                      Terms of Service
+                    </Link>{" "}
+                    and{" "}
+                    <Link to="/privacy" className="text-blue-600 hover:text-blue-800 font-medium underline-offset-2 hover:underline">
+                      Privacy Policy
+                    </Link>
                   </span>
-                  <span className="text-xs text-slate-500 mt-1">Create classrooms</span>
-                </button>
+                </label>
+              </div>
+
+              {/* Error Message */}
+              <AnimatePresence mode="wait">
+                {error && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -10, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: -10, scale: 0.95 }}
+                    className="flex items-start gap-3 p-4 bg-gradient-to-r from-red-50 to-red-100/50 border border-red-300 rounded-xl"
+                  >
+                    <AlertCircle className="w-5 h-5 text-red-600 mt-0.5 flex-shrink-0" />
+                    <p className="text-sm text-red-800">{error}</p>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              {/* Submit Button */}
+              <motion.button
+                type="submit"
+                disabled={loading || !email.trim() || !password.trim() || !agreedToTerms}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                className="relative w-full py-4 px-4 bg-gradient-to-r from-blue-600 to-emerald-500 disabled:from-blue-400 disabled:to-emerald-400 disabled:cursor-not-allowed text-white font-semibold rounded-xl shadow-lg shadow-blue-500/30 hover:shadow-xl hover:shadow-blue-500/40 transition-all duration-300 overflow-hidden group"
+              >
+                <div className="absolute inset-0 bg-gradient-to-r from-blue-700 to-emerald-600 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                <div className="absolute inset-0 border-2 border-white/20 rounded-xl translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000" />
+                
+                <div className="relative flex items-center justify-center gap-3">
+                  {loading ? (
+                    <>
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                      <span>Creating Account...</span>
+                    </>
+                  ) : (
+                    <>
+                      <UserPlus className="w-5 h-5" />
+                      <span>Create {role === 'TEACHER' ? 'Teacher' : 'Student'} Account</span>
+                      <ArrowRight className="w-5 h-5 transition-transform duration-300 group-hover:translate-x-1" />
+                    </>
+                  )}
+                </div>
+              </motion.button>
+            </form>
+
+            {/* Role Benefits with Animation */}
+            <motion.div 
+              key={role}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3 }}
+              className={`mt-6 p-5 rounded-xl ${
+                role === 'TEACHER' 
+                  ? 'bg-gradient-to-br from-blue-50 to-blue-100/50 border border-blue-200' 
+                  : 'bg-gradient-to-br from-emerald-50 to-emerald-100/50 border border-emerald-200'
+              }`}
+            >
+              <div className="flex items-center gap-2 mb-3">
+                <div className={`p-1.5 rounded-lg ${
+                  role === 'TEACHER' ? 'bg-blue-200' : 'bg-emerald-200'
+                }`}>
+                  <Shield className={`w-4 h-4 ${
+                    role === 'TEACHER' ? 'text-blue-700' : 'text-emerald-700'
+                  }`} />
+                </div>
+                <h4 className="font-semibold text-slate-800">
+                  {role === 'TEACHER' ? '✨ Teacher Benefits' : '✨ Student Benefits'}
+                </h4>
+              </div>
+              <ul className="grid grid-cols-1 gap-2">
+                {(role === 'TEACHER' ? [
+                  'Create and manage classrooms',
+                  'Assign and grade submissions',
+                  'Track student progress',
+                  'Analytics dashboard'
+                ] : [
+                  'Join classrooms with codes',
+                  'Submit assignments online',
+                  'View grades and feedback',
+                  'Collaborate with peers'
+                ]).map((benefit, idx) => (
+                  <motion.li
+                    key={idx}
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: idx * 0.1 }}
+                    className={`flex items-center gap-2 text-sm ${
+                      role === 'TEACHER' ? 'text-blue-800' : 'text-emerald-800'
+                    }`}
+                  >
+                    <Zap className="w-4 h-4 flex-shrink-0" />
+                    <span>{benefit}</span>
+                  </motion.li>
+                ))}
+              </ul>
+            </motion.div>
+
+            {/* Login Link */}
+            <div className="text-center pt-6 mt-6 border-t border-slate-200">
+              <p className="text-slate-600">
+                Already have an account?{" "}
+                <Link
+                  to="/login"
+                  className="text-blue-600 hover:text-blue-800 font-semibold transition-colors duration-200 inline-flex items-center gap-1 group"
+                >
+                  Sign in here
+                  <ArrowRight className="w-4 h-4 transition-transform duration-200 group-hover:translate-x-1" />
+                </Link>
+              </p>
+              <div className="flex items-center justify-center gap-2 mt-4">
+                <Shield className="w-4 h-4 text-slate-500" />
+                <p className="text-xs text-slate-600">
+                  Protected by enterprise-grade encryption
+                </p>
               </div>
             </div>
+          </motion.div>
+        </motion.div>
 
-            {/* Terms Agreement */}
-            <div className="space-y-2">
-              <label className="flex items-start gap-3 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={agreedToTerms}
-                  onChange={(e) => setAgreedToTerms(e.target.checked)}
-                  className="w-5 h-5 text-blue-600 rounded focus:ring-blue-500 border-slate-400 mt-1 flex-shrink-0"
-                  disabled={loading}
-                />
-                <span className="text-sm text-slate-700">
-                  I agree to the{" "}
-                  <Link to="/terms" className="text-blue-600 hover:text-blue-800 font-medium">
-                    Terms of Service
-                  </Link>{" "}
-                  and{" "}
-                  <Link to="/privacy" className="text-blue-600 hover:text-blue-800 font-medium">
-                    Privacy Policy
-                  </Link>
-                </span>
-              </label>
-            </div>
-
-            {/* Error Message */}
-            <AnimatePresence>
-              {error && (
-                <motion.div
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: "auto" }}
-                  exit={{ opacity: 0, height: 0 }}
-                  className="flex items-start gap-3 p-4 bg-red-50 border border-red-300 rounded-lg"
-                >
-                  <AlertCircle className="w-5 h-5 text-red-600 mt-0.5 flex-shrink-0" />
-                  <p className="text-sm text-red-800">{error}</p>
-                </motion.div>
-              )}
-            </AnimatePresence>
-
-            {/* Submit Button */}
-            <button
-              type="submit"
-              disabled={loading || !email.trim() || !password.trim() || !agreedToTerms}
-              className="w-full py-3.5 px-4 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 disabled:cursor-not-allowed text-white font-semibold rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 flex items-center justify-center gap-3 group"
-            >
-              {loading ? (
-                <>
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                  <span>Creating Account...</span>
-                </>
-              ) : (
-                <>
-                  <UserPlus className="w-5 h-5" />
-                  <span>Create {role === 'TEACHER' ? 'Teacher' : 'Student'} Account</span>
-                  <ArrowRight className="w-5 h-5 transition-transform duration-200 group-hover:translate-x-1" />
-                </>
-              )}
-            </button>
-          </form>
-
-          {/* Role Benefits */}
-          <div className={`mt-6 p-4 rounded-lg ${role === 'TEACHER' ? 'bg-blue-50 border border-blue-200' : 'bg-emerald-50 border border-emerald-200'
-            }`}>
-            <div className="flex items-center gap-2 mb-2">
-              <BookOpen className={`w-5 h-5 ${role === 'TEACHER' ? 'text-blue-700' : 'text-emerald-700'}`} />
-              <h4 className="font-medium text-slate-800">
-                {role === 'TEACHER' ? 'Teacher Benefits' : 'Student Benefits'}
-              </h4>
-            </div>
-            <ul className={`text-sm space-y-1 ${role === 'TEACHER' ? 'text-blue-800' : 'text-emerald-800'}`}>
-              {role === 'TEACHER' ? (
-                <>
-                  <li className="flex items-center gap-2">
-                    <ChevronRight className="w-4 h-4" />
-                    Create and manage classrooms
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <ChevronRight className="w-4 h-4" />
-                    Assign and grade submissions
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <ChevronRight className="w-4 h-4" />
-                    Track student progress
-                  </li>
-                </>
-              ) : (
-                <>
-                  <li className="flex items-center gap-2">
-                    <ChevronRight className="w-4 h-4" />
-                    Join classrooms with codes
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <ChevronRight className="w-4 h-4" />
-                    Submit assignments online
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <ChevronRight className="w-4 h-4" />
-                    View grades and feedback
-                  </li>
-                </>
-              )}
-            </ul>
+        {/* Stats Footer */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.5 }}
+          className="mt-8 grid grid-cols-3 gap-4 text-center"
+        >
+          <div className="bg-white/50 backdrop-blur-sm rounded-xl py-3 px-2 border border-white/50">
+            <div className="text-lg font-bold text-slate-900">10K+</div>
+            <div className="text-xs text-slate-600">Active Users</div>
           </div>
-
-          {/* Login Link */}
-          <div className="text-center pt-6 border-t border-slate-200">
-            <p className="text-slate-600 text-sm">
-              Already have an account?{" "}
-              <Link
-                to="/login"
-                className="text-blue-600 hover:text-blue-800 font-semibold transition-colors duration-200 inline-flex items-center gap-1 group"
-              >
-                Sign in here
-                <ArrowRight className="w-4 h-4 transition-transform duration-200 group-hover:translate-x-1" />
-              </Link>
-            </p>
-            <p className="text-xs text-slate-500 mt-3">
-              Secure registration protected by industry-standard encryption
-            </p>
+          <div className="bg-white/50 backdrop-blur-sm rounded-xl py-3 px-2 border border-white/50">
+            <div className="text-lg font-bold text-slate-900">500+</div>
+            <div className="text-xs text-slate-600">Classrooms</div>
+          </div>
+          <div className="bg-white/50 backdrop-blur-sm rounded-xl py-3 px-2 border border-white/50">
+            <div className="text-lg font-bold text-slate-900">4.9/5</div>
+            <div className="text-xs text-slate-600">Rating</div>
           </div>
         </motion.div>
 
         {/* Footer Note */}
-        <motion.div
+        <motion.p
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ delay: 0.3 }}
-          className="mt-6 text-center"
+          transition={{ delay: 0.6 }}
+          className="mt-6 text-center text-sm text-slate-600"
         >
-          <p className="text-sm text-slate-600">
-            Join thousands of educators and students already using AssignFlow Hub
-          </p>
-        </motion.div>
+          Join thousands of educators and students already using AssignFlow Hub
+        </motion.p>
       </div>
+
+      {/* Custom Animations */}
+      <style>{`
+        @keyframes gradient {
+          0%, 100% { background-position: 0% 50%; }
+          50% { background-position: 100% 50%; }
+        }
+        .animate-gradient {
+          background-size: 200% 200%;
+          animation: gradient 3s ease infinite;
+        }
+        .bg-grid-slate-100 {
+          background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32' width='32' height='32' fill='none' stroke='rgb(241 245 249 / 0.3)'%3e%3cpath d='M0 .5H31.5V32'/%3e%3c/svg%3e");
+          mask-image: linear-gradient(to bottom, transparent, white 20%, white 80%, transparent);
+        }
+        .perspective-1000 {
+          perspective: 1000px;
+        }
+      `}</style>
     </div>
   );
 };
