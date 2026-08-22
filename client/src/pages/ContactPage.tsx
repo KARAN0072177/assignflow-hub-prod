@@ -47,14 +47,45 @@ const ContactPage = () => {
   };
 
   const handleSubmit = async () => {
-    if (!form.name.trim() || !form.email.trim() || !form.message.trim()) {
-      setError("Please fill in all required fields");
+    const trimmedName = form.name.trim();
+    const trimmedEmail = form.email.trim();
+    const trimmedMessage = form.message.trim();
+
+    if (!trimmedName) {
+      setError("Please enter your name (minimum 2 characters)");
+      return;
+    }
+    if (trimmedName.length < 2) {
+      setError("Name must be at least 2 characters long");
+      return;
+    }
+    if (trimmedName.length > 100) {
+      setError("Name cannot exceed 100 characters");
       return;
     }
 
+    if (!trimmedEmail) {
+      setError("Please enter your email address");
+      return;
+    }
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(form.email)) {
-      setError("Please enter a valid email address");
+    if (!emailRegex.test(trimmedEmail)) {
+      setError("Please enter a valid email address (e.g., name@example.com)");
+      return;
+    }
+
+    if (!trimmedMessage) {
+      setError("Please enter your message (minimum 10 characters)");
+      return;
+    }
+    if (trimmedMessage.length < 10) {
+      setError(
+        `Message must be at least 10 characters (currently ${trimmedMessage.length} characters)`
+      );
+      return;
+    }
+    if (trimmedMessage.length > 2000) {
+      setError("Message cannot exceed 2000 characters");
       return;
     }
 
@@ -63,10 +94,10 @@ const ContactPage = () => {
       setError(null);
 
       await submitContactForm({
-        name: form.name.trim(),
-        email: form.email.trim(),
+        name: trimmedName,
+        email: trimmedEmail,
         phone: form.phone.trim() || undefined,
-        message: form.message.trim(),
+        message: trimmedMessage,
       });
 
       setSuccess(true);
@@ -81,8 +112,11 @@ const ContactPage = () => {
       setTimeout(() => {
         setSuccess(false);
       }, 5000);
-    } catch {
-      setError("Failed to send message. Please try again.");
+    } catch (err: any) {
+      setError(
+        err?.response?.data?.message ||
+          "Failed to send message. Please check all fields and try again."
+      );
     } finally {
       setLoading(false);
     }
@@ -172,9 +206,14 @@ const ContactPage = () => {
                 <div className="relative p-8 bg-white/90 backdrop-blur-sm border border-white/50 rounded-3xl shadow-xl hover:shadow-2xl transition-all duration-300">
                   {/* Name Field */}
                   <div className="mb-6">
-                    <label className="flex items-center gap-2 text-sm font-semibold text-slate-900 mb-2">
-                      <User className="w-4 h-4 text-blue-500" />
-                      Name *
+                    <label className="flex items-center justify-between text-sm font-semibold text-slate-900 mb-2">
+                      <span className="flex items-center gap-2">
+                        <User className="w-4 h-4 text-blue-500" />
+                        Name *
+                      </span>
+                      <span className="text-xs text-slate-400 font-normal">
+                        Min 2 characters
+                      </span>
                     </label>
                     <input
                       name="name"
@@ -190,9 +229,14 @@ const ContactPage = () => {
 
                   {/* Email Field */}
                   <div className="mb-6">
-                    <label className="flex items-center gap-2 text-sm font-semibold text-slate-900 mb-2">
-                      <Mail className="w-4 h-4 text-emerald-500" />
-                      Email *
+                    <label className="flex items-center justify-between text-sm font-semibold text-slate-900 mb-2">
+                      <span className="flex items-center gap-2">
+                        <Mail className="w-4 h-4 text-emerald-500" />
+                        Email *
+                      </span>
+                      <span className="text-xs text-slate-400 font-normal">
+                        Valid email address
+                      </span>
                     </label>
                     <input
                       name="email"
@@ -209,9 +253,14 @@ const ContactPage = () => {
 
                   {/* Phone Field */}
                   <div className="mb-6">
-                    <label className="flex items-center gap-2 text-sm font-semibold text-slate-900 mb-2">
-                      <Phone className="w-4 h-4 text-purple-500" />
-                      Phone (Optional)
+                    <label className="flex items-center justify-between text-sm font-semibold text-slate-900 mb-2">
+                      <span className="flex items-center gap-2">
+                        <Phone className="w-4 h-4 text-purple-500" />
+                        Phone (Optional)
+                      </span>
+                      <span className="text-xs text-slate-400 font-normal">
+                        Optional
+                      </span>
                     </label>
                     <input
                       name="phone"
@@ -226,9 +275,14 @@ const ContactPage = () => {
 
                   {/* Message Field */}
                   <div className="mb-8">
-                    <label className="flex items-center gap-2 text-sm font-semibold text-slate-900 mb-2">
-                      <FileText className="w-4 h-4 text-amber-500" />
-                      Message *
+                    <label className="flex items-center justify-between text-sm font-semibold text-slate-900 mb-2">
+                      <span className="flex items-center gap-2">
+                        <FileText className="w-4 h-4 text-amber-500" />
+                        Message *
+                      </span>
+                      <span className="text-xs text-slate-400 font-normal">
+                        10 - 2,000 characters
+                      </span>
                     </label>
                     <textarea
                       name="message"
@@ -238,11 +292,22 @@ const ContactPage = () => {
                       onBlur={handleBlur}
                       rows={6}
                       className={inputClasses('message') + ' resize-none'}
-                      placeholder="How can we help you today? Be as detailed as you'd like..."
+                      placeholder="How can we help you today? Be as detailed as you'd like (min 10 characters)..."
                       required
                     />
-                    <div className="text-right mt-2 text-sm text-slate-500">
-                      {form.message.length}/2000
+                    <div className="flex items-center justify-between mt-2 text-xs">
+                      {form.message.length === 0 ? (
+                        <span className="text-slate-400">Min 10 characters required</span>
+                      ) : form.message.length < 10 ? (
+                        <span className="text-rose-600 font-medium">
+                          {10 - form.message.length} more character{10 - form.message.length !== 1 ? 's' : ''} needed
+                        </span>
+                      ) : (
+                        <span className="text-emerald-600 font-medium">✓ Length requirement met</span>
+                      )}
+                      <span className={`font-mono ${form.message.length > 2000 ? 'text-rose-600 font-bold' : 'text-slate-500'}`}>
+                        {form.message.length}/2000
+                      </span>
                     </div>
                   </div>
 

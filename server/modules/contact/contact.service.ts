@@ -19,7 +19,7 @@ export const handleContactSubmission = async ({
     allowedAttributes: {},
   });
 
-  // 1️⃣ Store in DB
+  // 1. Store in Database
   const record = await Contact.create({
     name,
     email,
@@ -27,53 +27,81 @@ export const handleContactSubmission = async ({
     message: cleanMessage,
   });
 
-
-  // 🔔 Notify admins in real time (non-blocking)
+  // 2. Notify admins in real time via Socket.IO
   try {
     const io = getIO();
-
     io.emit("contact:new", {
       id: record._id,
       createdAt: record.createdAt,
     });
-
-    console.log("📨 contact:new emitted"); // 👈 HERE
   } catch (err) {
-    // Socket failure should NEVER break contact submission
-    console.warn("⚠️ Socket emit failed:", err);
+    console.warn("Socket emit failed for contact submission:", err);
   }
 
-  // 2️⃣ Email to admin (Professional notification)
-  await sendMail({
-    to: process.env.ADMIN_CONTACT_EMAIL!,
-    subject: `📬 New Contact Message from ${name}`,
-    html: generateAdminEmail({ name, email, phone, message: cleanMessage }),
-  });
+  const frontendUrl = process.env.FRONTEND_URL || "https://assignflowhub.com";
+  const adminEmail = process.env.ADMIN_CONTACT_EMAIL || "support@assignflowhub.com";
 
-  // 3️⃣ Confirmation to user (Professional receipt)
-  await sendMail({
-    to: email,
-    subject: `✅ Message Received - AssignFlow Hub`,
-    html: generateUserConfirmationEmail({ name, message: cleanMessage }),
-  });
+  // 3. Email to admin (Professional notification)
+  try {
+    await sendMail({
+      to: adminEmail,
+      subject: `New Contact Inquiry from ${name} — AssignFlow Hub`,
+      html: generateAdminEmail({
+        name,
+        email,
+        phone,
+        message: cleanMessage,
+        frontendUrl,
+      }),
+    });
+  } catch (mailErr) {
+    console.error("Failed to send admin contact email:", mailErr);
+  }
+
+  // 4. Confirmation to user (Professional receipt)
+  try {
+    await sendMail({
+      to: email,
+      subject: `We've received your message — AssignFlow Hub`,
+      html: generateUserConfirmationEmail({
+        name,
+        message: cleanMessage,
+        frontendUrl,
+      }),
+    });
+  } catch (mailErr) {
+    console.error("Failed to send user confirmation email:", mailErr);
+  }
 
   return record;
 };
 
-// ===================== EMAIL TEMPLATES =====================
+/* =========================================================================
+   EMAIL TEMPLATES (Modern, Enterprise SaaS Design)
+   ========================================================================= */
 
 const generateAdminEmail = ({
   name,
   email,
   phone,
-  message
+  message,
+  frontendUrl,
 }: {
   name: string;
   email: string;
   phone?: string;
   message: string;
+  frontendUrl: string;
 }) => {
-  const formattedMessage = message.replace(/\n/g, '<br>');
+  const formattedMessage = message.replace(/\n/g, "<br/>");
+  const timestamp = new Date().toLocaleString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZoneName: "short",
+  });
 
   return `
 <!DOCTYPE html>
@@ -81,310 +109,107 @@ const generateAdminEmail = ({
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="color-scheme" content="light dark">
-  <meta name="supported-color-schemes" content="light dark">
-  <title>New Contact Message - AssignFlow Hub</title>
-  <style>
-    @media (prefers-color-scheme: dark) {
-      .email-container {
-        background-color: #1a1a1a !important;
-        color: #e0e0e0 !important;
-      }
-      .email-card {
-        background-color: #2d2d2d !important;
-        border-color: #404040 !important;
-      }
-      .email-header {
-        background: linear-gradient(135deg, #1e40af 0%, #047857 100%) !important;
-      }
-      .email-footer {
-        border-top-color: #404040 !important;
-      }
-      a {
-        color: #60a5fa !important;
-      }
-      .message-box {
-        background-color: #262626 !important;
-        border-color: #404040 !important;
-      }
-      .label {
-        color: #a0a0a0 !important;
-      }
-      .value {
-        color: #ffffff !important;
-      }
-    }
-    
-    @media (prefers-color-scheme: light) {
-      .email-container {
-        background-color: #f8fafc !important;
-        color: #334155 !important;
-      }
-      .email-card {
-        background-color: #ffffff !important;
-        border-color: #e2e8f0 !important;
-      }
-      .email-header {
-        background: linear-gradient(135deg, #3b82f6 0%, #10b981 100%) !important;
-      }
-      .email-footer {
-        border-top-color: #e2e8f0 !important;
-      }
-      a {
-        color: #2563eb !important;
-      }
-      .message-box {
-        background-color: #f8fafc !important;
-        border-color: #e2e8f0 !important;
-      }
-      .label {
-        color: #64748b !important;
-      }
-      .value {
-        color: #0f172a !important;
-      }
-    }
-    
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-      line-height: 1.6;
-      margin: 0;
-      padding: 20px;
-    }
-    
-    .email-container {
-      max-width: 600px;
-      margin: 0 auto;
-      padding: 20px;
-    }
-    
-    .email-card {
-      border-radius: 12px;
-      border: 1px solid;
-      overflow: hidden;
-      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-    }
-    
-    .email-header {
-      padding: 24px;
-      text-align: center;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.2);
-    }
-    
-    .logo {
-      font-size: 24px;
-      font-weight: 700;
-      color: white;
-      text-decoration: none;
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-    }
-    
-    .notification-badge {
-      display: inline-block;
-      background-color: #f59e0b;
-      color: white;
-      font-size: 12px;
-      font-weight: 600;
-      padding: 4px 12px;
-      border-radius: 20px;
-      margin-top: 12px;
-    }
-    
-    .email-body {
-      padding: 32px 24px;
-    }
-    
-    .info-grid {
-      display: grid;
-      grid-template-columns: 1fr;
-      gap: 16px;
-      margin-bottom: 32px;
-    }
-    
-    .info-item {
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-    }
-    
-    .label {
-      font-size: 12px;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-    }
-    
-    .value {
-      font-size: 16px;
-      font-weight: 500;
-    }
-    
-    .message-box {
-      border: 1px solid;
-      border-radius: 8px;
-      padding: 20px;
-      margin-top: 8px;
-    }
-    
-    .message-text {
-      font-size: 15px;
-      line-height: 1.7;
-      white-space: pre-wrap;
-    }
-    
-    .priority-tag {
-      display: inline-block;
-      background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
-      color: white;
-      font-size: 12px;
-      font-weight: 600;
-      padding: 4px 12px;
-      border-radius: 6px;
-      margin-top: 24px;
-    }
-    
-    .action-button {
-      display: inline-block;
-      background: linear-gradient(135deg, #3b82f6 0%, #10b981 100%);
-      color: white;
-      text-decoration: none;
-      padding: 12px 24px;
-      border-radius: 8px;
-      font-weight: 600;
-      margin-top: 24px;
-      text-align: center;
-    }
-    
-    .email-footer {
-      padding: 24px;
-      border-top: 1px solid;
-      text-align: center;
-      font-size: 12px;
-    }
-    
-    .footer-text {
-      opacity: 0.8;
-      margin-bottom: 8px;
-    }
-    
-    .footer-links {
-      display: flex;
-      justify-content: center;
-      gap: 16px;
-      margin-top: 16px;
-    }
-    
-    .footer-link {
-      text-decoration: none;
-      font-size: 12px;
-    }
-    
-    @media (max-width: 480px) {
-      .email-container {
-        padding: 10px;
-      }
-      
-      .email-body {
-        padding: 24px 16px;
-      }
-      
-      .info-grid {
-        grid-template-columns: 1fr;
-      }
-    }
-  </style>
+  <title>New Contact Inquiry - AssignFlow Hub</title>
 </head>
-<body>
-  <div class="email-container">
-    <div class="email-card">
-      <!-- Header -->
-      <div class="email-header">
-        <a href="${process.env.FRONTEND_URL || 'https://assignflowhub.com'}" class="logo">
-          📚 AssignFlow Hub
-        </a>
-        <div class="notification-badge">
-          New Contact Message
-        </div>
-      </div>
-      
-      <!-- Body -->
-      <div class="email-body">
-        <h2 style="margin: 0 0 8px 0; font-size: 20px; font-weight: 700;">New Contact Request</h2>
-        <p style="margin: 0 0 24px 0; opacity: 0.8;">A user has submitted a contact form on the platform.</p>
-        
-        <!-- Contact Info -->
-        <div class="info-grid">
-          <div class="info-item">
-            <span class="label">From</span>
-            <span class="value">${name}</span>
-          </div>
+<body style="margin: 0; padding: 0; background-color: #f1f5f9; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; -webkit-font-smoothing: antialiased;">
+  <table width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color: #f1f5f9; padding: 32px 16px;">
+    <tr>
+      <td align="center">
+        <!-- Main Card Container -->
+        <table width="100%" border="0" cellspacing="0" cellpadding="0" style="max-width: 600px; background-color: #ffffff; border-radius: 16px; border: 1px solid #e2e8f0; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);">
           
-          <div class="info-item">
-            <span class="label">Email</span>
-            <a href="mailto:${email}" style="text-decoration: none;" class="value">${email}</a>
-          </div>
-          
-          ${phone ? `
-          <div class="info-item">
-            <span class="label">Phone</span>
-            <a href="tel:${phone}" style="text-decoration: none;" class="value">${phone}</a>
-          </div>
-          ` : ''}
-          
-          <div class="info-item">
-            <span class="label">Submitted</span>
-            <span class="value">${new Date().toLocaleString('en-US', {
-    weekday: 'long',
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit'
-  })}</span>
-          </div>
-        </div>
-        
-        <!-- Message -->
-        <div>
-          <span class="label">Message</span>
-          <div class="message-box">
-            <p class="message-text">${formattedMessage}</p>
-          </div>
-        </div>
-        
-        <!-- Quick Action -->
-        <div style="text-align: center;">
-          <div class="priority-tag">
-            ⏰ Respond within 24 hours
-          </div>
-          <br>
-          <a href="mailto:${email}" class="action-button">
-            Reply to ${name.split(' ')[0]}
-          </a>
-        </div>
-      </div>
-      
-      <!-- Footer -->
-      <div class="email-footer">
-        <p class="footer-text">
-          This message was automatically generated by AssignFlow Hub Contact System.
-        </p>
-        <div class="footer-links">
-          <a href="${process.env.FRONTEND_URL || 'https://assignflowhub.com'}/admin/contacts" class="footer-link">
-            View in Dashboard
-          </a>
-          <a href="${process.env.FRONTEND_URL || 'https://assignflowhub.com'}/admin/settings" class="footer-link">
-            Notification Settings
-          </a>
-        </div>
-        <p class="footer-text" style="margin-top: 16px;">
-          © ${new Date().getFullYear()} AssignFlow Hub. All rights reserved.
-        </p>
-      </div>
-    </div>
-  </div>
+          <!-- Header Banner -->
+          <tr>
+            <td style="background-color: #0f172a; padding: 28px 32px; text-align: left;">
+              <table width="100%" border="0" cellspacing="0" cellpadding="0">
+                <tr>
+                  <td>
+                    <span style="font-size: 18px; font-weight: 700; color: #ffffff; letter-spacing: -0.3px;">AssignFlow Hub</span>
+                    <span style="display: block; font-size: 12px; color: #94a3b8; margin-top: 4px;">Admin Support Dispatch</span>
+                  </td>
+                  <td align="right">
+                    <span style="display: inline-block; background-color: #1e293b; border: 1px solid #334155; color: #38bdf8; font-size: 11px; font-weight: 600; padding: 4px 10px; border-radius: 20px;">
+                      New Inquiry
+                    </span>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Body Content -->
+          <tr>
+            <td style="padding: 32px;">
+              <h2 style="margin: 0 0 8px 0; font-size: 20px; font-weight: 700; color: #0f172a;">New Message Received</h2>
+              <p style="margin: 0 0 24px 0; font-size: 14px; color: #64748b; line-height: 1.6;">
+                A visitor submitted the contact form on AssignFlow Hub. Details are provided below:
+              </p>
+
+              <!-- Sender Metadata Box -->
+              <table width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; margin-bottom: 24px;">
+                <tr>
+                  <td style="padding: 16px 20px; border-bottom: 1px solid #e2e8f0; font-size: 13px;">
+                    <strong style="color: #475569; display: inline-block; width: 100px;">Sender Name:</strong>
+                    <span style="color: #0f172a; font-weight: 600;">${name}</span>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding: 16px 20px; border-bottom: 1px solid #e2e8f0; font-size: 13px;">
+                    <strong style="color: #475569; display: inline-block; width: 100px;">Email:</strong>
+                    <a href="mailto:${email}" style="color: #2563eb; font-weight: 600; text-decoration: none;">${email}</a>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding: 16px 20px; border-bottom: 1px solid #e2e8f0; font-size: 13px;">
+                    <strong style="color: #475569; display: inline-block; width: 100px;">Phone:</strong>
+                    <span style="color: #0f172a;">${phone || "Not provided"}</span>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding: 16px 20px; font-size: 13px;">
+                    <strong style="color: #475569; display: inline-block; width: 100px;">Received At:</strong>
+                    <span style="color: #64748b;">${timestamp}</span>
+                  </td>
+                </tr>
+              </table>
+
+              <!-- Message Content Area -->
+              <div style="margin-bottom: 28px;">
+                <label style="display: block; font-size: 12px; font-weight: 700; color: #475569; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px;">Message Content</label>
+                <div style="background-color: #f8fafc; border-left: 4px solid #2563eb; border: 1px solid #e2e8f0; border-left-width: 4px; border-radius: 8px; padding: 18px 20px; color: #1e293b; font-size: 14px; line-height: 1.7;">
+                  ${formattedMessage}
+                </div>
+              </div>
+
+              <!-- Quick Action Reply Button -->
+              <table width="100%" border="0" cellspacing="0" cellpadding="0">
+                <tr>
+                  <td align="center" style="padding-top: 8px;">
+                    <a href="mailto:${email}?subject=Re:%20AssignFlow%20Hub%20Inquiry" style="display: inline-block; background-color: #2563eb; color: #ffffff; text-decoration: none; font-size: 14px; font-weight: 600; padding: 12px 28px; border-radius: 10px; box-shadow: 0 2px 4px rgba(37, 99, 235, 0.2);">
+                      Reply to ${name}
+                    </a>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="background-color: #f8fafc; border-top: 1px solid #e2e8f0; padding: 20px 32px; text-align: center;">
+              <p style="margin: 0 0 6px 0; font-size: 12px; color: #64748b;">
+                You received this email because you are configured as the administrator for AssignFlow Hub.
+              </p>
+              <p style="margin: 0; font-size: 11px; color: #94a3b8;">
+                &copy; ${new Date().getFullYear()} AssignFlow Hub. All rights reserved.
+              </p>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
 </body>
 </html>
   `;
@@ -392,13 +217,23 @@ const generateAdminEmail = ({
 
 const generateUserConfirmationEmail = ({
   name,
-  message
+  message,
+  frontendUrl,
 }: {
   name: string;
   message: string;
+  frontendUrl: string;
 }) => {
-  const firstName = name.split(' ')[0];
-  const formattedMessage = message.replace(/\n/g, '<br>');
+  const firstName = name.trim().split(" ")[0] || name;
+  const formattedMessage = message.replace(/\n/g, "<br/>");
+  const timestamp = new Date().toLocaleString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZoneName: "short",
+  });
 
   return `
 <!DOCTYPE html>
@@ -406,370 +241,86 @@ const generateUserConfirmationEmail = ({
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="color-scheme" content="light dark">
-  <meta name="supported-color-schemes" content="light dark">
   <title>Message Received - AssignFlow Hub</title>
-  <style>
-    @media (prefers-color-scheme: dark) {
-      .email-container {
-        background-color: #1a1a1a !important;
-        color: #e0e0e0 !important;
-      }
-      .email-card {
-        background-color: #2d2d2d !important;
-        border-color: #404040 !important;
-      }
-      .email-header {
-        background: linear-gradient(135deg, #1e40af 0%, #047857 100%) !important;
-      }
-      .email-footer {
-        border-top-color: #404040 !important;
-      }
-      .confirmation-badge {
-        background-color: #059669 !important;
-      }
-      .message-box {
-        background-color: #262626 !important;
-        border-color: #404040 !important;
-      }
-      .feature-card {
-        background-color: #2d2d2d !important;
-        border-color: #404040 !important;
-      }
-    }
-    
-    @media (prefers-color-scheme: light) {
-      .email-container {
-        background-color: #f8fafc !important;
-        color: #334155 !important;
-      }
-      .email-card {
-        background-color: #ffffff !important;
-        border-color: #e2e8f0 !important;
-      }
-      .email-header {
-        background: linear-gradient(135deg, #3b82f6 0%, #10b981 100%) !important;
-      }
-      .email-footer {
-        border-top-color: #e2e8f0 !important;
-      }
-      .confirmation-badge {
-        background-color: #10b981 !important;
-      }
-      .message-box {
-        background-color: #f8fafc !important;
-        border-color: #e2e8f0 !important;
-      }
-      .feature-card {
-        background-color: #ffffff !important;
-        border-color: #e2e8f0 !important;
-      }
-    }
-    
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-      line-height: 1.6;
-      margin: 0;
-      padding: 20px;
-    }
-    
-    .email-container {
-      max-width: 600px;
-      margin: 0 auto;
-      padding: 20px;
-    }
-    
-    .email-card {
-      border-radius: 12px;
-      border: 1px solid;
-      overflow: hidden;
-      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-    }
-    
-    .email-header {
-      padding: 32px 24px;
-      text-align: center;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.2);
-    }
-    
-    .logo {
-      font-size: 24px;
-      font-weight: 700;
-      color: white;
-      text-decoration: none;
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-    }
-    
-    .confirmation-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      color: white;
-      font-size: 14px;
-      font-weight: 600;
-      padding: 8px 16px;
-      border-radius: 20px;
-      margin-top: 16px;
-    }
-    
-    .email-body {
-      padding: 40px 24px;
-    }
-    
-    .greeting {
-      font-size: 24px;
-      font-weight: 700;
-      margin: 0 0 16px 0;
-    }
-    
-    .intro-text {
-      font-size: 16px;
-      line-height: 1.7;
-      margin: 0 0 32px 0;
-      opacity: 0.9;
-    }
-    
-    .message-section {
-      margin: 32px 0;
-    }
-    
-    .section-label {
-      font-size: 12px;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      opacity: 0.7;
-      margin-bottom: 8px;
-    }
-    
-    .message-box {
-      border: 1px solid;
-      border-radius: 8px;
-      padding: 20px;
-    }
-    
-    .message-text {
-      font-size: 15px;
-      line-height: 1.7;
-      white-space: pre-wrap;
-      margin: 0;
-    }
-    
-    .features-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-      gap: 16px;
-      margin: 32px 0;
-    }
-    
-    .feature-card {
-      border: 1px solid;
-      border-radius: 8px;
-      padding: 20px;
-      text-align: center;
-    }
-    
-    .feature-icon {
-      font-size: 24px;
-      margin-bottom: 12px;
-    }
-    
-    .feature-title {
-      font-size: 14px;
-      font-weight: 600;
-      margin: 0 0 8px 0;
-    }
-    
-    .feature-desc {
-      font-size: 12px;
-      opacity: 0.8;
-      margin: 0;
-    }
-    
-    .next-steps {
-      background: linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(16, 185, 129, 0.1) 100%);
-      border-radius: 8px;
-      padding: 24px;
-      margin: 32px 0;
-    }
-    
-    .steps-title {
-      font-size: 18px;
-      font-weight: 600;
-      margin: 0 0 16px 0;
-    }
-    
-    .steps-list {
-      margin: 0;
-      padding-left: 20px;
-    }
-    
-    .steps-list li {
-      margin-bottom: 8px;
-    }
-    
-    .cta-button {
-      display: inline-block;
-      background: linear-gradient(135deg, #3b82f6 0%, #10b981 100%);
-      color: white;
-      text-decoration: none;
-      padding: 14px 32px;
-      border-radius: 8px;
-      font-weight: 600;
-      font-size: 16px;
-      margin: 24px 0;
-    }
-    
-    .email-footer {
-      padding: 24px;
-      border-top: 1px solid;
-      text-align: center;
-      font-size: 12px;
-    }
-    
-    .footer-text {
-      opacity: 0.8;
-      margin-bottom: 8px;
-    }
-    
-    .footer-links {
-      display: flex;
-      justify-content: center;
-      gap: 16px;
-      margin: 16px 0;
-    }
-    
-    .footer-link {
-      text-decoration: none;
-      font-size: 12px;
-    }
-    
-    .social-links {
-      display: flex;
-      justify-content: center;
-      gap: 16px;
-      margin-top: 16px;
-    }
-    
-    @media (max-width: 480px) {
-      .email-container {
-        padding: 10px;
-      }
-      
-      .email-body {
-        padding: 24px 16px;
-      }
-      
-      .features-grid {
-        grid-template-columns: 1fr;
-      }
-      
-      .greeting {
-        font-size: 20px;
-      }
-    }
-  </style>
 </head>
-<body>
-  <div class="email-container">
-    <div class="email-card">
-      <!-- Header -->
-      <div class="email-header">
-        <a href="${process.env.FRONTEND_URL || 'https://assignflowhub.com'}" class="logo">
-          📚 AssignFlow Hub
-        </a>
-        <div class="confirmation-badge">
-          ✅ Message Received
-        </div>
-      </div>
-      
-      <!-- Body -->
-      <div class="email-body">
-        <h1 class="greeting">Hi ${firstName},</h1>
-        
-        <p class="intro-text">
-          Thank you for reaching out to AssignFlow Hub! We've received your message and 
-          appreciate you taking the time to contact us. Our team will review your inquiry 
-          and respond if needed within 24 hours.
-        </p>
-        
-        <!-- Message Reference -->
-        <div class="message-section">
-          <div class="section-label">Your Message</div>
-          <div class="message-box">
-            <p class="message-text">${formattedMessage}</p>
-          </div>
-        </div>
-        
-        <!-- What's Next -->
-        <div class="next-steps">
-          <h3 class="steps-title">What happens next?</h3>
-          <ul class="steps-list">
-            <li>Our team reviews your message</li>
-            <li>We prioritize based on inquiry type</li>
-            <li>You'll receive a response if needed</li>
-            <li>We may follow up for more details</li>
-          </ul>
-        </div>
-        
-        <!-- Quick Links -->
-        <div style="text-align: center; margin: 40px 0;">
-          <a href="${process.env.FRONTEND_URL || 'https://assignflowhub.com'}" class="cta-button">
-            Return to AssignFlow Hub
-          </a>
-        </div>
-        
-        <!-- Helpful Resources -->
-        <div>
-          <div class="section-label">Helpful Resources</div>
-          <div class="features-grid">
-            <div class="feature-card">
-              <div class="feature-icon">📚</div>
-              <h4 class="feature-title">Knowledge Base</h4>
-              <p class="feature-desc">Browse our comprehensive guides and tutorials</p>
-            </div>
-            <div class="feature-card">
-              <div class="feature-icon">❓</div>
-              <h4 class="feature-title">FAQ</h4>
-              <p class="feature-desc">Find quick answers to common questions</p>
-            </div>
-          </div>
-        </div>
-      </div>
-      
-      <!-- Footer -->
-      <div class="email-footer">
-        <p class="footer-text">
-          This is an automated confirmation of your contact form submission.
-        </p>
-        
-        <div class="footer-links">
-          <a href="${process.env.FRONTEND_URL || 'https://assignflowhub.com'}/contact" class="footer-link">
-            Contact Us
-          </a>
-          <a href="${process.env.FRONTEND_URL || 'https://assignflowhub.com'}/privacy" class="footer-link">
-            Privacy Policy
-          </a>
-          <a href="${process.env.FRONTEND_URL || 'https://assignflowhub.com'}/support" class="footer-link">
-            Support Center
-          </a>
-        </div>
-        
-        <div class="social-links">
-          <a href="https://twitter.com/assignflowhub" style="text-decoration: none;">🐦 Twitter</a>
-          <a href="https://linkedin.com/company/assignflowhub" style="text-decoration: none;">💼 LinkedIn</a>
-          <a href="https://github.com/assignflowhub" style="text-decoration: none;">🐙 GitHub</a>
-        </div>
-        
-        <p class="footer-text" style="margin-top: 16px;">
-          © ${new Date().getFullYear()} AssignFlow Hub. All rights reserved.<br>
-          ${process.env.FRONTEND_URL || 'https://assignflowhub.com'}
-        </p>
-      </div>
-    </div>
-  </div>
+<body style="margin: 0; padding: 0; background-color: #f1f5f9; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; -webkit-font-smoothing: antialiased;">
+  <table width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color: #f1f5f9; padding: 32px 16px;">
+    <tr>
+      <td align="center">
+        <!-- Main Card Container -->
+        <table width="100%" border="0" cellspacing="0" cellpadding="0" style="max-width: 600px; background-color: #ffffff; border-radius: 16px; border: 1px solid #e2e8f0; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);">
+          
+          <!-- Header Banner -->
+          <tr>
+            <td style="background-color: #0f172a; padding: 28px 32px; text-align: left;">
+              <table width="100%" border="0" cellspacing="0" cellpadding="0">
+                <tr>
+                  <td>
+                    <span style="font-size: 18px; font-weight: 700; color: #ffffff; letter-spacing: -0.3px;">AssignFlow Hub</span>
+                    <span style="display: block; font-size: 12px; color: #94a3b8; margin-top: 4px;">Support &amp; Community</span>
+                  </td>
+                  <td align="right">
+                    <span style="display: inline-block; background-color: #1e293b; border: 1px solid #334155; color: #34d399; font-size: 11px; font-weight: 600; padding: 4px 10px; border-radius: 20px;">
+                      Received
+                    </span>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Body Content -->
+          <tr>
+            <td style="padding: 32px;">
+              <h2 style="margin: 0 0 12px 0; font-size: 20px; font-weight: 700; color: #0f172a;">Thanks for reaching out, ${firstName}!</h2>
+              <p style="margin: 0 0 16px 0; font-size: 14px; color: #475569; line-height: 1.6;">
+                We have received your message and our team is currently reviewing it. We typically reply within <strong>24 business hours</strong>.
+              </p>
+
+              <!-- Submitted Message Summary Box -->
+              <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; margin: 24px 0;">
+                <div style="font-size: 12px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px;">
+                  Summary of your inquiry (${timestamp}):
+                </div>
+                <div style="color: #334155; font-size: 13.5px; line-height: 1.65; font-style: italic;">
+                  "${formattedMessage}"
+                </div>
+              </div>
+
+              <!-- Helpful Note -->
+              <p style="margin: 0 0 24px 0; font-size: 13px; color: #64748b; line-height: 1.6;">
+                If you have any additional details or files to provide, you can simply reply directly to this email.
+              </p>
+
+              <!-- Action Link -->
+              <table width="100%" border="0" cellspacing="0" cellpadding="0">
+                <tr>
+                  <td align="center">
+                    <a href="${frontendUrl}" style="display: inline-block; background-color: #0f172a; color: #ffffff; text-decoration: none; font-size: 13px; font-weight: 600; padding: 11px 24px; border-radius: 10px;">
+                      Visit AssignFlow Hub
+                    </a>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="background-color: #f8fafc; border-top: 1px solid #e2e8f0; padding: 20px 32px; text-align: center;">
+              <p style="margin: 0 0 6px 0; font-size: 12px; color: #64748b;">
+                AssignFlow Hub • Modern Assignment &amp; Classroom Management
+              </p>
+              <p style="margin: 0; font-size: 11px; color: #94a3b8;">
+                &copy; ${new Date().getFullYear()} AssignFlow Hub. All rights reserved.
+              </p>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
 </body>
 </html>
   `;

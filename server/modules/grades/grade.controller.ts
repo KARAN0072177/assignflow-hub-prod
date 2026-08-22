@@ -109,3 +109,30 @@ export const getMyGradesHandler = async (
       .json({ message: "Failed to fetch grades" });
   }
 };
+
+// Handler for teachers to get global student performance analytics across all classes
+
+export const getTeacherStudentsAnalyticsHandler = async (
+  req: AuthenticatedRequest,
+  res: Response
+) => {
+  if (req.user?.role !== "TEACHER") {
+    return res
+      .status(403)
+      .json({ message: "Only teachers can access student analytics" });
+  }
+
+  try {
+    const { getTeacherStudentsAnalytics } = await import("./grade.service");
+    const analytics = await getTeacherStudentsAnalytics(
+      new Types.ObjectId(req.user.userId)
+    );
+
+    return res.status(200).json(analytics);
+  } catch (error: any) {
+    console.error("Failed to fetch teacher student analytics:", error);
+    return res
+      .status(500)
+      .json({ message: error?.message || "Failed to load student analytics" });
+  }
+};

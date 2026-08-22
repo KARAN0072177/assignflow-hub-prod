@@ -116,16 +116,48 @@ const SubmissionBox = ({ assignmentId, initialSubmission, onSubmitted }: Props) 
     }
   };
 
+  const [isDragging, setIsDragging] = useState(false);
+
+  const processFile = (selectedFile: File) => {
+    const extension = selectedFile.name.split(".").pop()?.toLowerCase();
+    if (!["pdf", "docx"].includes(extension || "")) {
+      setError("Only PDF and DOCX files are allowed");
+      return;
+    }
+    if (selectedFile.size > 10 * 1024 * 1024) {
+      setError("File size exceeds maximum limit of 10MB");
+      return;
+    }
+    setFile(selectedFile);
+    setError(null);
+  };
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0] || null;
     if (selectedFile) {
-      const extension = selectedFile.name.split(".").pop()?.toLowerCase();
-      if (!["pdf", "docx"].includes(extension || "")) {
-        setError("Only PDF and DOCX files are allowed");
-        return;
-      }
-      setFile(selectedFile);
-      setError(null);
+      processFile(selectedFile);
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+    const droppedFile = e.dataTransfer.files?.[0];
+    if (droppedFile) {
+      processFile(droppedFile);
     }
   };
 
@@ -210,7 +242,7 @@ const SubmissionBox = ({ assignmentId, initialSubmission, onSubmitted }: Props) 
                 </div>
               )}
 
-              {/* File Dropzone / Picker */}
+              {/* File Dropzone / Picker with Drag and Drop */}
               <div className="space-y-2">
                 <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
                   Assignment File <span className="text-red-500">*</span>
@@ -236,14 +268,23 @@ const SubmissionBox = ({ assignmentId, initialSubmission, onSubmitted }: Props) 
                       type="button"
                       onClick={() => setFile(null)}
                       disabled={loadingAction !== null}
-                      className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                      className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
                       title="Remove file"
                     >
                       <X className="w-4 h-4" />
                     </button>
                   </div>
                 ) : (
-                  <label className="block cursor-pointer">
+                  <label
+                    onDragOver={handleDragOver}
+                    onDragLeave={handleDragLeave}
+                    onDrop={handleDrop}
+                    className={`block cursor-pointer transition-all duration-200 ${
+                      isDragging
+                        ? "border-2 border-dashed border-emerald-500 bg-emerald-50/80 ring-4 ring-emerald-500/20 scale-[1.01] rounded-2xl"
+                        : "border-2 border-dashed border-slate-300 hover:border-emerald-500 bg-slate-50/50 hover:bg-emerald-50/30 rounded-2xl"
+                    }`}
+                  >
                     <input
                       type="file"
                       accept=".pdf,.docx"
@@ -251,10 +292,18 @@ const SubmissionBox = ({ assignmentId, initialSubmission, onSubmitted }: Props) 
                       disabled={loadingAction !== null}
                       className="hidden"
                     />
-                    <div className="border-2 border-dashed border-slate-300 hover:border-emerald-500 bg-slate-50/50 hover:bg-emerald-50/30 rounded-2xl p-6 text-center transition-all">
-                      <Upload className="w-7 h-7 text-slate-400 mx-auto mb-2" />
+                    <div className="p-6 text-center">
+                      <Upload
+                        className={`w-7 h-7 mx-auto mb-2 transition-transform ${
+                          isDragging
+                            ? "text-emerald-600 scale-125"
+                            : "text-slate-400"
+                        }`}
+                      />
                       <p className="font-semibold text-xs text-slate-800">
-                        Click or drag file to upload
+                        {isDragging
+                          ? "Drop file here to upload!"
+                          : "Click to browse or drag & drop file here"}
                       </p>
                       <p className="text-[11px] text-slate-500 mt-0.5">
                         PDF or DOCX documents (Max 10MB)

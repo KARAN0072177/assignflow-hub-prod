@@ -168,16 +168,22 @@ export const getSubmissionsForAssignment = async (
 
   return Promise.all(
     submissions.map(async (s) => {
-      const grade = await Grade.findOne({ submissionId: s._id });
+      const studentObjectId = (s.studentId as any)?._id || s.studentId;
+      const grade = await Grade.findOne({
+        $or: [
+          { submissionId: s._id },
+          { assignmentId: s.assignmentId, studentId: studentObjectId },
+        ],
+      });
 
       return {
         id: s._id,
         student: {
-          id: (s.studentId as any)._id,
-          email: (s.studentId as any).email,
+          id: studentObjectId,
+          email: (s.studentId as any)?.email,
         },
         state: s.state,
-        submittedAt: s.updatedAt,
+        submittedAt: s.updatedAt || s.createdAt,
         downloadUrl:
           s.state !== "DRAFT" ? await generateDownloadUrl(s.fileKey) : null,
         grade: grade

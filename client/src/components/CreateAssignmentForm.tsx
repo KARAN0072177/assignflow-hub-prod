@@ -109,17 +109,48 @@ const CreateAssignmentForm = ({ classroomId, onCreated }: Props) => {
     }
   };
 
+  const [isDragging, setIsDragging] = useState(false);
+
+  const processFile = (selectedFile: File) => {
+    const extension = selectedFile.name.split(".").pop()?.toLowerCase();
+    if (!["pdf", "docx"].includes(extension || "")) {
+      setError("Only PDF and DOCX files are allowed");
+      return;
+    }
+    if (selectedFile.size > 10 * 1024 * 1024) {
+      setError("File size exceeds maximum limit of 10MB");
+      return;
+    }
+    setFile(selectedFile);
+    setError(null);
+  };
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0] || null;
     if (selectedFile) {
-      // Check file extension
-      const extension = selectedFile.name.split('.').pop()?.toLowerCase();
-      if (!['pdf', 'docx'].includes(extension || '')) {
-        setError("Only PDF and DOCX files are allowed");
-        return;
-      }
-      setFile(selectedFile);
-      setError(null);
+      processFile(selectedFile);
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+    const droppedFile = e.dataTransfer.files?.[0];
+    if (droppedFile) {
+      processFile(droppedFile);
     }
   };
 
@@ -128,11 +159,11 @@ const CreateAssignmentForm = ({ classroomId, onCreated }: Props) => {
   };
 
   const formatFileSize = (bytes: number) => {
-    if (bytes === 0) return '0 Bytes';
+    if (bytes === 0) return "0 Bytes";
     const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB'];
+    const sizes = ["Bytes", "KB", "MB"];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
   };
 
   return (
@@ -278,7 +309,7 @@ const CreateAssignmentForm = ({ classroomId, onCreated }: Props) => {
                   </p>
                 </div>
 
-                {/* File Upload */}
+                {/* File Upload with Drag and Drop */}
                 <div className="space-y-2">
                   <label className="block text-sm font-semibold text-slate-800">
                     Assignment File
@@ -286,29 +317,39 @@ const CreateAssignmentForm = ({ classroomId, onCreated }: Props) => {
                   </label>
                   
                   {file ? (
-                    <div className="border-2 border-dashed border-emerald-300 bg-emerald-50 rounded-lg p-4">
+                    <div className="border-2 border-emerald-300 bg-emerald-50 rounded-xl p-4 shadow-xs">
                       <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <div className="p-2 bg-emerald-100 rounded-lg">
-                            <FileType className="w-5 h-5 text-emerald-600" />
+                        <div className="flex items-center gap-3 truncate">
+                          <div className="p-2 bg-emerald-100 rounded-lg text-emerald-700 shrink-0">
+                            <FileType className="w-5 h-5" />
                           </div>
-                          <div>
-                            <p className="font-medium text-emerald-800 truncate">{file.name}</p>
-                            <p className="text-xs text-emerald-700">{formatFileSize(file.size)} • {file.type}</p>
+                          <div className="truncate">
+                            <p className="font-semibold text-emerald-950 truncate text-sm">{file.name}</p>
+                            <p className="text-xs text-emerald-700 font-medium">{formatFileSize(file.size)}</p>
                           </div>
                         </div>
                         <button
                           type="button"
                           onClick={removeFile}
                           disabled={loading}
-                          className="p-2 text-slate-600 hover:text-red-600 transition-colors disabled:opacity-60"
+                          className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
+                          title="Remove file"
                         >
                           <X className="w-5 h-5" />
                         </button>
                       </div>
                     </div>
                   ) : (
-                    <label className="block">
+                    <label
+                      onDragOver={handleDragOver}
+                      onDragLeave={handleDragLeave}
+                      onDrop={handleDrop}
+                      className={`block cursor-pointer transition-all duration-200 ${
+                        isDragging
+                          ? "border-2 border-dashed border-blue-500 bg-blue-50/80 ring-4 ring-blue-500/20 scale-[1.01] rounded-xl"
+                          : "border-2 border-dashed border-slate-300 hover:border-blue-500 rounded-xl bg-white hover:bg-blue-50/30"
+                      }`}
+                    >
                       <input
                         type="file"
                         accept=".pdf,.docx"
@@ -316,10 +357,22 @@ const CreateAssignmentForm = ({ classroomId, onCreated }: Props) => {
                         disabled={loading}
                         className="hidden"
                       />
-                      <div className="border-2 border-dashed border-slate-400 hover:border-blue-400 rounded-lg p-8 text-center cursor-pointer transition-all duration-200 hover:bg-blue-50/50">
-                        <Upload className="w-8 h-8 text-slate-500 mx-auto mb-3" />
-                        <p className="font-medium text-slate-700 mb-1">Click to upload assignment file</p>
-                        <p className="text-sm text-slate-600">PDF or DOCX files only (Max 10MB)</p>
+                      <div className="p-8 text-center">
+                        <Upload
+                          className={`w-8 h-8 mx-auto mb-2.5 transition-transform ${
+                            isDragging
+                              ? "text-blue-600 scale-125"
+                              : "text-slate-400"
+                          }`}
+                        />
+                        <p className="font-semibold text-sm text-slate-800">
+                          {isDragging
+                            ? "Drop assignment file here!"
+                            : "Click to browse or drag & drop file here"}
+                        </p>
+                        <p className="text-xs text-slate-500 mt-1">
+                          PDF or DOCX documents (Max 10MB)
+                        </p>
                       </div>
                     </label>
                   )}

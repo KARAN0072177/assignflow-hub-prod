@@ -638,7 +638,9 @@ const InlineGradingCard = ({
     submission.grade?.score ?? ""
   );
   const [feedback, setFeedback] = useState(submission.grade?.feedback ?? "");
-  const [saving, setSaving] = useState(false);
+  const [savingAction, setSavingAction] = useState<"draft" | "publish" | null>(
+    null
+  );
   const [error, setError] = useState<string | null>(null);
 
   const handleSave = async (autoPublish = false) => {
@@ -654,7 +656,7 @@ const InlineGradingCard = ({
     }
 
     try {
-      setSaving(true);
+      setSavingAction(autoPublish ? "publish" : "draft");
       setError(null);
 
       // Save or update grade with autoPublish flag
@@ -665,7 +667,7 @@ const InlineGradingCard = ({
     } catch (err: any) {
       setError(err?.response?.data?.message || "Failed to save grade");
     } finally {
-      setSaving(false);
+      setSavingAction(null);
     }
   };
 
@@ -791,7 +793,7 @@ const InlineGradingCard = ({
         <button
           type="button"
           onClick={onClose}
-          disabled={saving}
+          disabled={savingAction !== null}
           className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-200/60 transition-colors"
         >
           Cancel
@@ -801,11 +803,11 @@ const InlineGradingCard = ({
         <button
           type="button"
           onClick={() => handleSave(false)}
-          disabled={saving || score === ""}
+          disabled={savingAction !== null || score === ""}
           className="inline-flex items-center gap-1.5 px-4 py-2 bg-white border border-slate-300 hover:border-blue-400 text-slate-800 hover:text-blue-700 font-semibold rounded-xl text-xs transition-colors shadow-2xs disabled:opacity-50"
         >
-          {saving ? (
-            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+          {savingAction === "draft" ? (
+            <Loader2 className="w-3.5 h-3.5 animate-spin text-blue-600" />
           ) : (
             <Check className="w-3.5 h-3.5 text-blue-600" />
           )}
@@ -816,10 +818,10 @@ const InlineGradingCard = ({
         <button
           type="button"
           onClick={() => handleSave(true)}
-          disabled={saving || score === ""}
+          disabled={savingAction !== null || score === ""}
           className="inline-flex items-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-xl text-xs transition-colors shadow-xs disabled:opacity-50"
         >
-          {saving ? (
+          {savingAction === "publish" ? (
             <Loader2 className="w-3.5 h-3.5 animate-spin" />
           ) : (
             <Send className="w-3.5 h-3.5" />
