@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import {
   createOrUpdateDraftSubmission,
   submitSubmission,
@@ -6,321 +6,319 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Upload,
-  FileText,
   Send,
   Clock,
   AlertCircle,
   Loader2,
   CheckCircle2,
-  Lock,
   X,
   FileType,
-  ArrowUpToLine
+  FileCheck,
+  Sparkles
 } from "lucide-react";
 
 interface Props {
   assignmentId: string;
+  initialSubmission?: {
+    id: string;
+    state: "DRAFT" | "SUBMITTED" | "LOCKED";
+  } | null;
+  onSubmitted?: () => void;
 }
 
-const SubmissionBox = ({ assignmentId }: Props) => {
+const SubmissionBox = ({ assignmentId, initialSubmission, onSubmitted }: Props) => {
   const [file, setFile] = useState<File | null>(null);
-  const [submissionId, setSubmissionId] = useState<string | null>(null);
-  const [state, setState] = useState<"DRAFT" | "SUBMITTED" | "LOCKED">("DRAFT");
-  const [loading, setLoading] = useState(false);
+  const [submissionId, setSubmissionId] = useState<string | null>(
+    initialSubmission?.id || null
+  );
+  const [state, setState] = useState<"DRAFT" | "SUBMITTED" | "LOCKED">(
+    initialSubmission?.state || "DRAFT"
+  );
+  const [loadingAction, setLoadingAction] = useState<"draft" | "submit" | null>(
+    null
+  );
   const [error, setError] = useState<string | null>(null);
-  const [showForm, setShowForm] = useState(false);
+  const [isOpen, setIsOpen] = useState(false);
 
-  const handleDraftUpload = async () => {
-    if (!file) {
-      setError("Please select a file to upload");
+  // 1. Save as Draft Action
+  const handleSaveDraft = async () => {
+    if (!file && !submissionId) {
+      setError("Please select a PDF or DOCX file to upload");
       return;
     }
 
-    // Check file extension
-    const extension = file.name.split('.').pop()?.toLowerCase();
-    if (!['pdf', 'docx'].includes(extension || '')) {
-      setError("Only PDF and DOCX files are allowed");
-      return;
+    if (file) {
+      const extension = file.name.split(".").pop()?.toLowerCase();
+      if (!["pdf", "docx"].includes(extension || "")) {
+        setError("Only PDF and DOCX files are allowed");
+        return;
+      }
     }
 
     try {
-      setLoading(true);
+      setLoadingAction("draft");
       setError(null);
 
-      const result = await createOrUpdateDraftSubmission(assignmentId, file);
-      setSubmissionId(result.submissionId);
+      if (file) {
+        const result = await createOrUpdateDraftSubmission(assignmentId, file);
+        setSubmissionId(result.submissionId);
+      }
       setState("DRAFT");
+      if (onSubmitted) onSubmitted();
     } catch (err: any) {
-      setError(err?.response?.data?.message || "Upload failed");
+      setError(err?.response?.data?.message || "Draft upload failed");
     } finally {
-      setLoading(false);
+      setLoadingAction(null);
     }
   };
 
-  const handleSubmit = async () => {
-    if (!submissionId) {
-      setError("Please upload a draft file first");
+  // 2. Submit Final Action (Direct 1-Click Submission supported!)
+  const handleSubmitFinal = async () => {
+    if (!file && !submissionId) {
+      setError("Please select a file to submit");
       return;
     }
 
+    if (file) {
+      const extension = file.name.split(".").pop()?.toLowerCase();
+      if (!["pdf", "docx"].includes(extension || "")) {
+        setError("Only PDF and DOCX files are allowed");
+        return;
+      }
+    }
+
     try {
-      setLoading(true);
+      setLoadingAction("submit");
       setError(null);
 
-      await submitSubmission(submissionId);
+      let currentSubId = submissionId;
+
+      // If student hasn't uploaded draft yet, upload it first
+      if (file) {
+        const draftRes = await createOrUpdateDraftSubmission(assignmentId, file);
+        currentSubId = draftRes.submissionId;
+        setSubmissionId(draftRes.submissionId);
+      }
+
+      if (!currentSubId) {
+        throw new Error("Could not process submission file");
+      }
+
+      // Submit final
+      await submitSubmission(currentSubId);
       setState("SUBMITTED");
+      setIsOpen(false);
+      if (onSubmitted) onSubmitted();
     } catch (err: any) {
-      setError(err?.response?.data?.message || "Submit failed");
+      setError(err?.response?.data?.message || "Final submission failed");
     } finally {
-      setLoading(false);
+      setLoadingAction(null);
     }
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0] || null;
     if (selectedFile) {
+      const extension = selectedFile.name.split(".").pop()?.toLowerCase();
+      if (!["pdf", "docx"].includes(extension || "")) {
+        setError("Only PDF and DOCX files are allowed");
+        return;
+      }
       setFile(selectedFile);
       setError(null);
     }
   };
 
-  const removeFile = () => {
-    setFile(null);
-  };
-
   const formatFileSize = (bytes: number) => {
-    if (bytes === 0) return '0 Bytes';
+    if (bytes === 0) return "0 Bytes";
     const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB'];
+    const sizes = ["Bytes", "KB", "MB"];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
   };
 
-  // If state is LOCKED, show locked message
-  if (state === "LOCKED") {
+  // If assignment is already submitted, show clean status badge
+  if (state === "SUBMITTED") {
     return (
-      <div className="border-2 border-red-300 bg-red-50 rounded-lg p-4">
-        <div className="flex items-center gap-3">
-          <div className="p-2 bg-red-100 rounded-lg">
-            <Lock className="w-5 h-5 text-red-600" />
-          </div>
-          <div>
-            <h4 className="font-semibold text-red-800">Submission Locked</h4>
-            <p className="text-sm text-red-700">The deadline for this assignment has passed.</p>
-          </div>
-        </div>
+      <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50 text-emerald-800 border border-emerald-200 text-xs font-semibold">
+        <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+        <span>Submitted</span>
       </div>
     );
   }
 
-  // If state is SUBMITTED, show success message
-  if (state === "SUBMITTED") {
-    return (
-      <motion.div
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        className="border-2 border-emerald-300 bg-emerald-50 rounded-lg p-4"
-      >
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-emerald-100 rounded-lg">
-              <CheckCircle2 className="w-5 h-5 text-emerald-600" />
-            </div>
-            <div>
-              <h4 className="font-semibold text-emerald-800">Submission Complete</h4>
-              <p className="text-sm text-emerald-700">Your assignment has been successfully submitted.</p>
-            </div>
-          </div>
-          <button
-            onClick={() => {
-              setShowForm(true);
-              setState("DRAFT");
-              setFile(null);
-              setSubmissionId(null);
-            }}
-            className="text-sm px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-colors duration-200"
-          >
-            Resubmit
-          </button>
-        </div>
-      </motion.div>
-    );
-  }
-
   return (
-    <div className="mt-4">
-      {/* Toggle Button */}
-      {!showForm && (
-        <button
-          onClick={() => setShowForm(true)}
-          className="inline-flex items-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2"
-        >
-          <Upload className="w-5 h-5" />
-          Submit Assignment
-        </button>
-      )}
+    <div>
+      {/* Trigger Button */}
+      <button
+        type="button"
+        onClick={() => setIsOpen(true)}
+        className="inline-flex items-center gap-2 px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-semibold transition-all shadow-xs active:scale-95 cursor-pointer"
+      >
+        <Upload className="w-3.5 h-3.5" />
+        <span>{submissionId ? "Edit / Submit Work" : "Submit Assignment"}</span>
+      </button>
 
+      {/* Clean Modal Dialog for Submission */}
       <AnimatePresence>
-        {showForm && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: "auto" }}
-            exit={{ opacity: 0, height: 0 }}
-            className="border border-slate-300 bg-slate-150 rounded-xl p-6 mt-3 shadow-sm"
-          >
-            <div className="flex items-center justify-between mb-6">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-emerald-100 rounded-lg">
-                  <ArrowUpToLine className="w-5 h-5 text-emerald-600" />
+        {isOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 10 }}
+              className="bg-white border border-slate-200 rounded-3xl p-6 sm:p-7 max-w-lg w-full shadow-2xl space-y-5"
+            >
+              {/* Header */}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="p-2.5 bg-emerald-100 rounded-xl text-emerald-700">
+                    <FileCheck className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-bold text-slate-900">
+                      Submit Your Assignment
+                    </h3>
+                    <p className="text-xs text-slate-500">
+                      Upload your PDF or DOCX completed work
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <h3 className="font-semibold text-slate-800">Submit Assignment</h3>
-                  <p className="text-sm text-slate-600">Upload your completed work</p>
-                </div>
-              </div>
-              <button
-                onClick={() => setShowForm(false)}
-                className="p-2 text-slate-600 hover:text-slate-800 transition-colors"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
 
-            {/* Status Info */}
-            {submissionId && (
-              <div className="mb-6">
-                <div className="flex items-center gap-2 px-3 py-2 bg-blue-50 border border-blue-200 rounded-lg">
-                  <Clock className="w-4 h-4 text-blue-600" />
-                  <span className="text-sm text-blue-800">Draft saved. Ready to submit final version.</span>
-                </div>
-              </div>
-            )}
-
-            {/* Error Message */}
-            <AnimatePresence>
-              {error && (
-                <motion.div
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: "auto" }}
-                  exit={{ opacity: 0, height: 0 }}
-                  className="flex items-start gap-3 p-4 bg-red-100 border border-red-300 rounded-lg mb-6"
+                <button
+                  type="button"
+                  onClick={() => setIsOpen(false)}
+                  className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-colors"
                 >
-                  <AlertCircle className="w-5 h-5 text-red-600 mt-0.5 flex-shrink-0" />
-                  <p className="text-sm text-red-800">{error}</p>
-                </motion.div>
-              )}
-            </AnimatePresence>
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
 
-            {/* File Upload Section */}
-            <div className="space-y-4 mb-6">
-              <label className="block text-sm font-semibold text-slate-800">
-                Upload Your Work
-                <span className="text-red-600 ml-1">*</span>
-              </label>
-              
-              {file ? (
-                <div className="border-2 border-dashed border-emerald-300 bg-emerald-50 rounded-lg p-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="p-2 bg-emerald-100 rounded-lg">
-                        <FileType className="w-5 h-5 text-emerald-600" />
+              {/* Status Info if draft exists */}
+              {submissionId && (
+                <div className="flex items-center gap-2 px-3 py-2 bg-blue-50 border border-blue-200 rounded-xl text-xs text-blue-800 font-medium">
+                  <Clock className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+                  <span>Draft saved. Ready for final submission.</span>
+                </div>
+              )}
+
+              {/* Error Alert */}
+              {error && (
+                <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-xl text-xs text-red-700">
+                  <AlertCircle className="w-4 h-4 shrink-0" />
+                  <span>{error}</span>
+                </div>
+              )}
+
+              {/* File Dropzone / Picker */}
+              <div className="space-y-2">
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+                  Assignment File <span className="text-red-500">*</span>
+                </label>
+
+                {file ? (
+                  <div className="border border-emerald-300 bg-emerald-50/60 rounded-2xl p-4 flex items-center justify-between">
+                    <div className="flex items-center gap-3 truncate">
+                      <div className="p-2 bg-emerald-100 rounded-xl text-emerald-700 shrink-0">
+                        <FileType className="w-5 h-5" />
                       </div>
-                      <div>
-                        <p className="font-medium text-emerald-800 truncate">{file.name}</p>
-                        <p className="text-xs text-emerald-700">{formatFileSize(file.size)} • {file.type}</p>
+                      <div className="truncate">
+                        <p className="font-semibold text-xs text-emerald-950 truncate">
+                          {file.name}
+                        </p>
+                        <p className="text-[11px] text-emerald-700">
+                          {formatFileSize(file.size)}
+                        </p>
                       </div>
                     </div>
+
                     <button
                       type="button"
-                      onClick={removeFile}
-                      disabled={loading}
-                      className="p-2 text-slate-600 hover:text-red-600 transition-colors disabled:opacity-60"
+                      onClick={() => setFile(null)}
+                      disabled={loadingAction !== null}
+                      className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                      title="Remove file"
                     >
-                      <X className="w-5 h-5" />
+                      <X className="w-4 h-4" />
                     </button>
                   </div>
-                </div>
-              ) : (
-                <label className="block">
-                  <input
-                    type="file"
-                    accept=".pdf,.docx"
-                    onChange={handleFileChange}
-                    disabled={loading}
-                    className="hidden"
-                  />
-                  <div className="border-2 border-dashed border-slate-400 hover:border-emerald-400 rounded-lg p-8 text-center cursor-pointer transition-all duration-200 hover:bg-emerald-50/50">
-                    <Upload className="w-8 h-8 text-slate-500 mx-auto mb-3" />
-                    <p className="font-medium text-slate-700 mb-1">Click to upload your assignment file</p>
-                    <p className="text-sm text-slate-600">PDF or DOCX files only (Max 10MB)</p>
-                  </div>
-                </label>
-              )}
-            </div>
-
-            {/* Guidelines */}
-            <div className="bg-emerald-50/70 border border-emerald-300 rounded-lg p-4 mb-6">
-              <div className="flex items-start gap-3">
-                <FileText className="w-5 h-5 text-emerald-700 mt-0.5 flex-shrink-0" />
-                <div>
-                  <h4 className="text-sm font-medium text-emerald-800 mb-1">
-                    Submission Guidelines
-                  </h4>
-                  <ul className="text-xs text-emerald-800 space-y-1">
-                    <li>• Upload your completed assignment in PDF or DOCX format</li>
-                    <li>• Save as draft first, then submit final when ready</li>
-                    <li>• You can update your draft until final submission</li>
-                    <li>• Once submitted, you cannot make changes</li>
-                  </ul>
-                </div>
-              </div>
-            </div>
-
-            {/* Action Buttons */}
-            <div className="flex flex-col sm:flex-row gap-3">
-              <button
-                onClick={handleDraftUpload}
-                disabled={loading || !file}
-                className="flex-1 py-3 px-4 border border-slate-400 hover:bg-slate-50 text-slate-800 font-semibold rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-              >
-                {loading ? (
-                  <Loader2 className="w-5 h-5 animate-spin" />
                 ) : (
-                  <Upload className="w-5 h-5" />
+                  <label className="block cursor-pointer">
+                    <input
+                      type="file"
+                      accept=".pdf,.docx"
+                      onChange={handleFileChange}
+                      disabled={loadingAction !== null}
+                      className="hidden"
+                    />
+                    <div className="border-2 border-dashed border-slate-300 hover:border-emerald-500 bg-slate-50/50 hover:bg-emerald-50/30 rounded-2xl p-6 text-center transition-all">
+                      <Upload className="w-7 h-7 text-slate-400 mx-auto mb-2" />
+                      <p className="font-semibold text-xs text-slate-800">
+                        Click or drag file to upload
+                      </p>
+                      <p className="text-[11px] text-slate-500 mt-0.5">
+                        PDF or DOCX documents (Max 10MB)
+                      </p>
+                    </div>
+                  </label>
                 )}
-                Save as Draft
-              </button>
-
-              <button
-                onClick={handleSubmit}
-                disabled={loading || !submissionId}
-                className="flex-1 py-3 px-4 bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-400 disabled:cursor-not-allowed text-white font-semibold rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 flex items-center justify-center gap-2 group"
-              >
-                {loading ? (
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                ) : (
-                  <>
-                    <Send className="w-5 h-5 transition-transform duration-200 group-hover:translate-x-1" />
-                    Submit Final
-                  </>
-                )}
-              </button>
-            </div>
-
-            {/* Progress Info */}
-            <div className="mt-4 pt-4 border-t border-slate-300">
-              <div className="flex items-center justify-center gap-6 text-xs text-slate-600">
-                <div className="flex items-center gap-1.5">
-                  <div className={`w-2 h-2 rounded-full ${submissionId ? 'bg-emerald-500' : 'bg-slate-400'}`} />
-                  <span>Draft Uploaded</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <div className="w-2 h-2 rounded-full bg-slate-400" />
-                  <span>Final Submission</span>
-                </div>
               </div>
-            </div>
-          </motion.div>
+
+              {/* Guidelines Box */}
+              <div className="bg-slate-50 border border-slate-200/80 rounded-2xl p-3.5 text-xs text-slate-600 space-y-1">
+                <div className="flex items-center gap-1.5 font-semibold text-slate-800">
+                  <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                  <span>Important Note:</span>
+                </div>
+                <p className="text-[11px] text-slate-500 leading-relaxed">
+                  You can <strong>Save as Draft</strong> to revise later, or click{" "}
+                  <strong>Submit Final</strong> to submit directly for evaluation.
+                </p>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex items-center justify-end gap-2.5 pt-2 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setIsOpen(false)}
+                  disabled={loadingAction !== null}
+                  className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors"
+                >
+                  Cancel
+                </button>
+
+                {/* Save Draft Button */}
+                <button
+                  type="button"
+                  onClick={handleSaveDraft}
+                  disabled={loadingAction !== null || (!file && !submissionId)}
+                  className="inline-flex items-center gap-1.5 px-4 py-2 bg-white border border-slate-300 hover:border-slate-400 text-slate-800 font-semibold rounded-xl text-xs transition-colors disabled:opacity-50"
+                >
+                  {loadingAction === "draft" ? (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  ) : (
+                    <Upload className="w-3.5 h-3.5 text-slate-600" />
+                  )}
+                  <span>Save Draft</span>
+                </button>
+
+                {/* Submit Final Button (Direct 1-click submission!) */}
+                <button
+                  type="button"
+                  onClick={handleSubmitFinal}
+                  disabled={loadingAction !== null || (!file && !submissionId)}
+                  className="inline-flex items-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-xl text-xs transition-all shadow-xs shadow-emerald-500/20 disabled:opacity-50"
+                >
+                  {loadingAction === "submit" ? (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  ) : (
+                    <Send className="w-3.5 h-3.5" />
+                  )}
+                  <span>Submit Final</span>
+                </button>
+              </div>
+            </motion.div>
+          </div>
         )}
       </AnimatePresence>
     </div>

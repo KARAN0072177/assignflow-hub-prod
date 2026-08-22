@@ -8,8 +8,9 @@ import { getPublishedGradesForStudent } from "./grade.service";
 
 const gradeSchema = z.object({
   submissionId: z.string(),
-  score: z.number().min(0),
+  score: z.number().min(0).max(100),
   feedback: z.string().optional(),
+  publishImmediately: z.boolean().optional(),
 });
 
 export const gradeSubmissionHandler = async (
@@ -26,14 +27,23 @@ export const gradeSubmissionHandler = async (
   }
 
   try {
-    await createOrUpdateGrade({
+    const grade = await createOrUpdateGrade({
       submissionId: new Types.ObjectId(parsed.data.submissionId),
       teacherId: new Types.ObjectId(req.user.userId),
       score: parsed.data.score,
       feedback: parsed.data.feedback,
+      publishImmediately: parsed.data.publishImmediately,
     });
 
-    return res.status(200).json({ message: "Grade saved successfully" });
+    return res.status(200).json({
+      message: grade.published ? "Grade published successfully" : "Grade saved successfully",
+      grade: {
+        id: grade._id,
+        score: grade.score,
+        feedback: grade.feedback,
+        published: grade.published,
+      },
+    });
   } catch (error: any) {
     return res.status(400).json({ message: error.message });
   }

@@ -50,16 +50,18 @@ export const getMyGrades = async (): Promise<StudentGrade[]> => {
 export const saveGrade = async (
   submissionId: string,
   score: number,
-  feedback?: string
-): Promise<void> => {
+  feedback?: string,
+  publishImmediately?: boolean
+): Promise<any> => {
   const token = localStorage.getItem("authToken");
 
-  await axios.post(
+  const res = await axios.post(
     `${API_BASE_URL}/api/grades`,
     {
       submissionId,
       score,
       feedback,
+      publishImmediately,
     },
     {
       headers: {
@@ -67,6 +69,7 @@ export const saveGrade = async (
       },
     }
   );
+  return res.data;
 };
 
 /**

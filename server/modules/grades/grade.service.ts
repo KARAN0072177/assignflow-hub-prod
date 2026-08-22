@@ -12,11 +12,13 @@ export const createOrUpdateGrade = async ({
   teacherId,
   score,
   feedback,
+  publishImmediately,
 }: {
   submissionId: Types.ObjectId;
   teacherId: Types.ObjectId;
   score: number;
   feedback?: string;
+  publishImmediately?: boolean;
 }) => {
   // 0. Sanitize feedback (WRITE-time protection)
   const cleanFeedback = feedback
@@ -49,12 +51,11 @@ export const createOrUpdateGrade = async ({
   let grade = await Grade.findOne({ submissionId });
 
   if (grade) {
-    if (grade.published) {
-      throw new Error("Published grade cannot be modified");
-    }
-
     grade.score = score;
     grade.feedback = cleanFeedback;
+    if (publishImmediately) {
+      grade.published = true;
+    }
     await grade.save();
   }
   else {
@@ -65,7 +66,23 @@ export const createOrUpdateGrade = async ({
       teacherId,
       score,
       feedback: cleanFeedback,
-      published: false,
+      published: !!publishImmediately,
+    });
+  }
+
+  if (grade.published) {
+    await logAuditEvent({
+      actorRole: "TEACHER",
+      actorId: teacherId,
+      action: "GRADE_PUBLISHED",
+      entityType: "GRADE",
+      entityId: grade._id,
+      metadata: {
+        submissionId: grade.submissionId,
+        assignmentId: grade.assignmentId,
+        studentId: grade.studentId,
+        score: grade.score,
+      },
     });
   }
 

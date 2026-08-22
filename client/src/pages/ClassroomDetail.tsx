@@ -10,24 +10,28 @@ import {
   FileText,
   Users,
   AlertCircle,
-  Loader2,
-  Clock,
   Lock,
   CheckCircle,
   Edit2,
   Award,
   FolderOpen,
   ArrowLeft,
-  CalendarX // Add this icon for overdue
+  CalendarX,
+  Calendar,
+  Copy,
+  Check,
+  PlusCircle,
+  Hash
 } from "lucide-react";
 
-const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL;
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
 interface Classroom {
   id: string;
   name: string;
   description?: string;
+  code?: string;
+  createdAt?: string;
 }
 
 interface Assignment {
@@ -50,127 +54,133 @@ const ClassroomDetail = () => {
   const [assignments, setAssignments] = useState<Assignment[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [copiedCode, setCopiedCode] = useState(false);
+  const [showCreateForm, setShowCreateForm] = useState(false);
 
   const role = localStorage.getItem("userRole");
   const isTeacher = role === "TEACHER";
   const accentColor = isTeacher ? "blue" : "emerald";
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const token = localStorage.getItem("authToken");
+  const fetchData = async () => {
+    try {
+      const token = localStorage.getItem("authToken");
 
-        // 1. Fetch classroom details
-        const classroomRes = await axios.get(
-          `${API_BASE_URL}/api/classrooms/${id}`,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        );
+      // 1. Fetch classroom details
+      const classroomRes = await axios.get(
+        `${API_BASE_URL}/api/classrooms/${id}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
 
-        setClassroom(classroomRes.data);
-
-        // 2. Fetch assignments
-        const assignmentsRes = await axios.get(
-          `${API_BASE_URL}/api/classrooms/${id}/assignments`,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        );
-
-        setAssignments(assignmentsRes.data);
-      } catch (err: any) {
-        setError(
-          err?.response?.data?.message ||
-          "Failed to load classroom details"
-        );
-      } finally {
-        setLoading(false);
+      setClassroom(classroomRes.data);
+      if (classroomRes.data?.name && id) {
+        try {
+          sessionStorage.setItem(`classroom_name_${id}`, classroomRes.data.name);
+          window.dispatchEvent(
+            new CustomEvent("classroom_name_updated", {
+              detail: { id, name: classroomRes.data.name },
+            })
+          );
+        } catch {
+          // Storage fallback
+        }
       }
-    };
 
+      // 2. Fetch assignments
+      const assignmentsRes = await axios.get(
+        `${API_BASE_URL}/api/classrooms/${id}/assignments`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      setAssignments(assignmentsRes.data);
+    } catch (err: any) {
+      setError(
+        err?.response?.data?.message || "Failed to load classroom details"
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
     if (id) {
       fetchData();
     }
   }, [id]);
 
+  const handleCopyCode = (code: string) => {
+    navigator.clipboard.writeText(code);
+    setCopiedCode(true);
+    setTimeout(() => setCopiedCode(false), 2000);
+  };
+
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
+    return new Date(dateString).toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
     });
   };
 
-  // Add this function to check if due date has passed
   const isDueDatePassed = (dueDate?: string) => {
     if (!dueDate) return false;
     return new Date(dueDate) < new Date();
   };
 
-  const getAssignmentStatusColor = (state: string, type: string) => {
-    if (state === "PUBLISHED") {
-      return type === "GRADED" ? "bg-emerald-100 text-emerald-800" : "bg-blue-100 text-blue-800";
-    }
-    return "bg-slate-100 text-slate-800";
-  };
-
-  const getAssignmentIcon = (type: string) => {
-    if (type === "GRADED") return <Award className="w-4 h-4" />;
-    return <FolderOpen className="w-4 h-4" />;
-  };
-
   const getSubmissionStatus = (submission: any, dueDate?: string) => {
     const duePassed = isDueDatePassed(dueDate);
-    
+
     if (!submission) {
       if (duePassed) {
         return (
-          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs bg-red-100 text-red-800">
-            <CalendarX className="w-3 h-3" /> Due Date Passed
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-red-50 text-red-700 border border-red-200">
+            <CalendarX className="w-3.5 h-3.5" /> Due Date Passed
           </span>
         );
       }
       return null;
     }
-    
+
     switch (submission.state) {
       case "DRAFT":
         if (duePassed) {
           return (
-            <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs bg-red-100 text-red-800">
-              <CalendarX className="w-3 h-3" /> Overdue - Draft
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-red-50 text-red-700 border border-red-200">
+              <CalendarX className="w-3.5 h-3.5" /> Overdue - Draft
             </span>
           );
         }
         return (
-          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs bg-amber-100 text-amber-800">
-            <Edit2 className="w-3 h-3" /> Draft
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-50 text-amber-800 border border-amber-200">
+            <Edit2 className="w-3.5 h-3.5" /> Draft In Progress
           </span>
         );
       case "SUBMITTED":
         if (duePassed) {
           return (
-            <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs bg-amber-100 text-amber-800">
-              <CheckCircle className="w-3 h-3" /> Submitted (Late)
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-50 text-amber-800 border border-amber-200">
+              <CheckCircle className="w-3.5 h-3.5" /> Submitted (Late)
             </span>
           );
         }
         return (
-          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs bg-emerald-100 text-emerald-800">
-            <CheckCircle className="w-3 h-3" /> Submitted
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200">
+            <CheckCircle className="w-3.5 h-3.5" /> Submitted
           </span>
         );
       case "LOCKED":
         return (
-          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs bg-red-100 text-red-800">
-            <Lock className="w-3 h-3" /> Locked
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-red-50 text-red-800 border border-red-200">
+            <Lock className="w-3.5 h-3.5" /> Submission Locked
           </span>
         );
       default:
@@ -180,10 +190,10 @@ const ClassroomDetail = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-100 flex items-center justify-center py-8">
+      <div className="min-h-[60vh] flex items-center justify-center py-12">
         <div className="text-center">
-          <Loader2 className={`w-8 h-8 text-${accentColor}-600 animate-spin mx-auto mb-4`} />
-          <p className="text-slate-700">Loading classroom details...</p>
+          <div className="w-12 h-12 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mx-auto mb-4" />
+          <p className="text-slate-700 font-medium">Loading classroom details...</p>
         </div>
       </div>
     );
@@ -191,12 +201,20 @@ const ClassroomDetail = () => {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-slate-100 flex items-center justify-center py-8">
-        <div className="max-w-md mx-auto p-6">
-          <div className="flex items-center gap-3 p-4 bg-red-100 border border-red-300 rounded-lg">
-            <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0" />
-            <p className="text-red-800">{error}</p>
+      <div className="min-h-[60vh] flex items-center justify-center py-12 px-4">
+        <div className="max-w-md w-full bg-white border border-red-200 rounded-2xl p-6 shadow-sm text-center">
+          <div className="w-12 h-12 rounded-xl bg-red-50 text-red-600 flex items-center justify-center mx-auto mb-4">
+            <AlertCircle className="w-6 h-6" />
           </div>
+          <h3 className="text-lg font-bold text-slate-900 mb-1">Classroom Error</h3>
+          <p className="text-sm text-slate-600 mb-6">{error}</p>
+          <Link
+            to="/dashboard/classrooms/my"
+            className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white font-medium rounded-xl hover:bg-blue-700 transition-colors text-sm"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Back to My Classrooms
+          </Link>
         </div>
       </div>
     );
@@ -205,237 +223,323 @@ const ClassroomDetail = () => {
   if (!classroom) return null;
 
   return (
-    <div className="min-h-screen bg-slate-100 py-8 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-4xl mx-auto">
-        {/* Header */}
-        <motion.div
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3 }}
-          className="mb-8"
+    <div className="space-y-8 pb-12">
+      {/* Top Navigation & Back Link */}
+      <motion.div
+        initial={{ opacity: 0, y: -6 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.2 }}
+        className="flex items-center justify-between"
+      >
+        <Link
+          to="/dashboard/classrooms/my"
+          className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white border border-slate-200 text-slate-700 hover:text-blue-600 hover:border-blue-300 font-medium text-xs shadow-2xs transition-all group"
         >
-          {/* Back Button */}
-          <div className="mb-6">
-            <Link
-              to="/dashboard/classrooms/my"
-              className="inline-flex items-center text-sm font-medium text-slate-700 hover:text-slate-900 transition-colors duration-200 group"
-            >
-              <ArrowLeft className="w-4 h-4 mr-2 transition-transform duration-200 group-hover:-translate-x-0.5" />
-              Back to classrooms
-            </Link>
-          </div>
+          <ArrowLeft className="w-3.5 h-3.5 transition-transform group-hover:-translate-x-0.5" />
+          <span>Back to Classrooms</span>
+        </Link>
+      </motion.div>
 
-          {/* Classroom Info */}
-          <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-6 mb-6">
-            <div className="flex items-start gap-4">
-              <div className={`p-3 bg-${accentColor}-100 rounded-xl`}>
-                <BookOpen className={`w-8 h-8 text-${accentColor}-700`} />
-              </div>
-              <div>
-                <h1 className="text-2xl font-bold text-slate-800">{classroom.name}</h1>
-                {classroom.description && (
-                  <p className="text-slate-600 mt-2 max-w-2xl">{classroom.description}</p>
-                )}
-                <div className="flex items-center gap-4 mt-3">
-                  <div className={`inline-flex items-center gap-1.5 text-sm px-3 py-1.5 rounded-full ${isTeacher ? 'bg-blue-100 text-blue-800' : 'bg-emerald-100 text-emerald-800'}`}>
-                    <Users className="w-4 h-4" />
-                    <span className="font-medium">{isTeacher ? 'Teacher' : 'Student'}</span>
-                  </div>
-                  <div className="inline-flex items-center gap-1.5 text-sm text-slate-600">
-                    <FileText className="w-4 h-4" />
-                    <span>{assignments.length} assignment{assignments.length !== 1 ? 's' : ''}</span>
-                  </div>
-                </div>
-              </div>
+      {/* Classroom Hero Card */}
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3 }}
+        className="bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 shadow-sm"
+      >
+        <div className="flex flex-col md:flex-row md:items-start justify-between gap-6">
+          <div className="flex items-start gap-4">
+            <div className={`p-3.5 bg-${accentColor}-100 rounded-2xl text-${accentColor}-700 shadow-xs shrink-0`}>
+              <BookOpen className="w-8 h-8" />
             </div>
-          </div>
-        </motion.div>
-
-        {/* Assignments Section */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3, delay: 0.1 }}
-          className="space-y-8"
-        >
-          {/* Section Header */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className={`p-2 bg-${accentColor}-50 rounded-lg`}>
-                <FileText className={`w-5 h-5 text-${accentColor}-700`} />
-              </div>
-              <h2 className="text-xl font-bold text-slate-800">Assignments</h2>
-            </div>
-            
-            {assignments.length > 0 && (
-              <div className="text-sm text-slate-600">
-                Showing {assignments.length} assignment{assignments.length !== 1 ? 's' : ''}
-              </div>
-            )}
-          </div>
-
-          {/* Teacher-only: Create assignment */}
-          {isTeacher && (
-            <CreateAssignmentForm
-              classroomId={id!}
-              onCreated={() => window.location.reload()}
-            />
-          )}
-
-          {/* Assignments List */}
-          <AnimatePresence>
-            {assignments.length === 0 ? (
-              <motion.div
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.3 }}
-                className="bg-slate-150 border border-slate-300/50 rounded-xl p-8 sm:p-12 text-center shadow-sm"
-              >
-                <div className={`w-16 h-16 bg-${accentColor}-100 rounded-full flex items-center justify-center mx-auto mb-4`}>
-                  <FileText className={`w-8 h-8 text-${accentColor}-600`} />
-                </div>
-                <h3 className="text-lg font-semibold text-slate-800 mb-2">
-                  No assignments yet
-                </h3>
-                <p className="text-slate-600 mb-6 max-w-sm mx-auto">
-                  {isTeacher 
-                    ? "Create your first assignment to get started"
-                    : "No assignments have been posted yet by your teacher"}
+            <div className="space-y-2">
+              <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900">
+                {classroom.name}
+              </h1>
+              {classroom.description && (
+                <p className="text-slate-600 text-sm sm:text-base max-w-2xl leading-relaxed">
+                  {classroom.description}
                 </p>
-              </motion.div>
-            ) : (
-              <div className="space-y-4">
-                {assignments.map((assignment, index) => {
-                  const duePassed = isDueDatePassed(assignment.dueDate);
-                  const dueDateColor = duePassed ? 'text-red-600' : 'text-slate-600';
-                  
-                  return (
-                    <motion.div
-                      key={assignment.id}
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.3, delay: index * 0.05 }}
-                      whileHover={{ y: -2 }}
-                      className="bg-white border border-slate-300 rounded-xl p-5 shadow-sm hover:shadow-md transition-all duration-200"
+              )}
+
+              {/* Badges & Meta */}
+              <div className="flex flex-wrap items-center gap-2.5 pt-1">
+                <span
+                  className={`inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1 rounded-full ${
+                    isTeacher
+                      ? "bg-blue-50 text-blue-800 border border-blue-200"
+                      : "bg-emerald-50 text-emerald-800 border border-emerald-200"
+                  }`}
+                >
+                  <Users className="w-3.5 h-3.5" />
+                  <span>{isTeacher ? "Teacher View" : "Student View"}</span>
+                </span>
+
+                <span className="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1 rounded-full bg-slate-100 text-slate-700 border border-slate-200">
+                  <FileText className="w-3.5 h-3.5 text-slate-500" />
+                  <span>
+                    {assignments.length} assignment{assignments.length !== 1 ? "s" : ""}
+                  </span>
+                </span>
+
+                {classroom.code && (
+                  <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-full px-3 py-1 text-xs">
+                    <Hash className="w-3 h-3 text-slate-400" />
+                    <span className="text-slate-500 font-medium">Join Code:</span>
+                    <span className="font-mono font-bold text-blue-700">
+                      {classroom.code}
+                    </span>
+                    <button
+                      onClick={() => handleCopyCode(classroom.code!)}
+                      className="p-0.5 text-slate-400 hover:text-blue-600 transition-colors"
+                      title="Copy Code"
                     >
-                      {/* Assignment Header */}
-                      <div className="flex items-start justify-between mb-4">
-                        <div className="flex items-start gap-3">
-                          <div className={`p-2 ${assignment.type === "GRADED" ? 'bg-emerald-50' : 'bg-blue-50'} rounded-lg`}>
-                            {getAssignmentIcon(assignment.type)}
-                          </div>
-                          <div>
-                            <h3 className="font-semibold text-slate-800 text-lg">{assignment.title}</h3>
-                            <div className="flex items-center gap-3 mt-2">
-                              <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium ${getAssignmentStatusColor(assignment.state, assignment.type)}`}>
-                                {assignment.state === "PUBLISHED" ? "Published" : "Draft"}
-                              </span>
-                              <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium ${assignment.type === "GRADED" ? 'bg-emerald-50 text-emerald-800' : 'bg-blue-50 text-blue-800'}`}>
-                                {assignment.type === "GRADED" ? "Graded" : "Material"}
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                        {!isTeacher && (
-                          <div className="flex-shrink-0">
-                            {getSubmissionStatus(assignment.submission, assignment.dueDate)}
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Assignment Description */}
-                      {assignment.description && (
-                        <p className="text-slate-600 mb-4">{assignment.description}</p>
+                      {copiedCode ? (
+                        <Check className="w-3.5 h-3.5 text-emerald-600" />
+                      ) : (
+                        <Copy className="w-3.5 h-3.5" />
                       )}
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
 
-                      {/* Assignment Details */}
-                      <div className="flex items-center justify-between pt-4 border-t border-slate-200">
-                        <div className="flex items-center gap-4 text-sm text-slate-600">
-                          {assignment.dueDate && (
-                            <div className={`flex items-center gap-1 ${dueDateColor}`}>
-                              {duePassed ? <CalendarX className="w-4 h-4" /> : <Clock className="w-4 h-4" />}
-                              <span className={duePassed ? 'font-medium' : ''}>
-                                Due: {formatDate(assignment.dueDate)}
-                                {duePassed && <span className="ml-1 text-red-600">(Past due)</span>}
-                              </span>
-                            </div>
+          {/* Quick Action Button for Teacher */}
+          {isTeacher && (
+            <button
+              onClick={() => setShowCreateForm(!showCreateForm)}
+              className={`inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-xs sm:text-sm shadow-xs transition-all active:scale-95 shrink-0 ${
+                showCreateForm
+                  ? "bg-slate-200 text-slate-800 hover:bg-slate-300"
+                  : "bg-blue-600 hover:bg-blue-700 text-white shadow-blue-500/20"
+              }`}
+            >
+              <PlusCircle className="w-4 h-4" />
+              <span>{showCreateForm ? "Cancel Creation" : "New Assignment"}</span>
+            </button>
+          )}
+        </div>
+      </motion.div>
+
+      {/* Teacher Collapsible Create Assignment Form */}
+      <AnimatePresence>
+        {isTeacher && showCreateForm && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.25 }}
+            className="overflow-hidden"
+          >
+            <div className="bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 shadow-sm">
+              <CreateAssignmentForm
+                classroomId={id!}
+                onCreated={() => {
+                  setShowCreateForm(false);
+                  fetchData();
+                }}
+              />
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Assignments Section */}
+      <div className="space-y-6">
+        {/* Section Header */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-blue-50 rounded-xl text-blue-700">
+              <FileText className="w-5 h-5" />
+            </div>
+            <div>
+              <h2 className="text-lg sm:text-xl font-bold text-slate-900">
+                Coursework &amp; Assignments
+              </h2>
+              <p className="text-xs text-slate-500">
+                {assignments.length} total assignment{assignments.length !== 1 ? "s" : ""}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Assignments List */}
+        <AnimatePresence>
+          {assignments.length === 0 ? (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="bg-white border border-dashed border-slate-300 rounded-3xl p-12 text-center shadow-2xs"
+            >
+              <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                <FileText className="w-8 h-8" />
+              </div>
+              <h3 className="text-lg font-bold text-slate-800 mb-1">
+                No Assignments Posted Yet
+              </h3>
+              <p className="text-sm text-slate-500 max-w-md mx-auto mb-6">
+                {isTeacher
+                  ? "Create your first assignment to share coursework, study material, and collect student submissions."
+                  : "No coursework has been posted by your teacher yet. Check back soon!"}
+              </p>
+              {isTeacher && !showCreateForm && (
+                <button
+                  onClick={() => setShowCreateForm(true)}
+                  className="inline-flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl text-xs sm:text-sm shadow-md shadow-blue-500/20 transition-all active:scale-95"
+                >
+                  <PlusCircle className="w-4 h-4" />
+                  Create First Assignment
+                </button>
+              )}
+            </motion.div>
+          ) : (
+            <div className="space-y-5">
+              {assignments.map((assignment, index) => {
+                const duePassed = isDueDatePassed(assignment.dueDate);
+
+                return (
+                  <motion.div
+                    key={assignment.id}
+                    initial={{ opacity: 0, y: 15 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.25, delay: index * 0.05 }}
+                    className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm hover:shadow-md transition-shadow"
+                  >
+                    {/* Assignment Top Row */}
+                    <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 mb-3">
+                      <div className="flex items-start gap-3.5">
+                        <div
+                          className={`p-2.5 rounded-xl shrink-0 ${
+                            assignment.type === "GRADED"
+                              ? "bg-blue-50 text-blue-700"
+                              : "bg-indigo-50 text-indigo-700"
+                          }`}
+                        >
+                          {assignment.type === "GRADED" ? (
+                            <Award className="w-5 h-5" />
+                          ) : (
+                            <FolderOpen className="w-5 h-5" />
                           )}
                         </div>
 
-                        {/* Student Actions - Only show if due date hasn't passed */}
-                        {!isTeacher && 
-                         assignment.type === "GRADED" && 
-                         assignment.state === "PUBLISHED" && 
-                         !duePassed && (
-                          <div className="flex items-center gap-3">
-                            {assignment.submission === null && (
-                              <div className="text-right">
-                                <p className="text-sm text-slate-600 mb-1">No submission yet</p>
-                                <SubmissionBox assignmentId={assignment.id} />
-                              </div>
-                            )}
-                            
-                            {assignment.submission?.state === "DRAFT" && (
-                              <div className="text-right">
-                                <p className="text-sm text-amber-600 mb-1">Draft in progress</p>
-                                <SubmissionBox assignmentId={assignment.id} />
-                              </div>
-                            )}
-                            
-                            {assignment.submission?.state === "SUBMITTED" && (
-                              <div className="flex items-center gap-2 text-emerald-600">
-                                <CheckCircle className="w-5 h-5" />
-                                <span className="font-medium">Submitted</span>
-                              </div>
-                            )}
-                            
-                            {assignment.submission?.state === "LOCKED" && (
-                              <div className="flex items-center gap-2 text-red-600">
-                                <Lock className="w-5 h-5" />
-                                <span className="font-medium">Submission Locked</span>
-                              </div>
-                            )}
-                          </div>
-                        )}
+                        <div>
+                          <h3 className="font-bold text-slate-900 text-base sm:text-lg">
+                            {assignment.title}
+                          </h3>
 
-                        {/* Show message when due date passed and no submission */}
-                        {!isTeacher && 
-                         assignment.type === "GRADED" && 
-                         assignment.state === "PUBLISHED" && 
-                         duePassed && 
-                         !assignment.submission && (
-                          <div className="flex items-center gap-2 text-red-600">
-                            <CalendarX className="w-5 h-5" />
-                            <span className="font-medium">Submission Closed</span>
-                          </div>
-                        )}
+                          {/* Status & Type Pills */}
+                          <div className="flex flex-wrap items-center gap-2 mt-1.5">
+                            <span
+                              className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${
+                                assignment.state === "PUBLISHED"
+                                  ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                                  : "bg-slate-100 text-slate-700 border border-slate-200"
+                              }`}
+                            >
+                              {assignment.state === "PUBLISHED" ? "Published" : "Draft"}
+                            </span>
 
-                        {/* Teacher Actions */}
-                        {isTeacher && assignment.type === "GRADED" && (
-                          <TeacherSubmissions assignmentId={assignment.id} />
+                            <span
+                              className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${
+                                assignment.type === "GRADED"
+                                  ? "bg-blue-50 text-blue-700 border border-blue-200"
+                                  : "bg-purple-50 text-purple-700 border border-purple-200"
+                              }`}
+                            >
+                              {assignment.type === "GRADED" ? "Graded Assignment" : "Study Material"}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Student Submission Status Badge (Right aligned) */}
+                      {!isTeacher && (
+                        <div className="shrink-0">
+                          {getSubmissionStatus(assignment.submission, assignment.dueDate)}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Assignment Description */}
+                    {assignment.description && (
+                      <p className="text-slate-600 text-sm leading-relaxed mb-4 pl-11">
+                        {assignment.description}
+                      </p>
+                    )}
+
+                    {/* Footer Row: Due Date & Action */}
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-4 border-t border-slate-100">
+                      {/* Due Date Indicator */}
+                      <div className="flex items-center gap-2 text-xs">
+                        {assignment.dueDate ? (
+                          <div
+                            className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-lg ${
+                              duePassed
+                                ? "bg-red-50 text-red-700 font-semibold border border-red-200/60"
+                                : "bg-slate-50 text-slate-600 border border-slate-200/60"
+                            }`}
+                          >
+                            {duePassed ? (
+                              <CalendarX className="w-3.5 h-3.5 text-red-600" />
+                            ) : (
+                              <Calendar className="w-3.5 h-3.5 text-slate-500" />
+                            )}
+                            <span>
+                              Due: {formatDate(assignment.dueDate)}
+                              {duePassed && " (Past due)"}
+                            </span>
+                          </div>
+                        ) : (
+                          <span className="text-slate-400">No deadline set</span>
                         )}
                       </div>
-                    </motion.div>
-                  );
-                })}
-              </div>
-            )}
-          </AnimatePresence>
-        </motion.div>
 
-        {/* Footer Note */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.3 }}
-          className="mt-8 text-center"
-        >
-          <p className="text-xs text-slate-600">
-            {isTeacher 
-              ? "Manage assignments and view student submissions from this dashboard"
-              : "Submit your assignments before the due date to avoid missing deadlines"}
-          </p>
-        </motion.div>
+                      {/* Student Action: Upload / Submit */}
+                      {!isTeacher &&
+                        assignment.type === "GRADED" &&
+                        assignment.state === "PUBLISHED" &&
+                        !duePassed && (
+                          <div className="flex items-center gap-2">
+                            {(!assignment.submission || assignment.submission.state === "DRAFT") && (
+                              <SubmissionBox
+                                assignmentId={assignment.id}
+                                initialSubmission={assignment.submission}
+                                onSubmitted={fetchData}
+                              />
+                            )}
+                            {assignment.submission?.state === "SUBMITTED" && (
+                              <div className="flex items-center gap-1.5 text-emerald-700 text-xs font-semibold bg-emerald-50 px-3 py-1.5 rounded-xl border border-emerald-200 shadow-2xs">
+                                <CheckCircle className="w-3.5 h-3.5 text-emerald-600" />
+                                <span>Submitted</span>
+                              </div>
+                            )}
+                            {assignment.submission?.state === "LOCKED" && (
+                              <div className="flex items-center gap-1.5 text-red-700 text-xs font-semibold bg-red-50 px-3 py-1.5 rounded-xl border border-red-200">
+                                <Lock className="w-3.5 h-3.5 text-red-600" />
+                                <span>Submission Locked</span>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                    </div>
+
+                    {/* Teacher Submissions Section (Full Width Expansion) */}
+                    {isTeacher && assignment.type === "GRADED" && (
+                      <div className="mt-4 pt-4 border-t border-slate-100">
+                        <TeacherSubmissions
+                          assignmentId={assignment.id}
+                          dueDate={assignment.dueDate}
+                        />
+                      </div>
+                    )}
+                  </motion.div>
+                );
+              })}
+            </div>
+          )}
+        </AnimatePresence>
       </div>
     </div>
   );

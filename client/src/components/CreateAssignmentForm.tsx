@@ -4,7 +4,6 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   Upload,
   FileText,
-  Calendar,
   Award,
   FolderOpen,
   AlertCircle,
@@ -242,17 +241,14 @@ const CreateAssignmentForm = ({ classroomId, onCreated }: Props) => {
                       Due Date
                       <span className="text-red-600 ml-1">*</span>
                     </label>
-                    <div className="relative">
+                    <div>
                       <input
                         type="datetime-local"
                         value={dueDate}
                         onChange={(e) => setDueDate(e.target.value)}
                         disabled={loading}
-                        className="w-full px-4 py-3 bg-white border border-slate-400 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-blue-600 transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed text-slate-900 placeholder-slate-600 shadow-sm"
+                        className="w-full px-4 py-2.5 bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-600 focus:border-blue-600 transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed text-slate-900 shadow-2xs font-medium cursor-pointer"
                       />
-                      <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                        <Calendar className="w-4 h-4 text-slate-500" />
-                      </div>
                     </div>
                     <p className="text-xs text-slate-600">
                       Set a deadline for student submissions
