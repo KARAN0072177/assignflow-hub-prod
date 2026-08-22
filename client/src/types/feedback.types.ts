@@ -11,8 +11,10 @@ export interface SubmitFeedbackPayload {
  * (used for testimonials)
  */
 export interface FeedbackResponse {
-  id: number;
-  courseName: any;
+  id?: number | string;
+  _id?: string;
+  name?: string;
+  courseName?: any;
   role: "STUDENT" | "TEACHER" | "ADMIN";
   rating: number;
   message: string;

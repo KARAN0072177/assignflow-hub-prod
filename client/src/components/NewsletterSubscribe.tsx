@@ -1,293 +1,126 @@
 import { useState, type FormEvent } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import {
-  Mail,
-  Bell,
-  Sparkles,
-  CheckCircle,
-  AlertCircle,
-  Send,
-  X
-} from "lucide-react";
+import { motion } from "framer-motion";
+import { Mail, ArrowRight, Check, AlertCircle, Sparkles } from "lucide-react";
 import { subscribeNewsletter } from "../services/newsletter.api";
+
+type SubmitStatus = {
+  type: "success" | "error" | "info";
+  text: string;
+} | null;
 
 const NewsletterSubscribe = () => {
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState<string | null>(null);
-  const [showPopup, setShowPopup] = useState(false);
-  const [popupMessage, setPopupMessage] = useState("");
+  const [status, setStatus] = useState<SubmitStatus>(null);
 
-  const handleSubscribe = async (e?: FormEvent) => {
-    if (e) {
-      e.preventDefault();
-    }
+  const handleSubscribe = async (e: FormEvent) => {
+    e.preventDefault();
+    const trimmed = email.trim();
+    if (!trimmed || loading) return;
 
-    const trimmedEmail = email.trim();
-    if (!trimmedEmail) return;
+    setLoading(true);
+    setStatus(null);
 
     try {
-      setLoading(true);
-      setMessage(null);
-
       const res = await subscribeNewsletter({
-        email: trimmedEmail,
+        email: trimmed,
         source: "website",
       });
 
       if (res.alreadySubscribed) {
-        const msg = res.message || "You're already subscribed.";
-        setMessage(msg);
-        setPopupMessage(msg);
-        setShowPopup(true);
+        setStatus({ type: "info", text: res.message || "You're already on the list." });
       } else if (res.resubscribed) {
-        const msg = res.message || "Welcome back! You're subscribed again.";
-        setMessage(msg);
-        setPopupMessage(msg);
-        setShowPopup(true);
+        setStatus({ type: "success", text: res.message || "Welcome back. You're subscribed again." });
       } else {
-        const msg = res.message || "Subscription successful. Check your email!";
-        setMessage(msg);
-        setPopupMessage(msg);
-        setShowPopup(true);
+        setStatus({ type: "success", text: res.message || "Subscribed. Check your inbox." });
       }
       setEmail("");
     } catch (err: any) {
-      const msg =
-        err?.response?.data?.message ||
-        "Something went wrong. Please try again.";
-      setMessage(msg);
-      setPopupMessage(msg);
-      setShowPopup(true);
+      setStatus({
+        type: "error",
+        text: err?.response?.data?.message || "Something went wrong. Try again.",
+      });
     } finally {
       setLoading(false);
     }
   };
 
-  const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !loading) {
-      handleSubscribe();
-    }
-  };
-
-  const closePopup = () => {
-    setShowPopup(false);
-  };
-
   return (
-    <>
-      {/* Confirmation Popup */}
-      <AnimatePresence>
-        {showPopup && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
-            onClick={closePopup}
-          >
-            <motion.div
-              initial={{ scale: 0.9, opacity: 0, y: 20 }}
-              animate={{ scale: 1, opacity: 1, y: 0 }}
-              exit={{ scale: 0.9, opacity: 0, y: 20 }}
-              transition={{ type: "spring", damping: 25 }}
-              className="relative max-w-md w-full bg-white rounded-2xl shadow-2xl overflow-hidden"
-              onClick={(e) => e.stopPropagation()}
-            >
-              {/* Close Button */}
-              <button
-                onClick={closePopup}
-                className="absolute top-4 right-4 z-10 p-2 rounded-full bg-slate-100/80 hover:bg-slate-200/80 transition-colors duration-200"
-                aria-label="Close"
-              >
-                <X className="w-4 h-4 text-slate-700" />
-              </button>
-
-              {/* Popup Content */}
-              <div className="p-6">
-                <div className="flex items-center justify-center w-16 h-16 mx-auto mb-4 rounded-full bg-gradient-to-r from-blue-500/10 to-emerald-500/10">
-                  {popupMessage.toLowerCase().includes("already") ? (
-                    <Bell className="w-8 h-8 text-blue-500" />
-                  ) : popupMessage.toLowerCase().includes("welcome") ||
-                    popupMessage.toLowerCase().includes("success") ||
-                    popupMessage.toLowerCase().includes("subscribed") ||
-                    popupMessage.toLowerCase().includes("reactivated") ? (
-                    <CheckCircle className="w-8 h-8 text-emerald-500" />
-                  ) : (
-                    <AlertCircle className="w-8 h-8 text-rose-500" />
-                  )}
-                </div>
-
-                <h3 className="text-xl font-bold text-center text-slate-900 mb-2">
-                  {popupMessage.toLowerCase().includes("already")
-                    ? "Already Subscribed"
-                    : popupMessage.toLowerCase().includes("welcome")
-                      ? "Welcome Back!"
-                      : popupMessage.toLowerCase().includes("reactivated")
-                        ? "Subscription Reactivated!"
-                        : popupMessage.toLowerCase().includes("success") ||
-                          popupMessage.toLowerCase().includes("subscribed")
-                          ? "Subscribed Successfully!"
-                          : "Notice"}
-                </h3>
-
-                <p className="text-sm text-center text-slate-600 mb-6">
-                  {popupMessage}
-                </p>
-
-                <button
-                  onClick={closePopup}
-                  className="w-full py-3 bg-gradient-to-r from-blue-600 to-emerald-500 text-white font-semibold rounded-xl hover:shadow-lg transition-all duration-300"
-                >
-                  Close
-                </button>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Original Newsletter Card */}
+    <section className="py-20 bg-slate-50 border-t border-slate-200">
       <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-        whileHover={{ y: -3 }}
-        className="group relative max-w-md w-full mx-auto"
+        initial={{ opacity: 0, y: 24 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: false, amount: 0.2 }}
+        transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+        className="max-w-xl mx-auto px-6 lg:px-8"
       >
-        {/* Background Effects */}
-        <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 to-emerald-500/10 rounded-2xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-
-        {/* Main Card */}
-        <div className="mb-12 relative p-6 bg-white/90 backdrop-blur-sm border border-white/50 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300">
-          {/* Header */}
-          <div className="flex items-center gap-3 mb-4">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-emerald-500 p-2.5">
-              <Bell className="w-5 h-5 text-white" />
-            </div>
-            <div>
-              <h3 className="text-lg font-bold text-slate-900">
-                Subscribe to our Newsletter
-              </h3>
-              <div className="flex items-center gap-2 mt-1">
-                <div className="inline-flex items-center gap-1 px-2 py-1 bg-gradient-to-r from-blue-500/10 to-emerald-500/10 rounded-full">
-                  <Sparkles className="w-3 h-3 text-amber-500" />
-                  <span className="text-xs font-medium text-slate-700">
-                    Latest Updates
-                  </span>
-                </div>
-              </div>
-            </div>
+        <div className="text-center mb-8">
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-white border border-slate-200 rounded-full text-xs font-semibold text-slate-700 mb-3 shadow-2xs">
+            <Sparkles className="w-3.5 h-3.5 text-blue-600" />
+            <span>Monthly Digest</span>
           </div>
-
-          {/* Description */}
-          <p className="text-sm text-slate-600 mb-6">
-            Get product updates, new features & important announcements.
+          <h3 className="text-2xl font-bold text-slate-900 mb-2">
+            Product &amp; Educational Updates
+          </h3>
+          <p className="text-sm text-slate-500">
+            New platform features, grading shortcuts, and classroom tools. Zero spam.
           </p>
+        </div>
 
-          {/* Input & Button - Wrap in form */}
-          <form onSubmit={handleSubscribe} className="space-y-3">
-            <div className="relative">
-              <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-400" />
+        <form onSubmit={handleSubscribe} className="space-y-3">
+          <div className="flex gap-2">
+            <div className="relative flex-1">
+              <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
               <input
                 type="email"
-                placeholder="Enter your email"
+                placeholder="you@school.edu"
                 value={email}
                 onChange={(e) => {
                   setEmail(e.target.value);
-                  setMessage(null);
+                  if (status) setStatus(null);
                 }}
-                onKeyPress={handleKeyPress}
-                className="w-full pl-10 pr-4 py-3 bg-white/80 backdrop-blur-sm border-2 border-slate-200/50 rounded-xl text-sm text-slate-700 placeholder-slate-500 focus:outline-none focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20 transition-all duration-300"
+                className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-300 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors"
                 disabled={loading}
                 required
               />
             </div>
-
-            <motion.button
+            <button
               type="submit"
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
               disabled={loading}
-              className="group relative w-full py-3 bg-gradient-to-r from-blue-600 to-emerald-500 text-white font-semibold rounded-xl shadow-lg shadow-blue-500/30 hover:shadow-blue-500/40 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 overflow-hidden text-sm"
+              className="inline-flex items-center gap-2 px-5 py-2.5 bg-slate-900 text-white text-sm font-medium rounded-lg hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
-              <div className="absolute inset-0 bg-gradient-to-r from-blue-700 to-emerald-600 opacity-0 group-hover:opacity-100 group-disabled:opacity-0 transition-opacity duration-300" />
-
-              <div className="relative flex items-center justify-center gap-2">
-                {loading ? (
-                  <>
-                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                    <span>Subscribing...</span>
-                  </>
-                ) : (
-                  <>
-                    <Send className="w-4 h-4" />
-                    <span>Subscribe</span>
-                  </>
-                )}
-              </div>
-            </motion.button>
-          </form>
-
-          {/* Status Messages */}
-          <AnimatePresence>
-            {message && (
-              <motion.div
-                initial={{ opacity: 0, y: 5, height: 0 }}
-                animate={{ opacity: 1, y: 0, height: "auto" }}
-                exit={{ opacity: 0, y: -5, height: 0 }}
-                className="mt-4 overflow-hidden"
-              >
-                <div
-                  className={`p-3 rounded-lg border text-sm ${
-                    message.toLowerCase().includes("already")
-                      ? "bg-gradient-to-r from-blue-500/10 to-blue-600/10 border-blue-200 text-blue-700"
-                      : message.toLowerCase().includes("welcome") ||
-                        message.toLowerCase().includes("success") ||
-                        message.toLowerCase().includes("subscribed") ||
-                        message.toLowerCase().includes("reactivated")
-                        ? "bg-gradient-to-r from-emerald-500/10 to-emerald-600/10 border-emerald-200 text-emerald-700"
-                        : "bg-gradient-to-r from-rose-500/10 to-rose-600/10 border-rose-200 text-rose-700"
-                  }`}
-                >
-                  <div className="flex items-center gap-2">
-                    {message.toLowerCase().includes("already") ? (
-                      <Bell className="w-4 h-4 shrink-0" />
-                    ) : message.toLowerCase().includes("welcome") ||
-                      message.toLowerCase().includes("success") ||
-                      message.toLowerCase().includes("subscribed") ||
-                      message.toLowerCase().includes("reactivated") ? (
-                      <CheckCircle className="w-4 h-4 shrink-0" />
-                    ) : (
-                      <AlertCircle className="w-4 h-4 shrink-0" />
-                    )}
-                    <span className="font-medium">{message}</span>
-                  </div>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-
-          {/* What to Expect */}
-          <div className="mt-8 pt-6 border-t border-slate-200/50">
-            <h4 className="text-sm font-semibold text-slate-900 mb-3">What you'll receive:</h4>
-            <div className="grid grid-cols-1 gap-2">
-              {[
-                { text: "Product updates & new features" },
-                { text: "Educational tips & resources" },
-                { text: "Platform announcements" },
-                { text: "Community highlights" }
-              ].map((item, index) => (
-                <div key={index} className="flex items-center gap-2 text-sm text-slate-600">
-                  <div className="w-2 h-2 rounded-full bg-gradient-to-r from-blue-500 to-emerald-500" />
-                  <span>{item.text}</span>
-                </div>
-              ))}
-            </div>
+              {loading ? (
+                <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+              ) : (
+                <>
+                  Subscribe
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </>
+              )}
+            </button>
           </div>
-        </div>
+
+          {status && (
+            <div
+              className={`flex items-center gap-2 text-sm ${
+                status.type === "error"
+                  ? "text-rose-600"
+                  : status.type === "info"
+                  ? "text-blue-600"
+                  : "text-emerald-600"
+              }`}
+            >
+              {status.type === "error" ? (
+                <AlertCircle className="w-4 h-4 shrink-0" />
+              ) : (
+                <Check className="w-4 h-4 shrink-0" />
+              )}
+              <span>{status.text}</span>
+            </div>
+          )}
+        </form>
       </motion.div>
-    </>
+    </section>
   );
 };
 
