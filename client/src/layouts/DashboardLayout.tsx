@@ -94,7 +94,8 @@ const DashboardLayout = () => {
               </div>
               <div className="md:hidden">
                 <h1 className="text-lg font-semibold text-slate-800">
-                  {location.pathname.includes('grades') ? 'My Grades' :
+                  {location.pathname.includes('students') ? 'Class Students' :
+                   location.pathname.includes('grades') ? 'My Grades' :
                    location.pathname.includes('join') ? 'Join Classroom' :
                    location.pathname.includes('create') ? 'Create Classroom' :
                    location.pathname.includes('my') ? 'My Classrooms' : 'Dashboard'}

@@ -9,6 +9,7 @@ import JoinClassroom from "./pages/JoinClassroom";
 import MyClassrooms from "./pages/MyClassrooms";
 import ClassroomDetail from "./pages/ClassroomDetail";
 import MyGrades from "./pages/MyGrades";
+import TeacherStudents from "./pages/TeacherStudents";
 
 import Dashboard from "./pages/Dashboard";
 import DashboardLayout from "./layouts/DashboardLayout";
@@ -58,7 +59,6 @@ function AppRoutes() {
       <Routes>
         {/* Public routes */}
         <Route path="/home" element={<Home />} />
-        <Route path="*" element={<NotFound />} />
         <Route path="/" element={<Navigate to="/home" />} />
         <Route path="/register" element={<Register />} />
         <Route path="/login" element={<Login />} />
@@ -87,6 +87,7 @@ function AppRoutes() {
           <Route path="classrooms/create" element={<CreateClassroom />} />
           <Route path="classrooms/join" element={<JoinClassroom />} />
           <Route path="grades" element={<MyGrades />} />
+          <Route path="students" element={<TeacherStudents />} />
         </Route>
 
         {/* Admin routes */}
@@ -98,6 +99,9 @@ function AppRoutes() {
           <Route path="newsletter" element={<NewsletterPage />} />
           <Route path="blogs" element={<BlogPage />} />
         </Route>
+
+        {/* 404 Catch-All - Must be at the very bottom */}
+        <Route path="*" element={<NotFound />} />
       </Routes>
 
       {!shouldHideLayout && <Footer />}

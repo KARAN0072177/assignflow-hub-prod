@@ -1,10 +1,15 @@
 import { Request, Response } from "express";
 import { z } from "zod";
-import { createClassroom, joinClassroomByCode } from "./classroom.service";
 import { AuthenticatedRequest } from "../../middleware/requireAuth";
 import { Types } from "mongoose";
-import { getStudentClassrooms, getTeacherClassrooms } from "./classroom.service";
-import { getClassroomByIdWithAccessCheck } from "./classroom.service";
+import {
+  createClassroom,
+  joinClassroomByCode,
+  getStudentClassrooms,
+  getTeacherClassrooms,
+  getClassroomByIdWithAccessCheck,
+  getTeacherClassroomsWithStudents,
+} from "./classroom.service";
 
 const createClassroomSchema = z.object({
   name: z.string().min(2),
@@ -101,13 +106,7 @@ export const getMyClassroomsHandler = async (
         new Types.ObjectId(req.user.userId)
       );
 
-      return res.status(200).json(
-        classrooms.map((c) => ({
-          id: c._id,
-          name: c.name,
-          description: c.description,
-        }))
-      );
+      return res.status(200).json(classrooms);
     }
 
     if (req.user?.role === "TEACHER") {
@@ -115,13 +114,7 @@ export const getMyClassroomsHandler = async (
         new Types.ObjectId(req.user.userId)
       );
 
-      return res.status(200).json(
-        classrooms.map((c) => ({
-          id: c._id,
-          name: c.name,
-          description: c.description,
-        }))
-      );
+      return res.status(200).json(classrooms);
     }
 
     return res.status(403).json({ message: "Unauthorized role" });
@@ -133,10 +126,7 @@ export const getMyClassroomsHandler = async (
   }
 };
 
-
-
 // Get classroom by ID with access check for student or teacher roles
-
 export const getClassroomByIdHandler = async (
   req: AuthenticatedRequest,
   res: Response
@@ -164,6 +154,8 @@ export const getClassroomByIdHandler = async (
       id: classroom._id,
       name: classroom.name,
       description: classroom.description,
+      code: classroom.code,
+      createdAt: classroom.createdAt,
     });
   } catch (error: any) {
     if (error.message === "Classroom not found") {
@@ -178,5 +170,32 @@ export const getClassroomByIdHandler = async (
     return res
       .status(500)
       .json({ message: "Failed to fetch classroom" });
+  }
+};
+
+/**
+ * Teacher fetches all their classrooms along with enrolled students list
+ */
+export const getTeacherClassroomStudentsHandler = async (
+  req: AuthenticatedRequest,
+  res: Response
+) => {
+  if (req.user?.role !== "TEACHER") {
+    return res
+      .status(403)
+      .json({ message: "Only teachers can access student rosters" });
+  }
+
+  try {
+    const data = await getTeacherClassroomsWithStudents(
+      new Types.ObjectId(req.user.userId)
+    );
+
+    return res.status(200).json(data);
+  } catch (error) {
+    console.error("❌ Failed to fetch teacher classroom students:", error);
+    return res
+      .status(500)
+      .json({ message: "Failed to fetch student rosters" });
   }
 };

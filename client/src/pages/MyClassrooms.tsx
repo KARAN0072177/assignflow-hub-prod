@@ -217,7 +217,12 @@ const MyClassrooms = () => {
                         <div className="flex items-center gap-4 text-xs text-slate-600">
                           <div className="flex items-center gap-1">
                             <User className="w-3 h-3" />
-                            <span>{classroom.studentCount || 0} students</span>
+                            <span>
+                              {classroom.studentCount || 0}{" "}
+                              {classroom.studentCount === 1
+                                ? "student"
+                                : "students"}
+                            </span>
                           </div>
                           {classroom.createdAt && (
                             <div className="flex items-center gap-1">

@@ -79,7 +79,6 @@ export const joinClassroomByCode = async (
 };
 
 // Get all classrooms a student is enrolled in
-
 export const getStudentClassrooms = async (studentId: Types.ObjectId) => {
   const memberships = await Membership.find({ studentId }).select(
     "classroomId"
@@ -89,33 +88,78 @@ export const getStudentClassrooms = async (studentId: Types.ObjectId) => {
 
   const classrooms = await Classroom.find({
     _id: { $in: classroomIds },
-    status: "ACTIVE",
-  }).select("name description");
+    status: ClassroomStatus.ACTIVE,
+  })
+    .select("name description code createdAt")
+    .sort({ createdAt: -1 })
+    .lean();
 
-  return classrooms;
+  if (classrooms.length === 0) {
+    return [];
+  }
+
+  // Count memberships for each classroom
+  const counts = await Membership.aggregate([
+    { $match: { classroomId: { $in: classroomIds } } },
+    { $group: { _id: "$classroomId", count: { $sum: 1 } } },
+  ]);
+
+  const countMap = new Map<string, number>();
+  counts.forEach((c) => countMap.set(c._id.toString(), c.count));
+
+  return classrooms.map((c) => ({
+    id: c._id.toString(),
+    name: c.name,
+    description: c.description || "",
+    code: c.code,
+    createdAt: c.createdAt,
+    studentCount: countMap.get(c._id.toString()) || 0,
+  }));
 };
 
 // Get all classrooms created by a teacher
-
 export const getTeacherClassrooms = async (teacherId: Types.ObjectId) => {
   const classrooms = await Classroom.find({
     teacherId,
-    status: "ACTIVE",
-  }).select("name description");
+    status: ClassroomStatus.ACTIVE,
+  })
+    .select("name description code createdAt")
+    .sort({ createdAt: -1 })
+    .lean();
 
-  return classrooms;
+  if (classrooms.length === 0) {
+    return [];
+  }
+
+  const classroomIds = classrooms.map((c) => c._id);
+
+  // Count memberships for each classroom
+  const counts = await Membership.aggregate([
+    { $match: { classroomId: { $in: classroomIds } } },
+    { $group: { _id: "$classroomId", count: { $sum: 1 } } },
+  ]);
+
+  const countMap = new Map<string, number>();
+  counts.forEach((c) => countMap.set(c._id.toString(), c.count));
+
+  return classrooms.map((c) => ({
+    id: c._id.toString(),
+    name: c.name,
+    description: c.description || "",
+    code: c.code,
+    createdAt: c.createdAt,
+    studentCount: countMap.get(c._id.toString()) || 0,
+  }));
 };
 
-
 // Get classroom by ID with access check for student or teacher roles
-
 export const getClassroomByIdWithAccessCheck = async (
   classroomId: Types.ObjectId,
   userId: Types.ObjectId,
   role: "STUDENT" | "TEACHER"
 ) => {
   const classroom = await Classroom.findById(classroomId).select(
-    "name description teacherId status"
+    "name description code teacherId status createdAt"
   );
 
   if (!classroom || classroom.status !== "ACTIVE") {
@@ -145,4 +189,62 @@ export const getClassroomByIdWithAccessCheck = async (
   }
 
   throw new Error("Access denied");
+};
+
+/**
+ * Get all classrooms created by a teacher along with enrolled students
+ */
+export const getTeacherClassroomsWithStudents = async (
+  teacherId: Types.ObjectId
+) => {
+  // 1. Find all active classrooms created by this teacher
+  const classrooms = await Classroom.find({
+    teacherId,
+    status: ClassroomStatus.ACTIVE,
+  })
+    .sort({ createdAt: -1 })
+    .lean();
+
+  if (classrooms.length === 0) {
+    return [];
+  }
+
+  const classroomIds = classrooms.map((c) => c._id);
+
+  // 2. Find all memberships for these classrooms and populate student details
+  const memberships = await Membership.find({
+    classroomId: { $in: classroomIds },
+  })
+    .populate<{
+      studentId: { _id: Types.ObjectId; email: string; createdAt: Date };
+    }>("studentId", "email createdAt")
+    .sort({ createdAt: -1 })
+    .lean();
+
+  // 3. Map students to their respective classroom
+  const result = classrooms.map((classroom) => {
+    const classMemberships = memberships.filter((m) =>
+      m.classroomId.equals(classroom._id)
+    );
+
+    const students = classMemberships
+      .filter((m) => m.studentId)
+      .map((m) => ({
+        id: m.studentId._id.toString(),
+        email: m.studentId.email,
+        joinedAt: m.createdAt,
+      }));
+
+    return {
+      id: classroom._id.toString(),
+      name: classroom.name,
+      description: classroom.description || "",
+      code: classroom.code,
+      createdAt: classroom.createdAt,
+      studentCount: students.length,
+      students,
+    };
+  });
+
+  return result;
 };

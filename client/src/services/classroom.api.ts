@@ -75,6 +75,9 @@ export interface ClassroomListItem {
   id: string;
   name: string;
   description?: string;
+  code?: string;
+  createdAt?: string;
+  studentCount?: number;
 }
 
 export const getMyClassrooms = async (): Promise<ClassroomListItem[]> => {
@@ -110,6 +113,40 @@ export const getAssignmentsForClassroom = async (
 
   const response = await axios.get(
     `${API_BASE_URL}/api/classrooms/${classroomId}/assignments`,
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    }
+  );
+
+  return response.data;
+};
+
+// Teacher roster & student tracking
+export interface ClassroomStudentItem {
+  id: string;
+  email: string;
+  joinedAt: string;
+}
+
+export interface TeacherClassroomWithStudents {
+  id: string;
+  name: string;
+  description?: string;
+  code: string;
+  createdAt: string;
+  studentCount: number;
+  students: ClassroomStudentItem[];
+}
+
+export const getTeacherClassroomStudents = async (): Promise<
+  TeacherClassroomWithStudents[]
+> => {
+  const token = localStorage.getItem("authToken");
+
+  const response = await axios.get(
+    `${API_BASE_URL}/api/classrooms/teacher/students`,
     {
       headers: {
         Authorization: `Bearer ${token}`,

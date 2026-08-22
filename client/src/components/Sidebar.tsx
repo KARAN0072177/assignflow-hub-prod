@@ -77,6 +77,11 @@ const Sidebar = () => {
         label: "My Classrooms",
         icon: <BookOpen className="w-5 h-5" />,
       },
+      {
+        path: "/dashboard/students",
+        label: "Students",
+        icon: <Users className="w-5 h-5" />,
+      },
     ],
     STUDENT: [
       {
