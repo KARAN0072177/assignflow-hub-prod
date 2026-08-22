@@ -1,5 +1,6 @@
 import { useState } from "react";
 import axios from "axios";
+import { apiClient } from "../services/apiClient";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Upload,
@@ -14,13 +15,21 @@ import {
   FileType
 } from "lucide-react";
 
-const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL;
-
 interface Props {
   classroomId: string;
   onCreated: () => void;
 }
+
+const allowedExtensions = ["pdf", "docx", "xlsx", "pptx"];
+const blockedExtensions = ["zip", "dll", "bat", "exe", "sh", "cmd", "vbs", "js", "py", "html", "htm", "svg", "msi"];
+
+const getFileEnum = (fileName: string): "PDF" | "DOCX" | "XLSX" | "PPTX" => {
+  const lower = fileName.toLowerCase();
+  if (lower.endsWith(".docx")) return "DOCX";
+  if (lower.endsWith(".xlsx")) return "XLSX";
+  if (lower.endsWith(".pptx")) return "PPTX";
+  return "PDF";
+};
 
 const CreateAssignmentForm = ({ classroomId, onCreated }: Props) => {
   const [title, setTitle] = useState("");
@@ -52,47 +61,29 @@ const CreateAssignmentForm = ({ classroomId, onCreated }: Props) => {
       setError(null);
       setLoading(true);
 
-      const token = localStorage.getItem("authToken");
-
-      // 1. Create assignment draft
-      const createRes = await axios.post(
-        `${API_BASE_URL}/api/assignments`,
-        {
-          classroomId,
-          title,
-          description,
-          type,
-          dueDate: dueDate || undefined,
-          originalFileName: file.name,
-          fileType: file.name.endsWith(".pdf") ? "PDF" : "DOCX",
-          fileSize: file.size,
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+      // 1. Create assignment draft via apiClient
+      const createRes = await apiClient.post("/api/assignments", {
+        classroomId,
+        title,
+        description,
+        type,
+        dueDate: dueDate || undefined,
+        originalFileName: file.name,
+        fileType: getFileEnum(file.name),
+        fileSize: file.size,
+      });
 
       const { assignmentId, uploadUrl } = createRes.data;
 
       // 2. Upload file to S3
       await axios.put(uploadUrl, file, {
         headers: {
-          "Content-Type": file.type,
+          "Content-Type": file.type || "application/octet-stream",
         },
       });
 
-      // 3. Publish assignment
-      await axios.patch(
-        `${API_BASE_URL}/api/assignments/${assignmentId}/publish`,
-        {},
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+      // 3. Publish assignment via apiClient
+      await apiClient.patch(`/api/assignments/${assignmentId}/publish`, {});
 
       // Reset form
       setTitle("");
@@ -112,9 +103,13 @@ const CreateAssignmentForm = ({ classroomId, onCreated }: Props) => {
   const [isDragging, setIsDragging] = useState(false);
 
   const processFile = (selectedFile: File) => {
-    const extension = selectedFile.name.split(".").pop()?.toLowerCase();
-    if (!["pdf", "docx"].includes(extension || "")) {
-      setError("Only PDF and DOCX files are allowed");
+    const extension = selectedFile.name.split(".").pop()?.toLowerCase() || "";
+    if (blockedExtensions.includes(extension)) {
+      setError(`Security Alert: .${extension} files are strictly forbidden.`);
+      return;
+    }
+    if (!allowedExtensions.includes(extension)) {
+      setError("Only PDF, DOCX, XLSX, and PPTX files are allowed");
       return;
     }
     if (selectedFile.size > 10 * 1024 * 1024) {
@@ -352,7 +347,7 @@ const CreateAssignmentForm = ({ classroomId, onCreated }: Props) => {
                     >
                       <input
                         type="file"
-                        accept=".pdf,.docx"
+                        accept=".pdf,.docx,.xlsx,.pptx"
                         onChange={handleFileChange}
                         disabled={loading}
                         className="hidden"
@@ -371,7 +366,7 @@ const CreateAssignmentForm = ({ classroomId, onCreated }: Props) => {
                             : "Click to browse or drag & drop file here"}
                         </p>
                         <p className="text-xs text-slate-500 mt-1">
-                          PDF or DOCX documents (Max 10MB)
+                          PDF, DOCX, XLSX, or PPTX documents (Max 10MB)
                         </p>
                       </div>
                     </label>

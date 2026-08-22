@@ -1,6 +1,14 @@
 import { Request, Response } from "express";
 import { z } from "zod";
-import { loginUser, registerUser, requestPasswordReset, resetPassword, verifyResetOtp } from "./auth.service";
+import {
+  loginUser,
+  registerUser,
+  requestPasswordReset,
+  resetPassword,
+  verifyResetOtp,
+  rotateRefreshToken,
+  logoutUser,
+} from "./auth.service";
 import { UserRole } from "../../models/user.model";
 import { logAuditEvent } from "../../utils/auditLogger";
 import { AuthenticatedRequest } from "../../middleware/requireAuth";
@@ -66,6 +74,8 @@ export const login = async (req: Request, res: Response) => {
     req.connection.remoteAddress ||
     "unknown";
 
+  const userAgent = req.headers["user-agent"];
+
   // ✅ BLOCK IF TOO MANY FAILED ATTEMPTS
   if (isLoginBlocked(ip as string)) {
     return res.status(429).json({
@@ -74,7 +84,7 @@ export const login = async (req: Request, res: Response) => {
   }
 
   try {
-    const result = await loginUser(email, password);
+    const result = await loginUser(email, password, userAgent, ip as string);
 
     // ✅ RESET FAILED ATTEMPTS ON SUCCESS
     resetLoginAttempts(ip as string);
@@ -95,6 +105,30 @@ export const login = async (req: Request, res: Response) => {
     recordFailedLogin(ip as string);
 
     res.status(401).json({ message: error.message });
+  }
+};
+
+/**
+ * ============================
+ * REFRESH TOKEN CONTROLLER
+ * ============================
+ */
+export const refreshTokenController = async (req: Request, res: Response) => {
+  const { refreshToken } = req.body;
+  if (!refreshToken) {
+    return res.status(400).json({ message: "Refresh token is required" });
+  }
+
+  const ip = (req.ip || req.headers["x-forwarded-for"] || "unknown") as string;
+  const userAgent = req.headers["user-agent"];
+
+  try {
+    const result = await rotateRefreshToken(refreshToken, userAgent, ip);
+    return res.status(200).json(result);
+  } catch (error: any) {
+    return res.status(401).json({
+      message: error.message || "Invalid or expired session. Please log in again.",
+    });
   }
 };
 
@@ -169,22 +203,29 @@ export const resendResetOtpController = async (req: Request, res: Response) => {
 
 /**
  * Logout handler
- * - DOES NOT invalidate JWT
- * - ONLY logs audit event
+ * - Revokes refresh token in database
+ * - Logs audit event
  */
-export const logout = async (req: AuthenticatedRequest, res: Response) => {
+export const logout = async (req: Request, res: Response) => {
+  const { refreshToken } = req.body;
+  const authReq = req as AuthenticatedRequest;
+
   try {
-    await logAuditEvent({
-      actorRole: "USER",
-      actorId: new Types.ObjectId(req.user!.userId),
-      action: "USER_LOGOUT",
-      entityType: "AUTH",
-      entityId: new Types.ObjectId(req.user!.userId),
-    });
+    await logoutUser(refreshToken, authReq.user?.userId);
+
+    if (authReq.user?.userId) {
+      await logAuditEvent({
+        actorRole: "USER",
+        actorId: new Types.ObjectId(authReq.user.userId),
+        action: "USER_LOGOUT",
+        entityType: "AUTH",
+        entityId: new Types.ObjectId(authReq.user.userId),
+      });
+    }
   } catch (error) {
-    // never block logout
-    console.error("[Logout] Audit log failed", error);
+    // never block logout response
+    console.error("[Logout] Cleanup/audit error:", error);
   }
 
-  return res.status(200).json({ message: "Logged out" });
+  return res.status(200).json({ message: "Logged out successfully" });
 };

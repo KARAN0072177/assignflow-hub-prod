@@ -18,7 +18,7 @@ export const createOrUpdateSubmissionDraft = async ({
   studentId: Types.ObjectId;
   assignmentId: Types.ObjectId;
   originalFileName: string;
-  fileType: "PDF" | "DOCX";
+  fileType: "PDF" | "DOCX" | "XLSX" | "PPTX";
   fileSize: number;
 }) => {
   // 1. Fetch assignment

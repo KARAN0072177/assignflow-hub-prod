@@ -1,44 +1,23 @@
-import axios from "axios";
-
-const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
-
-const authHeader = () => ({
-  Authorization: `Bearer ${localStorage.getItem("authToken")}`,
-});
+import { apiClient } from "./apiClient";
 
 // ---------------- ADMIN ----------------
 
 export const fetchAllBlogs = async () => {
-  const res = await axios.get(
-    `${API_BASE_URL}/api/blogs/admin/all`,
-    { headers: authHeader() }
-  );
+  const res = await apiClient.get("/api/blogs/admin/all");
   return res.data;
 };
 
 export const createBlog = async (payload: any) => {
-  const res = await axios.post(
-    `${API_BASE_URL}/api/blogs`,
-    payload,
-    { headers: authHeader() }
-  );
+  const res = await apiClient.post("/api/blogs", payload);
   return res.data;
 };
 
 export const updateBlog = async (id: string, payload: any) => {
-  const res = await axios.put(
-    `${API_BASE_URL}/api/blogs/${id}`,
-    payload,
-    { headers: authHeader() }
-  );
+  const res = await apiClient.put(`/api/blogs/${id}`, payload);
   return res.data;
 };
 
 export const deleteBlog = async (id: string) => {
-  const res = await axios.delete(
-    `${API_BASE_URL}/api/blogs/${id}`,
-    { headers: authHeader() }
-  );
+  const res = await apiClient.delete(`/api/blogs/${id}`);
   return res.data;
 };

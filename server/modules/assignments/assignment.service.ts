@@ -15,7 +15,7 @@ interface CreateAssignmentParams {
   type: AssignmentType;
   dueDate?: Date;
   originalFileName: string;
-  fileType: "PDF" | "DOCX";
+  fileType: "PDF" | "DOCX" | "XLSX" | "PPTX";
   fileSize: number;
 }
 

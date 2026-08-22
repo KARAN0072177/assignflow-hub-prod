@@ -26,6 +26,9 @@ interface Props {
   onSubmitted?: () => void;
 }
 
+const allowedExtensions = ["pdf", "docx", "xlsx", "pptx"];
+const blockedExtensions = ["zip", "dll", "bat", "exe", "sh", "cmd", "vbs", "js", "py", "html", "htm", "svg", "msi"];
+
 const SubmissionBox = ({ assignmentId, initialSubmission, onSubmitted }: Props) => {
   const [file, setFile] = useState<File | null>(null);
   const [submissionId, setSubmissionId] = useState<string | null>(
@@ -43,14 +46,18 @@ const SubmissionBox = ({ assignmentId, initialSubmission, onSubmitted }: Props) 
   // 1. Save as Draft Action
   const handleSaveDraft = async () => {
     if (!file && !submissionId) {
-      setError("Please select a PDF or DOCX file to upload");
+      setError("Please select a valid PDF, DOCX, XLSX, or PPTX file to upload");
       return;
     }
 
     if (file) {
-      const extension = file.name.split(".").pop()?.toLowerCase();
-      if (!["pdf", "docx"].includes(extension || "")) {
-        setError("Only PDF and DOCX files are allowed");
+      const extension = file.name.split(".").pop()?.toLowerCase() || "";
+      if (blockedExtensions.includes(extension)) {
+        setError(`Security violation: .${extension} files are strictly blocked.`);
+        return;
+      }
+      if (!allowedExtensions.includes(extension)) {
+        setError("Only PDF, DOCX, XLSX, and PPTX files are allowed");
         return;
       }
     }
@@ -80,9 +87,13 @@ const SubmissionBox = ({ assignmentId, initialSubmission, onSubmitted }: Props) 
     }
 
     if (file) {
-      const extension = file.name.split(".").pop()?.toLowerCase();
-      if (!["pdf", "docx"].includes(extension || "")) {
-        setError("Only PDF and DOCX files are allowed");
+      const extension = file.name.split(".").pop()?.toLowerCase() || "";
+      if (blockedExtensions.includes(extension)) {
+        setError(`Security violation: .${extension} files are strictly blocked.`);
+        return;
+      }
+      if (!allowedExtensions.includes(extension)) {
+        setError("Only PDF, DOCX, XLSX, and PPTX files are allowed");
         return;
       }
     }
@@ -119,9 +130,13 @@ const SubmissionBox = ({ assignmentId, initialSubmission, onSubmitted }: Props) 
   const [isDragging, setIsDragging] = useState(false);
 
   const processFile = (selectedFile: File) => {
-    const extension = selectedFile.name.split(".").pop()?.toLowerCase();
-    if (!["pdf", "docx"].includes(extension || "")) {
-      setError("Only PDF and DOCX files are allowed");
+    const extension = selectedFile.name.split(".").pop()?.toLowerCase() || "";
+    if (blockedExtensions.includes(extension)) {
+      setError(`Security Alert: .${extension} files are strictly blocked.`);
+      return;
+    }
+    if (!allowedExtensions.includes(extension)) {
+      setError("Only PDF, DOCX, XLSX, and PPTX files are allowed");
       return;
     }
     if (selectedFile.size > 10 * 1024 * 1024) {
@@ -287,7 +302,7 @@ const SubmissionBox = ({ assignmentId, initialSubmission, onSubmitted }: Props) 
                   >
                     <input
                       type="file"
-                      accept=".pdf,.docx"
+                      accept=".pdf,.docx,.xlsx,.pptx"
                       onChange={handleFileChange}
                       disabled={loadingAction !== null}
                       className="hidden"
@@ -306,7 +321,7 @@ const SubmissionBox = ({ assignmentId, initialSubmission, onSubmitted }: Props) 
                           : "Click to browse or drag & drop file here"}
                       </p>
                       <p className="text-[11px] text-slate-500 mt-0.5">
-                        PDF or DOCX documents (Max 10MB)
+                        PDF, DOCX, XLSX, or PPTX documents (Max 10MB)
                       </p>
                     </div>
                   </label>

@@ -2,9 +2,19 @@ import { PutObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { s3Client } from "../config/aws";
 
-const getContentType = (fileType: "PDF" | "DOCX") => {
-  if (fileType === "PDF") return "application/pdf";
-  return "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+const getContentType = (fileType: "PDF" | "DOCX" | "XLSX" | "PPTX") => {
+  switch (fileType) {
+    case "PDF":
+      return "application/pdf";
+    case "DOCX":
+      return "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+    case "XLSX":
+      return "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+    case "PPTX":
+      return "application/vnd.openxmlformats-officedocument.presentationml.presentation";
+    default:
+      throw new Error("Unsupported file type. Only PDF, DOCX, XLSX, and PPTX are allowed.");
+  }
 };
 
 export const generateSubmissionUploadUrl = async ({
@@ -18,7 +28,7 @@ export const generateSubmissionUploadUrl = async ({
   assignmentId: string;
   studentId: string;
   originalFileName: string;
-  fileType: "PDF" | "DOCX";
+  fileType: "PDF" | "DOCX" | "XLSX" | "PPTX";
 }) => {
   const fileKey = `submissions/${classroomId}/${assignmentId}/${studentId}/${originalFileName}`;
 

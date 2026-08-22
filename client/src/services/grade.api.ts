@@ -1,7 +1,4 @@
-import axios from "axios";
-
-const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL;
+import { apiClient } from "./apiClient";
 
 /* =======================
    STUDENT TYPES & API
@@ -10,12 +7,9 @@ const API_BASE_URL =
 export interface StudentGrade {
   score: number;
   feedback?: string;
-
   submittedAt: string;
   gradedAt: string;
-
   submissionDownloadUrl?: string;
-
   assignment: {
     id: string;
     title: string;
@@ -28,14 +22,7 @@ export interface StudentGrade {
  * GET /api/grades/my
  */
 export const getMyGrades = async (): Promise<StudentGrade[]> => {
-  const token = localStorage.getItem("authToken");
-
-  const res = await axios.get(`${API_BASE_URL}/api/grades/my`, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  });
-
+  const res = await apiClient.get<StudentGrade[]>("/api/grades/my");
   return res.data;
 };
 
@@ -53,22 +40,12 @@ export const saveGrade = async (
   feedback?: string,
   publishImmediately?: boolean
 ): Promise<any> => {
-  const token = localStorage.getItem("authToken");
-
-  const res = await axios.post(
-    `${API_BASE_URL}/api/grades`,
-    {
-      submissionId,
-      score,
-      feedback,
-      publishImmediately,
-    },
-    {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    }
-  );
+  const res = await apiClient.post("/api/grades", {
+    submissionId,
+    score,
+    feedback,
+    publishImmediately,
+  });
   return res.data;
 };
 
@@ -77,17 +54,7 @@ export const saveGrade = async (
  * PATCH /api/grades/:id/publish
  */
 export const publishGrade = async (gradeId: string): Promise<void> => {
-  const token = localStorage.getItem("authToken");
-
-  await axios.patch(
-    `${API_BASE_URL}/api/grades/${gradeId}/publish`,
-    {},
-    {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    }
-  );
+  await apiClient.patch(`/api/grades/${gradeId}/publish`, {});
 };
 
 /* =======================
@@ -117,7 +84,11 @@ export interface StudentAnalyticsProfile {
   highestScore: number | null;
   lowestScore: number | null;
   letterGrade: string;
-  performanceTier: "High Achiever" | "Good Standing" | "Needs Support" | "Not Graded";
+  performanceTier:
+    | "High Achiever"
+    | "Good Standing"
+    | "Needs Support"
+    | "Not Graded";
   submissionRate: number;
   gradesHistory: StudentGradeHistoryItem[];
 }
@@ -157,14 +128,10 @@ export interface TeacherAnalyticsData {
  * Teacher: get global student performance analytics
  * GET /api/grades/teacher/analytics
  */
-export const getTeacherStudentsAnalytics = async (): Promise<TeacherAnalyticsData> => {
-  const token = localStorage.getItem("authToken");
-
-  const res = await axios.get(`${API_BASE_URL}/api/grades/teacher/analytics`, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  });
-
-  return res.data;
-};
+export const getTeacherStudentsAnalytics =
+  async (): Promise<TeacherAnalyticsData> => {
+    const res = await apiClient.get<TeacherAnalyticsData>(
+      "/api/grades/teacher/analytics"
+    );
+    return res.data;
+  };

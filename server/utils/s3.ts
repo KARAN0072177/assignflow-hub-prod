@@ -7,17 +7,21 @@ interface GenerateUploadUrlParams {
   classroomId: string;
   assignmentId: string;
   originalFileName: string;
-  fileType: "PDF" | "DOCX";
+  fileType: "PDF" | "DOCX" | "XLSX" | "PPTX";
 }
 
-const getContentType = (fileType: "PDF" | "DOCX") => {
+const getContentType = (fileType: "PDF" | "DOCX" | "XLSX" | "PPTX") => {
   switch (fileType) {
     case "PDF":
       return "application/pdf";
     case "DOCX":
       return "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+    case "XLSX":
+      return "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+    case "PPTX":
+      return "application/vnd.openxmlformats-officedocument.presentationml.presentation";
     default:
-      throw new Error("Unsupported file type");
+      throw new Error("Unsupported file type. Only PDF, DOCX, XLSX, and PPTX are allowed.");
   }
 };
 

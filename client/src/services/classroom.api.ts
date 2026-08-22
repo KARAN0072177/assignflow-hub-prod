@@ -1,10 +1,4 @@
-import axios from "axios";
-
-
-// Base URL for the API
-
-const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL;
+import { apiClient } from "./apiClient";
 
 export interface CreateClassroomPayload {
   name: string;
@@ -19,22 +13,10 @@ export interface CreateClassroomResponse {
 }
 
 // Create a new classroom by a teacher
-
 export const createClassroom = async (
   payload: CreateClassroomPayload
 ): Promise<CreateClassroomResponse> => {
-  const token = localStorage.getItem("authToken");
-
-  const response = await axios.post(
-    `${API_BASE_URL}/api/classrooms`,
-    payload,
-    {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    }
-  );
-
+  const response = await apiClient.post("/api/classrooms", payload);
   return response.data;
 };
 
@@ -49,28 +31,14 @@ export interface JoinClassroomResponse {
 }
 
 // Student joins a classroom using join code
-
 export const joinClassroom = async (
   code: string
 ): Promise<JoinClassroomResponse> => {
-  const token = localStorage.getItem("authToken");
-
-  const response = await axios.post(
-    `${API_BASE_URL}/api/classrooms/join`,
-    { code },
-    {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    }
-  );
-
+  const response = await apiClient.post("/api/classrooms/join", { code });
   return response.data;
 };
 
-
-// Get all classrooms a student has joined
-
+// Get all classrooms a student/teacher has
 export interface ClassroomListItem {
   id: string;
   name: string;
@@ -81,22 +49,11 @@ export interface ClassroomListItem {
 }
 
 export const getMyClassrooms = async (): Promise<ClassroomListItem[]> => {
-  const token = localStorage.getItem("authToken");
-
-  const response = await axios.get(
-    `${API_BASE_URL}/api/classrooms/my`,
-    {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    }
-  );
-
+  const response = await apiClient.get("/api/classrooms/my");
   return response.data;
 };
 
 // Get assignments for a specific classroom
-
 export interface AssignmentListItem {
   id: string;
   title: string;
@@ -109,17 +66,9 @@ export interface AssignmentListItem {
 export const getAssignmentsForClassroom = async (
   classroomId: string
 ): Promise<AssignmentListItem[]> => {
-  const token = localStorage.getItem("authToken");
-
-  const response = await axios.get(
-    `${API_BASE_URL}/api/classrooms/${classroomId}/assignments`,
-    {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    }
+  const response = await apiClient.get(
+    `/api/classrooms/${classroomId}/assignments`
   );
-
   return response.data;
 };
 
@@ -143,16 +92,6 @@ export interface TeacherClassroomWithStudents {
 export const getTeacherClassroomStudents = async (): Promise<
   TeacherClassroomWithStudents[]
 > => {
-  const token = localStorage.getItem("authToken");
-
-  const response = await axios.get(
-    `${API_BASE_URL}/api/classrooms/teacher/students`,
-    {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    }
-  );
-
+  const response = await apiClient.get("/api/classrooms/teacher/students");
   return response.data;
 };

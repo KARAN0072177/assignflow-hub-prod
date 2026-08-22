@@ -1,7 +1,4 @@
-import axios from "axios";
-
-const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL;
+import { apiClient } from "./apiClient";
 
 export interface AuditLog {
   actorId: any;
@@ -15,13 +12,6 @@ export interface AuditLog {
 }
 
 export const getAuditLogs = async (): Promise<AuditLog[]> => {
-  const token = localStorage.getItem("authToken");
-
-  const res = await axios.get(`${API_BASE_URL}/api/admin/audit-logs`, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  });
-
+  const res = await apiClient.get<AuditLog[]>("/api/admin/audit-logs");
   return res.data;
 };

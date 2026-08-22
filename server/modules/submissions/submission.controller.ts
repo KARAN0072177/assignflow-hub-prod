@@ -6,11 +6,50 @@ import { createOrUpdateSubmissionDraft } from "./submission.service";
 import { submitSubmission } from "./submission.service";
 import { getSubmissionsForAssignment } from "./submission.service";
 
+const allowedExtensions = [".pdf", ".docx", ".xlsx", ".pptx"];
+const blockedExtensions = [
+  ".zip",
+  ".dll",
+  ".bat",
+  ".exe",
+  ".sh",
+  ".cmd",
+  ".vbs",
+  ".js",
+  ".py",
+  ".html",
+  ".htm",
+  ".svg",
+  ".msi",
+  ".tar",
+  ".gz",
+  ".bin",
+];
+
 const draftSchema = z.object({
   assignmentId: z.string(),
-  originalFileName: z.string().min(1),
-  fileType: z.enum(["PDF", "DOCX"]),
-  fileSize: z.number().positive(),
+  originalFileName: z
+    .string()
+    .min(1)
+    .refine(
+      (name) => {
+        const lower = name.toLowerCase();
+        const ext = lower.slice(lower.lastIndexOf("."));
+        return (
+          allowedExtensions.includes(ext) &&
+          !blockedExtensions.some((b) => lower.endsWith(b))
+        );
+      },
+      {
+        message:
+          "Security violation: Only .pdf, .docx, .xlsx, and .pptx files are allowed.",
+      }
+    ),
+  fileType: z.enum(["PDF", "DOCX", "XLSX", "PPTX"]),
+  fileSize: z
+    .number()
+    .positive()
+    .max(10 * 1024 * 1024, "File size cannot exceed 10MB"),
 });
 
 

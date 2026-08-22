@@ -1,18 +1,11 @@
-import axios from "axios";
-
-const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
+import { apiClient } from "./apiClient";
 
 export const fetchPublishedBlogs = async () => {
-  const res = await axios.get(
-    `${API_BASE_URL}/api/blogs`
-  );
+  const res = await apiClient.get("/api/blogs");
   return res.data;
 };
 
 export const fetchBlogBySlug = async (slug: string) => {
-  const res = await axios.get(
-    `${API_BASE_URL}/api/blogs/${slug}`
-  );
+  const res = await apiClient.get(`/api/blogs/${slug}`);
   return res.data;
 };

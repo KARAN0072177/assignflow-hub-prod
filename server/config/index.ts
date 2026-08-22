@@ -36,6 +36,9 @@ export const config = {
   port: parsedEnv.data.PORT,
   mongoUri: parsedEnv.data.MONGO_URI,
   jwtSecret: parsedEnv.data.JWT_SECRET,
+  jwtRefreshSecret: process.env.JWT_REFRESH_SECRET || `${parsedEnv.data.JWT_SECRET}_refresh_secret`,
+  accessTokenExpiry: "15m",
+  refreshTokenExpiryDays: 7,
 
   bullmqAdminUser: process.env.BULLMQ_ADMIN_USER!,
   bullmqAdminPass: process.env.BULLMQ_ADMIN_PASS!,

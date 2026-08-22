@@ -62,6 +62,13 @@ const app = express();
  * Global middlewares
  */
 
+import { noSqlSanitizer, xssSanitizer } from "./middleware/security";
+import {
+  authLimiter,
+  publicFormsLimiter,
+  courseworkLimiter,
+} from "./middleware/rateLimiters";
+
 // CORS MUST BE FIRST
 const corsOptions: cors.CorsOptions = {
   origin: (origin, callback) => {
@@ -85,23 +92,58 @@ const corsOptions: cors.CorsOptions = {
   methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"],
 };
-// CORS MUST BE FIRST
+
 app.use(cors(corsOptions));
 
-// Handle preflight explicitly (IMPORTANT)
+// Handle preflight explicitly
 app.options("*", cors(corsOptions));
 
-app.use(helmet());
+// 🛡️ Enterprise Security Headers (CSP, COOP, CORP, HSTS, X-Frame-Options)
+app.use(
+  helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net"],
+        styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+        fontSrc: ["'self'", "https://fonts.gstatic.com", "data:"],
+        imgSrc: ["'self'", "data:", "https:", "blob:"],
+        connectSrc: [
+          "'self'",
+          "https://assignflowhub.karanart.com",
+          "https://*.onrender.com",
+          "https://*.amazonaws.com",
+          "wss://*.onrender.com",
+          "http://localhost:5173",
+          "http://localhost:4173",
+          "http://localhost:5000",
+          "ws://localhost:5000",
+        ],
+        frameAncestors: ["'none'"],
+        objectSrc: ["'none'"],
+        upgradeInsecureRequests: process.env.NODE_ENV === "production" ? [] : null,
+      },
+    },
+    crossOriginEmbedderPolicy: false,
+    crossOriginOpenerPolicy: { policy: "same-origin-allow-popups" },
+    crossOriginResourcePolicy: { policy: "cross-origin" },
+    referrerPolicy: { policy: "strict-origin-when-cross-origin" },
+    xContentTypeOptions: true,
+    xFrameOptions: { action: "deny" },
+  })
+);
 
-
-
-// Limit JSON body size (important for security)
+// Limit JSON body size
 app.use(express.json({ limit: "10mb" }));
+
+// 🛡️ NoSQL Injection & Stored XSS Sanitization Middlewares
+app.use(noSqlSanitizer);
+app.use(xssSanitizer);
 
 app.get("/", (_req, res) => {
   res.send(`
     <h2>🚀 AssignFlow Hub API is running!</h2>
-    <p>Status: Server working perfectly.</p>
+    <p>Status: Server working securely.</p>
     <p>Try <code>/health</code> for JSON health check.</p>
   `);
 });
@@ -119,43 +161,37 @@ app.get("/health", (_req, res) => {
 });
 
 /**
- * Mount modules (empty for now)
- * Example:
- * app.use("/api/auth", authRoutes);
+ * Mount modules with Granular Rate Limiters
  */
 
-// after middlewares
-app.use("/api/auth", authRoutes);          // login and register (auth management) routes
-app.use("/api/classrooms", classroomRoutes);    // classroom management routes
-app.use("/api/assignments", assignmentRoutes);  // assignment management routes
-app.use("/api/submissions", submissionRoutes);     // submission management routes
-app.use("/api/grades", gradeRoutes);             // grade management routes
+// 🔐 Authentication routes (protected by strict authLimiter)
+app.use("/api/auth", authLimiter, authRoutes);
+app.use("/api/auth", authLimiter, verifyRoutes);
 
+// 📁 Coursework & Classroom management (protected by courseworkLimiter)
+app.use("/api/classrooms", courseworkLimiter, classroomRoutes);
+app.use("/api/assignments", courseworkLimiter, assignmentRoutes);
+app.use("/api/submissions", courseworkLimiter, submissionRoutes);
 
-// Admin routes
+// 📊 Grade & Evaluation suite (never throttles heavy batch grading for teachers)
+app.use("/api/grades", gradeRoutes);
 
-app.use("/api/admin", adminRoutes);              // admin management routes 
-app.use("/api/admin", adminAnalyticsRoutes);     // admin analytics routes
-app.use("/api/admin", adminSystemRoutes);       // admin system metadata routes
+// 🛡️ Admin routes
+app.use("/api/admin", adminRoutes);
+app.use("/api/admin", adminAnalyticsRoutes);
+app.use("/api/admin", adminSystemRoutes);
 app.use("/api/admin", adminContactRoutes);
 app.use("/api/admin/newsletter", adminNewsletterRoutes);
 
+// 📨 Public communication forms (protected by publicFormsLimiter)
+app.use("/api/feedback", publicFormsLimiter, feedbackRoutes);
+app.use("/api/contact", publicFormsLimiter, contactRoutes);
+app.use("/api/newsletter", publicFormsLimiter, newsletterRoutes);
 
-
-app.use("/api/feedback", feedbackRoutes);
-app.use("/api/contact", contactRoutes);
-app.use("/api/newsletter", newsletterRoutes);
-
+// 📖 Blog & SEO routes
 app.use("/api/blogs", blogRoutes);
-
 app.use("/", sitemapRoutes);
-
 app.use("/", robotsRoutes);
-
-
-
-app.use("/api/auth", verifyRoutes);  // email verification routes
-
 
 app.get("/api/test-auth", requireAuth, (req, res) => {
   res.json({ message: "Authenticated access granted", user: req.user });

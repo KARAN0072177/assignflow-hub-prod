@@ -1,7 +1,5 @@
 import axios from "axios";
-
-const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL;
+import { apiClient } from "./apiClient";
 
 export interface DraftSubmissionResponse {
   submissionId: string;
@@ -9,31 +7,32 @@ export interface DraftSubmissionResponse {
   fileKey: string;
 }
 
+const getFileEnum = (fileName: string): "PDF" | "DOCX" | "XLSX" | "PPTX" => {
+  const lower = fileName.toLowerCase();
+  if (lower.endsWith(".docx")) return "DOCX";
+  if (lower.endsWith(".xlsx")) return "XLSX";
+  if (lower.endsWith(".pptx")) return "PPTX";
+  return "PDF";
+};
+
 export const createOrUpdateDraftSubmission = async (
   assignmentId: string,
   file: File
 ): Promise<DraftSubmissionResponse> => {
-  const token = localStorage.getItem("authToken");
-
-  const res = await axios.post(
-    `${API_BASE_URL}/api/submissions/draft`,
+  const res = await apiClient.post<DraftSubmissionResponse>(
+    "/api/submissions/draft",
     {
       assignmentId,
       originalFileName: file.name,
-      fileType: file.name.endsWith(".pdf") ? "PDF" : "DOCX",
+      fileType: getFileEnum(file.name),
       fileSize: file.size,
-    },
-    {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
     }
   );
 
-  // upload file to S3
+  // Upload file directly to S3 with presigned URL
   await axios.put(res.data.uploadUrl, file, {
     headers: {
-      "Content-Type": file.type,
+      "Content-Type": file.type || "application/octet-stream",
     },
   });
 
@@ -41,17 +40,7 @@ export const createOrUpdateDraftSubmission = async (
 };
 
 export const submitSubmission = async (submissionId: string) => {
-  const token = localStorage.getItem("authToken");
-
-  await axios.patch(
-    `${API_BASE_URL}/api/submissions/${submissionId}/submit`,
-    {},
-    {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    }
-  );
+  await apiClient.patch(`/api/submissions/${submissionId}/submit`, {});
 };
 
 export interface TeacherSubmission {
@@ -68,16 +57,8 @@ export interface TeacherSubmission {
 export const getSubmissionsForAssignment = async (
   assignmentId: string
 ): Promise<TeacherSubmission[]> => {
-  const token = localStorage.getItem("authToken");
-
-  const res = await axios.get(
-    `${API_BASE_URL}/api/submissions/assignment/${assignmentId}`,
-    {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    }
+  const res = await apiClient.get<TeacherSubmission[]>(
+    `/api/submissions/assignment/${assignmentId}`
   );
-
   return res.data;
 };

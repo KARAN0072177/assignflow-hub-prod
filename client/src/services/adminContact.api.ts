@@ -1,7 +1,4 @@
-import axios from "axios";
-
-const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL;
+import { apiClient } from "./apiClient";
 
 export interface AdminContactMessage {
   isRead: boolean;
@@ -18,17 +15,9 @@ export interface AdminContactMessage {
  * GET /api/admin/contacts
  */
 export const getAdminContacts = async (
-  token: string
+  _token?: string
 ): Promise<AdminContactMessage[]> => {
-  const res = await axios.get(
-    `${API_BASE_URL}/api/admin/contacts`,
-    {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    }
-  );
-
+  const res = await apiClient.get<AdminContactMessage[]>("/api/admin/contacts");
   return res.data;
 };
 
@@ -37,19 +26,13 @@ export const getAdminContacts = async (
  * PATCH /api/admin/contacts/:id/read
  */
 export const markMessageAsRead = async (
-  token: string,
+  _token: string,
   messageId: string
 ): Promise<AdminContactMessage> => {
-  const res = await axios.patch(
-    `${API_BASE_URL}/api/admin/contacts/${messageId}/read`,
-    {},
-    {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    }
+  const res = await apiClient.patch<AdminContactMessage>(
+    `/api/admin/contacts/${messageId}/read`,
+    {}
   );
-
   return res.data;
 };
 
@@ -58,18 +41,12 @@ export const markMessageAsRead = async (
  * POST /api/admin/contacts/bulk-read
  */
 export const markMessagesAsReadBulk = async (
-  token: string,
+  _token: string,
   messageIds: string[]
 ): Promise<{ success: boolean; count: number }> => {
-  const res = await axios.post(
-    `${API_BASE_URL}/api/admin/contacts/bulk-read`,
-    { messageIds },
-    {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    }
+  const res = await apiClient.post<{ success: boolean; count: number }>(
+    "/api/admin/contacts/bulk-read",
+    { messageIds }
   );
-
   return res.data;
 };

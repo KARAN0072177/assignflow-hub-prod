@@ -205,12 +205,67 @@ export const resendResetPasswordOtp = async (email: string) => {
   return { success: true };
 };
 
+import { v4 as uuidv4 } from "uuid";
+import { RefreshToken } from "../../models/refreshToken.model";
+import { Types } from "mongoose";
+
+const hashToken = (token: string): string => {
+  return crypto.createHash("sha256").update(token).digest("hex");
+};
+
+/**
+ * Generates an Access Token and a persistent rotating Refresh Token
+ */
+export const generateTokens = async (
+  userId: string | Types.ObjectId,
+  role: UserRole,
+  familyId?: string,
+  userAgent?: string,
+  ipAddress?: string
+) => {
+  const accessToken = jwt.sign(
+    {
+      userId: userId.toString(),
+      role,
+    },
+    config.jwtSecret,
+    { expiresIn: "15m" }
+  );
+
+  const activeFamilyId = familyId || uuidv4();
+  const rawRefreshToken = `${uuidv4()}.${uuidv4()}`;
+  const tokenHash = hashToken(rawRefreshToken);
+
+  const expiresAt = new Date();
+  expiresAt.setDate(expiresAt.getDate() + config.refreshTokenExpiryDays);
+
+  await RefreshToken.create({
+    userId,
+    tokenHash,
+    familyId: activeFamilyId,
+    expiresAt,
+    userAgent,
+    ipAddress,
+  });
+
+  return {
+    accessToken,
+    refreshToken: rawRefreshToken,
+    expiresIn: 15 * 60, // 15 mins in seconds
+  };
+};
+
 /**
  * ============================
  * LOGIN USER
  * ============================
  */
-export const loginUser = async (email: string, password: string) => {
+export const loginUser = async (
+  email: string,
+  password: string,
+  userAgent?: string,
+  ipAddress?: string
+) => {
   const user = await User.findOne({ email }).select("+password");
 
   if (!user) {
@@ -227,13 +282,12 @@ export const loginUser = async (email: string, password: string) => {
     throw new Error("Invalid credentials");
   }
 
-  const token = jwt.sign(
-    {
-      userId: user._id,
-      role: user.role,
-    },
-    config.jwtSecret,
-    { expiresIn: "1d" }
+  const tokenData = await generateTokens(
+    user._id,
+    user.role,
+    undefined,
+    userAgent,
+    ipAddress
   );
 
   await logAuditEvent({
@@ -244,15 +298,106 @@ export const loginUser = async (email: string, password: string) => {
     entityId: user._id,
     metadata: {
       email: user.email,
+      ipAddress,
+      userAgent,
     },
   });
 
   return {
-    token,
+    token: tokenData.accessToken,
+    refreshToken: tokenData.refreshToken,
+    expiresIn: tokenData.expiresIn,
     user: {
       id: user._id,
       email: user.email,
       role: user.role,
     },
   };
+};
+
+/**
+ * ============================
+ * ROTATE REFRESH TOKEN
+ * ============================
+ */
+export const rotateRefreshToken = async (
+  rawRefreshToken: string,
+  userAgent?: string,
+  ipAddress?: string
+) => {
+  if (!rawRefreshToken) {
+    throw new Error("Refresh token is required");
+  }
+
+  const tokenHash = hashToken(rawRefreshToken);
+  const existingTokenDoc = await RefreshToken.findOne({ tokenHash });
+
+  if (!existingTokenDoc) {
+    throw new Error("Invalid refresh token");
+  }
+
+  // 🚨 Reuse Detection: If an already revoked token is used, someone is attempting to hijack the session!
+  if (existingTokenDoc.isRevoked) {
+    // Revoke all tokens in this family immediately!
+    await RefreshToken.updateMany(
+      { familyId: existingTokenDoc.familyId },
+      { isRevoked: true }
+    );
+    throw new Error("Session hijacking detected. All sessions in this family have been terminated.");
+  }
+
+  // Check expiration (7 days)
+  if (new Date() > existingTokenDoc.expiresAt) {
+    existingTokenDoc.isRevoked = true;
+    await existingTokenDoc.save();
+    throw new Error("Session expired. Please log in again.");
+  }
+
+  // One-Time Use Rotation: Invalidate the current refresh token
+  existingTokenDoc.isRevoked = true;
+  await existingTokenDoc.save();
+
+  // Find user to ensure active account
+  const user = await User.findById(existingTokenDoc.userId);
+  if (!user) {
+    throw new Error("User no longer exists");
+  }
+
+  // Issue new token pair preserving the session familyId
+  const newTokens = await generateTokens(
+    user._id,
+    user.role,
+    existingTokenDoc.familyId,
+    userAgent,
+    ipAddress
+  );
+
+  return {
+    token: newTokens.accessToken,
+    refreshToken: newTokens.refreshToken,
+    expiresIn: newTokens.expiresIn,
+    user: {
+      id: user._id,
+      email: user.email,
+      role: user.role,
+    },
+  };
+};
+
+/**
+ * ============================
+ * LOGOUT USER
+ * ============================
+ */
+export const logoutUser = async (
+  rawRefreshToken?: string,
+  userId?: string
+) => {
+  if (rawRefreshToken) {
+    const tokenHash = hashToken(rawRefreshToken);
+    await RefreshToken.findOneAndUpdate({ tokenHash }, { isRevoked: true });
+  } else if (userId) {
+    await RefreshToken.updateMany({ userId }, { isRevoked: true });
+  }
+  return { success: true, message: "Logged out successfully" };
 };

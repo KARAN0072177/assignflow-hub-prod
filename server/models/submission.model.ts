@@ -21,7 +21,7 @@ export interface ISubmission extends Document {
   state: SubmissionState;
 
   fileKey: string; // S3 object key
-  fileType: "PDF" | "DOCX";
+  fileType: "PDF" | "DOCX" | "XLSX" | "PPTX";
   fileSize?: number; // in bytes
 
   createdAt: Date;
@@ -66,7 +66,7 @@ const SubmissionSchema: Schema<ISubmission> = new Schema(
 
     fileType: {
       type: String,
-      enum: ["PDF", "DOCX"],
+      enum: ["PDF", "DOCX", "XLSX", "PPTX"],
       required: true,
     },
     fileSize: {
