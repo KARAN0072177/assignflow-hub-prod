@@ -6,306 +6,139 @@ export const generateNewsletterCampaignTemplate = ({
   unsubscribeUrl,
 }: {
   title: string;
-  content: string;     // already sanitized text
+  content: string; // already sanitized text
   unsubscribeUrl: string;
 }) => {
+  const frontendUrl = process.env.FRONTEND_URL || "http://localhost:5173";
   const formattedContent = content.replace(/\n/g, "<br>");
 
   return `
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>${title}</title>
-
-<style>
-  /* Base styles with CSS variables for theme support */
-  :root {
-    --background: #ffffff;
-    --surface: #f8fafc;
-    --text-primary: #1f2937;
-    --text-secondary: #6b7280;
-    --text-muted: #9ca3af;
-    --border: #e5e7eb;
-    --primary: #2563eb;
-    --primary-hover: #1d4ed8;
-    --radius: 8px;
-    --spacing-xs: 4px;
-    --spacing-sm: 8px;
-    --spacing-md: 16px;
-    --spacing-lg: 24px;
-    --spacing-xl: 32px;
-    --spacing-2xl: 40px;
-    --font-size-sm: 14px;
-    --font-size-base: 16px;
-    --font-size-lg: 24px;
-    --font-size-xl: 28px;
-    --line-height: 1.7;
-    --font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
-  }
-
-  @media (prefers-color-scheme: dark) {
-    :root {
-      --background: #111827;
-      --surface: #1f2937;
-      --text-primary: #f9fafb;
-      --text-secondary: #d1d5db;
-      --text-muted: #9ca3af;
-      --border: #374151;
-      --primary: #3b82f6;
-      --primary-hover: #60a5fa;
-    }
-  }
-
-  /* Reset and base styles */
-  body {
-    margin: 0;
-    padding: var(--spacing-md);
-    font-family: var(--font-family);
-    background: var(--background);
-    color: var(--text-primary);
-    line-height: var(--line-height);
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-  }
-
-  /* Container with responsive max-width */
-  .container {
-    max-width: 600px;
-    width: 100%;
-    margin: 0 auto;
-    background: var(--surface);
-    border-radius: var(--radius);
-    padding: var(--spacing-xl);
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-    border: 1px solid var(--border);
-  }
-
-  /* Responsive padding adjustments */
-  @media (max-width: 640px) {
-    body {
-      padding: var(--spacing-sm);
-    }
-    
-    .container {
-      padding: var(--spacing-lg);
-      border-radius: var(--radius);
-    }
-  }
-
-  @media (max-width: 480px) {
-    .container {
-      padding: var(--spacing-md);
-      border-radius: calc(var(--radius) * 0.75);
-    }
-  }
-
-  /* Header with responsive typography */
-  .header {
-    text-align: center;
-    margin-bottom: var(--spacing-xl);
-    padding-bottom: var(--spacing-lg);
-    border-bottom: 2px solid var(--primary);
-  }
-
-  .header-icon {
-    font-size: var(--font-size-xl);
-    margin-bottom: var(--spacing-md);
-    display: block;
-  }
-
-  .header-title {
-    font-size: var(--font-size-lg);
-    font-weight: 700;
-    color: var(--text-primary);
-    margin: 0;
-    line-height: 1.4;
-  }
-
-  @media (max-width: 640px) {
-    .header {
-      margin-bottom: var(--spacing-lg);
-      padding-bottom: var(--spacing-md);
-    }
-    
-    .header-title {
-      font-size: var(--font-size-base);
-    }
-    
-    .header-icon {
-      font-size: var(--font-size-lg);
-    }
-  }
-
-  /* Content area */
-  .content {
-    font-size: var(--font-size-base);
-    color: var(--text-primary);
-    margin-bottom: var(--spacing-2xl);
-  }
-
-  .content p {
-    margin-bottom: var(--spacing-md);
-  }
-
-  .content p:last-child {
-    margin-bottom: 0;
-  }
-
-  /* Links styling */
-  a {
-    color: var(--primary);
-    text-decoration: none;
-    transition: color 0.2s ease;
-    position: relative;
-  }
-
-  a:hover {
-    color: var(--primary-hover);
-    text-decoration: underline;
-  }
-
-  a:focus {
-    outline: 2px solid var(--primary);
-    outline-offset: 2px;
-  }
-
-  /* Footer */
-  .footer {
-    margin-top: var(--spacing-2xl);
-    padding-top: var(--spacing-lg);
-    border-top: 1px solid var(--border);
-    text-align: center;
-    font-size: var(--font-size-sm);
-    color: var(--text-secondary);
-    line-height: 1.6;
-  }
-
-  .footer-text {
-    margin-bottom: var(--spacing-sm);
-    color: var(--text-muted);
-  }
-
-  .footer-links {
-    margin-top: var(--spacing-md);
-  }
-
-  .unsubscribe-link {
-    display: inline-block;
-    padding: var(--spacing-xs) var(--spacing-sm);
-    background: transparent;
-    border: 1px solid var(--border);
-    border-radius: calc(var(--radius) * 0.5);
-    color: var(--text-secondary);
-    font-size: var(--font-size-sm);
-    transition: all 0.2s ease;
-    text-decoration: none;
-  }
-
-  .unsubscribe-link:hover {
-    background: rgba(239, 68, 68, 0.1);
-    border-color: #ef4444;
-    color: #ef4444;
-    text-decoration: none;
-  }
-
-  /* Utility classes for spacing */
-  .my-2 {
-    margin-top: var(--spacing-sm);
-    margin-bottom: var(--spacing-sm);
-  }
-
-  .my-4 {
-    margin-top: var(--spacing-md);
-    margin-bottom: var(--spacing-md);
-  }
-
-  /* Print styles */
-  @media print {
-    body {
-      background: white !important;
-      color: black !important;
-      padding: 0 !important;
-    }
-    
-    .container {
-      box-shadow: none !important;
-      border: 1px solid #ddd !important;
-      max-width: 100% !important;
-      margin: 0 !important;
-    }
-    
-    a {
-      color: #0066cc !important;
-    }
-  }
-
-  /* High contrast mode support */
-  @media (prefers-contrast: high) {
-    :root {
-      --primary: #0044cc;
-      --text-primary: #000000;
-      --text-secondary: #333333;
-    }
-    
-    @media (prefers-color-scheme: dark) {
-      :root {
-        --text-primary: #ffffff;
-        --text-secondary: #cccccc;
-      }
-    }
-    
-    a {
-      text-decoration: underline;
-    }
-  }
-
-  /* Reduced motion */
-  @media (prefers-reduced-motion: reduce) {
-    a {
-      transition: none;
-    }
-  }
-</style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <title>${title}</title>
 </head>
+<body style="margin: 0; padding: 0; background-color: #f4f6f9; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale;">
+  
+  <!-- Outer Wrapper Table -->
+  <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color: #f4f6f9; padding: 40px 16px;">
+    <tr>
+      <td align="center">
+        
+        <!-- Main Card Container -->
+        <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="max-width: 580px; width: 100%; background-color: #ffffff; border-radius: 12px; overflow: hidden; border: 1px solid #e2e8f0; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);">
+          
+          <!-- Top Accent Bar -->
+          <tr>
+            <td height="4" style="background: #2563eb; background-image: linear-gradient(90deg, #2563eb 0%, #3b82f6 50%, #10b981 100%);"></td>
+          </tr>
 
-<body>
-  <div class="container">
-    <!-- Header Section -->
-    <div class="header">
-      <span class="header-icon" role="img" aria-label="Announcement">📢</span>
-      <h1 class="header-title">${title}</h1>
-    </div>
+          <!-- Header / Brand Section -->
+          <tr>
+            <td style="padding: 32px 36px 20px 36px;">
+              <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0">
+                <tr>
+                  <td>
+                    <table role="presentation" border="0" cellspacing="0" cellpadding="0">
+                      <tr>
+                        <td style="vertical-align: middle;">
+                          <div style="background-color: #2563eb; width: 36px; height: 36px; border-radius: 8px; text-align: center; line-height: 36px; font-weight: 700; color: #ffffff; font-size: 18px;">
+                            A
+                          </div>
+                        </td>
+                        <td style="vertical-align: middle; padding-left: 12px;">
+                          <span style="font-size: 18px; font-weight: 700; color: #0f172a; letter-spacing: -0.3px;">
+                            AssignFlow <span style="color: #2563eb;">Hub</span>
+                          </span>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
 
-    <!-- Content Section -->
-    <div class="content">
-      ${formattedContent}
-    </div>
+          <!-- Divider -->
+          <tr>
+            <td style="padding: 0 36px;">
+              <div style="height: 1px; background-color: #edf2f7; width: 100%;"></div>
+            </td>
+          </tr>
 
-    <!-- Footer Section -->
-    <div class="footer">
-      <div class="footer-text">
-        You are receiving this email because you subscribed to the AssignFlow Hub Newsletter.
-      </div>
-      <div class="my-2">
-        If you no longer wish to receive these emails, you can unsubscribe below.
-      </div>
-      <div class="footer-links">
-        <a href="${unsubscribeUrl}" 
-           class="unsubscribe-link"
-           title="Unsubscribe from AssignFlow Hub Newsletter">
-          Unsubscribe
-        </a>
-      </div>
-      <div class="my-4">
-        <small>
-          &copy; ${new Date().getFullYear()} AssignFlow Hub. All rights reserved.
-        </small>
-      </div>
-    </div>
-  </div>
+          <!-- Main Content Section -->
+          <tr>
+            <td style="padding: 32px 36px 28px 36px;">
+              
+              <!-- Badge -->
+              <table role="presentation" border="0" cellspacing="0" cellpadding="0" style="margin-bottom: 16px;">
+                <tr>
+                  <td style="background-color: #eff6ff; border: 1px solid #bfdbfe; border-radius: 20px; padding: 4px 14px;">
+                    <span style="color: #2563eb; font-size: 12px; font-weight: 600; letter-spacing: 0.3px; text-transform: uppercase;">
+                      Newsletter Update
+                    </span>
+                  </td>
+                </tr>
+              </table>
+
+              <!-- Heading -->
+              <h1 style="margin: 0 0 18px 0; font-size: 22px; font-weight: 700; color: #0f172a; line-height: 1.3;">
+                ${title}
+              </h1>
+
+              <!-- Broadcast Content -->
+              <div style="font-size: 15px; line-height: 1.7; color: #334155;">
+                ${formattedContent}
+              </div>
+
+              <!-- Action Link -->
+              <table role="presentation" border="0" cellspacing="0" cellpadding="0" style="margin-top: 32px;">
+                <tr>
+                  <td align="center" style="border-radius: 8px; background-color: #2563eb;">
+                    <a href="${frontendUrl}" target="_blank" style="display: inline-block; padding: 12px 28px; font-size: 14px; font-weight: 600; color: #ffffff; text-decoration: none; border-radius: 8px; border: 1px solid #2563eb;">
+                      Open AssignFlow Hub
+                    </a>
+                  </td>
+                </tr>
+              </table>
+
+            </td>
+          </tr>
+
+          <!-- Footer Section -->
+          <tr>
+            <td style="padding: 24px 36px 32px 36px; background-color: #f8fafc; border-top: 1px solid #e2e8f0;">
+              <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0">
+                <tr>
+                  <td style="font-size: 13px; line-height: 1.5; color: #64748b; text-align: center;">
+                    You received this broadcast email because you are subscribed to AssignFlow Hub updates.
+                    <br />
+                    No longer wish to receive these emails? 
+                    <a href="${unsubscribeUrl}" target="_blank" style="color: #2563eb; text-decoration: underline; font-weight: 500;">
+                      Unsubscribe here
+                    </a>.
+                  </td>
+                </tr>
+                <tr>
+                  <td style="font-size: 12px; color: #94a3b8; text-align: center; padding-top: 14px;">
+                    &copy; ${new Date().getFullYear()} AssignFlow Hub. All rights reserved.
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+        </table>
+        <!-- End Main Card -->
+
+      </td>
+    </tr>
+  </table>
+
 </body>
 </html>
-`;
+  `.trim();
 };

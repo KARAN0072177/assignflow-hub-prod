@@ -1,4 +1,5 @@
 // server/db.ts
+import "./config/dns";
 import mongoose from "mongoose";
 import { config } from "./config";
 

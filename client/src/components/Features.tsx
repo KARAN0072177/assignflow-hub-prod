@@ -235,7 +235,7 @@ const Features = () => {
                   <p className="text-sm text-slate-600 mb-6">
                     Select a feature to explore implementation details and production considerations.
                   </p>
-                  
+
                   <div className="space-y-2">
                     {features.map((feature, index) => (
                       <motion.button
@@ -243,11 +243,10 @@ const Features = () => {
                         whileHover={{ x: 4 }}
                         whileTap={{ scale: 0.98 }}
                         onClick={() => setActiveFeature(index)}
-                        className={`w-full text-left p-4 rounded-xl transition-all duration-300 ${
-                          activeFeature === index
-                            ? 'bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200'
-                            : 'hover:bg-slate-50/50 border-transparent'
-                        } border`}
+                        className={`w-full text-left p-4 rounded-xl transition-all duration-300 ${activeFeature === index
+                          ? 'bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200'
+                          : 'hover:bg-slate-50/50 border-transparent'
+                          } border`}
                       >
                         <div className="flex items-center gap-3">
                           <div className={`w-10 h-10 rounded-lg bg-gradient-to-br ${feature.gradient} flex items-center justify-center`}>
@@ -430,11 +429,10 @@ const Features = () => {
                     <button
                       key={index}
                       onClick={() => setActiveFeature(index)}
-                      className={`w-2 h-2 rounded-full transition-all ${
-                        activeFeature === index
-                          ? 'bg-gradient-to-r from-blue-600 to-indigo-600 w-6'
-                          : 'bg-slate-300 hover:bg-slate-400'
-                      }`}
+                      className={`w-2 h-2 rounded-full transition-all ${activeFeature === index
+                        ? 'bg-gradient-to-r from-blue-600 to-indigo-600 w-6'
+                        : 'bg-slate-300 hover:bg-slate-400'
+                        }`}
                     />
                   ))}
                 </div>

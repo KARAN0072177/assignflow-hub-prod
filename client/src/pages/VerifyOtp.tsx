@@ -77,48 +77,106 @@ const VerifyOtp = () => {
   }, [timer]);
 
   // =============================
+  // Handle OTP Paste
+  // =============================
+  const handlePaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
+    e.preventDefault();
+    const pastedData = e.clipboardData.getData("text/plain").trim();
+    const digitsOnly = pastedData.replace(/\D/g, "");
+
+    if (!digitsOnly) return;
+
+    const digits = digitsOnly.slice(0, 6).split("");
+    const newOtp = ["", "", "", "", "", ""];
+
+    digits.forEach((digit, i) => {
+      newOtp[i] = digit;
+    });
+
+    setOtp(newOtp);
+
+    // Focus on the next empty box or the last box
+    const focusIndex = Math.min(digits.length, 5);
+    const targetInput =
+      document.getElementById(`otp-${focusIndex}`) ||
+      document.getElementById("otp-5");
+    if (targetInput) {
+      (targetInput as HTMLInputElement).focus();
+    }
+  };
+
+  // =============================
   // Handle OTP Input Change
   // =============================
   const handleOtpChange = (index: number, value: string) => {
-    if (value.length > 1) {
-      // If pasting multiple digits
-      const pastedOtp = value.slice(0, 6).split("");
+    const digitsOnly = value.replace(/\D/g, "");
+
+    if (!digitsOnly) {
       const newOtp = [...otp];
-      pastedOtp.forEach((digit, i) => {
-        if (i < 6 && /^\d*$/.test(digit)) {
+      newOtp[index] = "";
+      setOtp(newOtp);
+      return;
+    }
+
+    if (digitsOnly.length > 1) {
+      // Pasted or autofilled multiple digits via onChange
+      const digits = digitsOnly.slice(0, 6).split("");
+      const newOtp = ["", "", "", "", "", ""];
+      digits.forEach((digit, i) => {
+        if (i < 6) {
           newOtp[i] = digit;
         }
       });
       setOtp(newOtp);
-      
-      // Focus last filled or next empty field
-      const lastFilledIndex = Math.min(pastedOtp.length - 1, 5);
-      const nextInput = document.getElementById(`otp-${lastFilledIndex + 1}`);
+
+      const focusIdx = Math.min(digits.length, 5);
+      const targetInput =
+        document.getElementById(`otp-${focusIdx}`) ||
+        document.getElementById("otp-5");
+      if (targetInput) {
+        (targetInput as HTMLInputElement).focus();
+      }
+      return;
+    }
+
+    // Single digit input
+    const newOtp = [...otp];
+    newOtp[index] = digitsOnly;
+    setOtp(newOtp);
+
+    // Auto-focus next input
+    if (index < 5) {
+      const nextInput = document.getElementById(`otp-${index + 1}`);
       if (nextInput) {
         (nextInput as HTMLInputElement).focus();
-      }
-    } else if (/^\d*$/.test(value)) {
-      // Single digit
-      const newOtp = [...otp];
-      newOtp[index] = value;
-      setOtp(newOtp);
-
-      // Auto-focus next input
-      if (value && index < 5) {
-        const nextInput = document.getElementById(`otp-${index + 1}`);
-        if (nextInput) {
-          (nextInput as HTMLInputElement).focus();
-        }
       }
     }
   };
 
-  const handleOtpKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Backspace" && !otp[index] && index > 0) {
-      // Focus previous input on backspace
+  const handleOtpKeyDown = (
+    index: number,
+    e: React.KeyboardEvent<HTMLInputElement>
+  ) => {
+    if (e.key === "Backspace") {
+      if (!otp[index] && index > 0) {
+        // Focus and clear previous input on backspace if current is empty
+        const prevInput = document.getElementById(`otp-${index - 1}`);
+        if (prevInput) {
+          (prevInput as HTMLInputElement).focus();
+          const newOtp = [...otp];
+          newOtp[index - 1] = "";
+          setOtp(newOtp);
+        }
+      }
+    } else if (e.key === "ArrowLeft" && index > 0) {
       const prevInput = document.getElementById(`otp-${index - 1}`);
       if (prevInput) {
         (prevInput as HTMLInputElement).focus();
+      }
+    } else if (e.key === "ArrowRight" && index < 5) {
+      const nextInput = document.getElementById(`otp-${index + 1}`);
+      if (nextInput) {
+        (nextInput as HTMLInputElement).focus();
       }
     }
   };
@@ -356,18 +414,29 @@ const VerifyOtp = () => {
                       <input
                         id={`otp-${index}`}
                         type="text"
-                        maxLength={1}
+                        inputMode="numeric"
+                        autoComplete={index === 0 ? "one-time-code" : "off"}
+                        pattern="[0-9]*"
+                        maxLength={6}
                         value={digit}
+                        onPaste={handlePaste}
                         onChange={(e) => handleOtpChange(index, e.target.value)}
                         onKeyDown={(e) => handleOtpKeyDown(index, e)}
-                        onFocus={() => setFocusedField(index)}
+                        onFocus={() => {
+                          setFocusedField(index);
+                          const el = document.getElementById(
+                            `otp-${index}`
+                          ) as HTMLInputElement;
+                          if (el) el.select();
+                        }}
                         onBlur={() => setFocusedField(null)}
                         className={`w-12 h-14 sm:w-14 sm:h-16 text-center text-xl sm:text-2xl font-bold bg-white/70 border-2 rounded-xl focus:ring-4 transition-all duration-300 text-slate-900
-                          ${focusedField === index 
-                            ? 'border-blue-500 ring-blue-500/20 bg-white' 
-                            : digit 
-                              ? 'border-emerald-500 bg-emerald-50/30' 
-                              : 'border-slate-200 hover:border-blue-300'
+                          ${
+                            focusedField === index
+                              ? "border-blue-500 ring-blue-500/20 bg-white"
+                              : digit
+                              ? "border-emerald-500 bg-emerald-50/30"
+                              : "border-slate-200 hover:border-blue-300"
                           }
                         `}
                         disabled={loading || resendLoading}

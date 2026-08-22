@@ -103,21 +103,45 @@ export const login = async (req: Request, res: Response) => {
 // ============================
 
 export const forgotPassword = async (req: Request, res: Response) => {
-  await requestPasswordReset(req.body.email);
-  res.json({ message: "OTP sent to email" });
+  try {
+    const { email } = req.body;
+    if (!email) {
+      return res.status(400).json({ message: "Email is required" });
+    }
+    await requestPasswordReset(email);
+    res.json({ message: "OTP sent to email" });
+  } catch (error: any) {
+    res.status(400).json({ message: error.message || "Failed to process forgot password request" });
+  }
 };
 
 export const verifyOtp = async (req: Request, res: Response) => {
-  await verifyResetOtp(req.body.email, req.body.otp);
-  res.json({ message: "OTP verified" });
+  try {
+    const { email, otp } = req.body;
+    if (!email || !otp) {
+      return res.status(400).json({ message: "Email and OTP are required" });
+    }
+    await verifyResetOtp(email, otp);
+    res.json({ message: "OTP verified" });
+  } catch (error: any) {
+    res.status(400).json({ message: error.message || "Invalid or expired OTP" });
+  }
 };
 
 export const resetPasswordController = async (
   req: Request,
   res: Response
 ) => {
-  await resetPassword(req.body.email, req.body.password);
-  res.json({ message: "Password reset successful" });
+  try {
+    const { email, password } = req.body;
+    if (!email || !password) {
+      return res.status(400).json({ message: "Email and password are required" });
+    }
+    await resetPassword(email, password);
+    res.json({ message: "Password reset successful" });
+  } catch (error: any) {
+    res.status(400).json({ message: error.message || "Failed to reset password" });
+  }
 };
 
 

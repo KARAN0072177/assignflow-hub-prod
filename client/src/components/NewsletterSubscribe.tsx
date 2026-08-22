@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { 
+import {
   Mail,
   Bell,
   Sparkles,
@@ -20,44 +20,47 @@ const NewsletterSubscribe = () => {
 
   const handleSubscribe = async (e?: FormEvent) => {
     if (e) {
-      e.preventDefault(); // Prevent form submission
+      e.preventDefault();
     }
-    
-    if (!email) return;
+
+    const trimmedEmail = email.trim();
+    if (!trimmedEmail) return;
 
     try {
       setLoading(true);
       setMessage(null);
 
       const res = await subscribeNewsletter({
-        email,
+        email: trimmedEmail,
         source: "website",
       });
 
       if (res.alreadySubscribed) {
-        const msg = "You're already subscribed.";
+        const msg = res.message || "You're already subscribed.";
         setMessage(msg);
         setPopupMessage(msg);
         setShowPopup(true);
       } else if (res.resubscribed) {
-        const msg = "Welcome back! You're subscribed again.";
+        const msg = res.message || "Welcome back! You're subscribed again.";
         setMessage(msg);
         setPopupMessage(msg);
         setShowPopup(true);
-      } else if (res.subscribed) {
-        const msg = "Subscription successful. Check your email!";
+      } else {
+        const msg = res.message || "Subscription successful. Check your email!";
         setMessage(msg);
         setPopupMessage(msg);
         setShowPopup(true);
       }
-    } catch (err) {
-      const msg = "Something went wrong. Try again.";
+      setEmail("");
+    } catch (err: any) {
+      const msg =
+        err?.response?.data?.message ||
+        "Something went wrong. Please try again.";
       setMessage(msg);
       setPopupMessage(msg);
       setShowPopup(true);
     } finally {
       setLoading(false);
-      setEmail("");
     }
   };
 
@@ -103,29 +106,35 @@ const NewsletterSubscribe = () => {
               {/* Popup Content */}
               <div className="p-6">
                 <div className="flex items-center justify-center w-16 h-16 mx-auto mb-4 rounded-full bg-gradient-to-r from-blue-500/10 to-emerald-500/10">
-                  {popupMessage.includes("already subscribed") ? (
+                  {popupMessage.toLowerCase().includes("already") ? (
                     <Bell className="w-8 h-8 text-blue-500" />
-                  ) : popupMessage.includes("Welcome back") || popupMessage.includes("successful") ? (
+                  ) : popupMessage.toLowerCase().includes("welcome") ||
+                    popupMessage.toLowerCase().includes("success") ||
+                    popupMessage.toLowerCase().includes("subscribed") ||
+                    popupMessage.toLowerCase().includes("reactivated") ? (
                     <CheckCircle className="w-8 h-8 text-emerald-500" />
                   ) : (
                     <AlertCircle className="w-8 h-8 text-rose-500" />
                   )}
                 </div>
-                
+
                 <h3 className="text-xl font-bold text-center text-slate-900 mb-2">
-                  {popupMessage.includes("already subscribed") 
-                    ? "Already Subscribed" 
-                    : popupMessage.includes("Welcome back") 
-                    ? "Welcome Back!" 
-                    : popupMessage.includes("successful") 
-                    ? "Success!" 
-                    : "Oops!"}
+                  {popupMessage.toLowerCase().includes("already")
+                    ? "Already Subscribed"
+                    : popupMessage.toLowerCase().includes("welcome")
+                      ? "Welcome Back!"
+                      : popupMessage.toLowerCase().includes("reactivated")
+                        ? "Subscription Reactivated!"
+                        : popupMessage.toLowerCase().includes("success") ||
+                          popupMessage.toLowerCase().includes("subscribed")
+                          ? "Subscribed Successfully!"
+                          : "Notice"}
                 </h3>
-                
+
                 <p className="text-sm text-center text-slate-600 mb-6">
                   {popupMessage}
                 </p>
-                
+
                 <button
                   onClick={closePopup}
                   className="w-full py-3 bg-gradient-to-r from-blue-600 to-emerald-500 text-white font-semibold rounded-xl hover:shadow-lg transition-all duration-300"
@@ -148,7 +157,7 @@ const NewsletterSubscribe = () => {
       >
         {/* Background Effects */}
         <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 to-emerald-500/10 rounded-2xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-        
+
         {/* Main Card */}
         <div className="mb-12 relative p-6 bg-white/90 backdrop-blur-sm border border-white/50 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300">
           {/* Header */}
@@ -203,7 +212,7 @@ const NewsletterSubscribe = () => {
               className="group relative w-full py-3 bg-gradient-to-r from-blue-600 to-emerald-500 text-white font-semibold rounded-xl shadow-lg shadow-blue-500/30 hover:shadow-blue-500/40 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 overflow-hidden text-sm"
             >
               <div className="absolute inset-0 bg-gradient-to-r from-blue-700 to-emerald-600 opacity-0 group-hover:opacity-100 group-disabled:opacity-0 transition-opacity duration-300" />
-              
+
               <div className="relative flex items-center justify-center gap-2">
                 {loading ? (
                   <>
@@ -229,20 +238,28 @@ const NewsletterSubscribe = () => {
                 exit={{ opacity: 0, y: -5, height: 0 }}
                 className="mt-4 overflow-hidden"
               >
-                <div className={`p-3 rounded-lg border text-sm ${
-                  message.includes("already subscribed") 
-                    ? "bg-gradient-to-r from-blue-500/10 to-blue-600/10 border-blue-200 text-blue-700"
-                    : message.includes("Welcome back") || message.includes("successful")
-                    ? "bg-gradient-to-r from-emerald-500/10 to-emerald-600/10 border-emerald-200 text-emerald-700"
-                    : "bg-gradient-to-r from-rose-500/10 to-rose-600/10 border-rose-200 text-rose-700"
-                }`}>
+                <div
+                  className={`p-3 rounded-lg border text-sm ${
+                    message.toLowerCase().includes("already")
+                      ? "bg-gradient-to-r from-blue-500/10 to-blue-600/10 border-blue-200 text-blue-700"
+                      : message.toLowerCase().includes("welcome") ||
+                        message.toLowerCase().includes("success") ||
+                        message.toLowerCase().includes("subscribed") ||
+                        message.toLowerCase().includes("reactivated")
+                        ? "bg-gradient-to-r from-emerald-500/10 to-emerald-600/10 border-emerald-200 text-emerald-700"
+                        : "bg-gradient-to-r from-rose-500/10 to-rose-600/10 border-rose-200 text-rose-700"
+                  }`}
+                >
                   <div className="flex items-center gap-2">
-                    {message.includes("already subscribed") ? (
-                      <Bell className="w-4 h-4" />
-                    ) : message.includes("Welcome back") || message.includes("successful") ? (
-                      <CheckCircle className="w-4 h-4" />
+                    {message.toLowerCase().includes("already") ? (
+                      <Bell className="w-4 h-4 shrink-0" />
+                    ) : message.toLowerCase().includes("welcome") ||
+                      message.toLowerCase().includes("success") ||
+                      message.toLowerCase().includes("subscribed") ||
+                      message.toLowerCase().includes("reactivated") ? (
+                      <CheckCircle className="w-4 h-4 shrink-0" />
                     ) : (
-                      <AlertCircle className="w-4 h-4" />
+                      <AlertCircle className="w-4 h-4 shrink-0" />
                     )}
                     <span className="font-medium">{message}</span>
                   </div>

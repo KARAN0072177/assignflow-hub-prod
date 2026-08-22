@@ -1,3 +1,4 @@
+import "../config/dns";
 import { Worker } from "bullmq";
 import { redisConnection } from "../config/redis";
 import { SYSTEM_QUEUE_NAME } from "../queues/system.queue";

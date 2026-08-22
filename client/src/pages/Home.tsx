@@ -74,7 +74,7 @@ const Home = () => {
   return (
 
     <>
-    
+
       <Helmet>
         <title>AssignFlow Hub | Smart Assignment & Classroom Management Platform</title>
         <meta

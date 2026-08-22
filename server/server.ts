@@ -1,4 +1,5 @@
 // server/server.ts
+import "./config/dns";
 import "./types/express";
 import express from "express";
 import cors from "cors";

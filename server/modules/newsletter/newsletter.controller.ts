@@ -30,14 +30,23 @@ export const subscribe = async (req: Request, res: Response) => {
     );
 
     if (result.alreadySubscribed) {
-      return res.status(200).json({ message: "Already subscribed" });
+      return res.status(200).json({
+        alreadySubscribed: true,
+        message: "Already subscribed",
+      });
     }
 
     if (result.resubscribed) {
-      return res.status(200).json({ message: "Subscription reactivated" });
+      return res.status(200).json({
+        resubscribed: true,
+        message: "Subscription reactivated",
+      });
     }
 
-    return res.status(201).json({ message: "Subscribed successfully" });
+    return res.status(201).json({
+      subscribed: true,
+      message: "Subscribed successfully",
+    });
   } catch (err) {
     console.error("❌ Newsletter subscribe failed:", err);
     return res.status(500).json({ message: "Internal server error" });
@@ -59,14 +68,14 @@ export const unsubscribe = async (req: Request, res: Response) => {
     );
 
     if (result.notFound) {
-      return res.status(404).json({ message: "Email not found" });
+      return res.status(404).json({ notFound: true, message: "Email not found" });
     }
 
     if (result.alreadyUnsubscribed) {
-      return res.status(200).json({ message: "Already unsubscribed" });
+      return res.status(200).json({ alreadyUnsubscribed: true, message: "Already unsubscribed" });
     }
 
-    return res.status(200).json({ message: "Unsubscribed successfully" });
+    return res.status(200).json({ unsubscribed: true, message: "Unsubscribed successfully" });
   } catch (err) {
     console.error("❌ Newsletter unsubscribe failed:", err);
     return res.status(500).json({ message: "Internal server error" });
