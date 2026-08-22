@@ -4,6 +4,7 @@ import axios from "axios";
 import CreateAssignmentForm from "../components/CreateAssignmentForm";
 import SubmissionBox from "../components/SubmissionBox";
 import TeacherSubmissions from "../components/TeacherSubmissions";
+import AssignmentComments from "../components/AssignmentComments";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   BookOpen,
@@ -21,7 +22,8 @@ import {
   Copy,
   Check,
   PlusCircle,
-  Hash
+  Hash,
+  MessageSquare
 } from "lucide-react";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
@@ -56,6 +58,14 @@ const ClassroomDetail = () => {
   const [error, setError] = useState<string | null>(null);
   const [copiedCode, setCopiedCode] = useState(false);
   const [showCreateForm, setShowCreateForm] = useState(false);
+  const [expandedComments, setExpandedComments] = useState<Record<string, boolean>>({});
+
+  const toggleComments = (assignmentId: string) => {
+    setExpandedComments((prev) => ({
+      ...prev,
+      [assignmentId]: !prev[assignmentId],
+    }));
+  };
 
   const role = localStorage.getItem("userRole");
   const isTeacher = role === "TEACHER";
@@ -496,34 +506,73 @@ const ClassroomDetail = () => {
                         )}
                       </div>
 
-                      {/* Student Action: Upload / Submit */}
-                      {!isTeacher &&
-                        assignment.type === "GRADED" &&
-                        assignment.state === "PUBLISHED" &&
-                        !duePassed && (
-                          <div className="flex items-center gap-2">
-                            {(!assignment.submission || assignment.submission.state === "DRAFT") && (
-                              <SubmissionBox
-                                assignmentId={assignment.id}
-                                initialSubmission={assignment.submission}
-                                onSubmitted={fetchData}
-                              />
-                            )}
-                            {assignment.submission?.state === "SUBMITTED" && (
-                              <div className="flex items-center gap-1.5 text-emerald-700 text-xs font-semibold bg-emerald-50 px-3 py-1.5 rounded-xl border border-emerald-200 shadow-2xs">
-                                <CheckCircle className="w-3.5 h-3.5 text-emerald-600" />
-                                <span>Submitted</span>
-                              </div>
-                            )}
-                            {assignment.submission?.state === "LOCKED" && (
-                              <div className="flex items-center gap-1.5 text-red-700 text-xs font-semibold bg-red-50 px-3 py-1.5 rounded-xl border border-red-200">
-                                <Lock className="w-3.5 h-3.5 text-red-600" />
-                                <span>Submission Locked</span>
-                              </div>
-                            )}
-                          </div>
-                        )}
+                      {/* Actions: Discussion toggle and Student Submission */}
+                      <div className="flex items-center gap-2 flex-wrap">
+                        {/* Discussion Toggle Button */}
+                        <button
+                          type="button"
+                          onClick={() => toggleComments(assignment.id)}
+                          className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all cursor-pointer ${
+                            expandedComments[assignment.id]
+                              ? "bg-blue-50 text-blue-700 border-blue-200 shadow-2xs"
+                              : "bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200"
+                          }`}
+                        >
+                          <MessageSquare className="w-3.5 h-3.5 text-blue-600" />
+                          <span>
+                            {expandedComments[assignment.id]
+                              ? "Hide Discussion"
+                              : "Discussion / Comments"}
+                          </span>
+                        </button>
+
+                        {/* Student Action: Upload / Submit */}
+                        {!isTeacher &&
+                          assignment.type === "GRADED" &&
+                          assignment.state === "PUBLISHED" &&
+                          !duePassed && (
+                            <div className="flex items-center gap-2">
+                              {(!assignment.submission || assignment.submission.state === "DRAFT") && (
+                                <SubmissionBox
+                                  assignmentId={assignment.id}
+                                  initialSubmission={assignment.submission}
+                                  onSubmitted={fetchData}
+                                />
+                              )}
+                              {assignment.submission?.state === "SUBMITTED" && (
+                                <div className="flex items-center gap-1.5 text-emerald-700 text-xs font-semibold bg-emerald-50 px-3 py-1.5 rounded-xl border border-emerald-200 shadow-2xs">
+                                  <CheckCircle className="w-3.5 h-3.5 text-emerald-600" />
+                                  <span>Submitted</span>
+                                </div>
+                              )}
+                              {assignment.submission?.state === "LOCKED" && (
+                                <div className="flex items-center gap-1.5 text-red-700 text-xs font-semibold bg-red-50 px-3 py-1.5 rounded-xl border border-red-200">
+                                  <Lock className="w-3.5 h-3.5 text-red-600" />
+                                  <span>Submission Locked</span>
+                                </div>
+                              )}
+                            </div>
+                          )}
+                      </div>
                     </div>
+
+                    {/* Interactive Assignment Discussion Drawer */}
+                    <AnimatePresence>
+                      {expandedComments[assignment.id] && (
+                        <motion.div
+                          initial={{ opacity: 0, height: 0 }}
+                          animate={{ opacity: 1, height: "auto" }}
+                          exit={{ opacity: 0, height: 0 }}
+                          transition={{ duration: 0.2 }}
+                          className="mt-5 pt-5 border-t border-slate-100 overflow-hidden"
+                        >
+                          <AssignmentComments
+                            assignmentId={assignment.id}
+                            assignmentTitle={assignment.title}
+                          />
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
 
                     {/* Teacher Submissions Section (Full Width Expansion) */}
                     {isTeacher && assignment.type === "GRADED" && (

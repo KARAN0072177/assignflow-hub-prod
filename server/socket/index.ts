@@ -8,7 +8,7 @@ let io: SocketIOServer;
 export const initSocket = (httpServer: HttpServer) => {
   io = new SocketIOServer(httpServer, {
     cors: {
-      origin: "*", // tighten later
+      origin: "*",
       methods: ["GET", "POST"],
     },
   });
@@ -22,11 +22,6 @@ export const initSocket = (httpServer: HttpServer) => {
 
     try {
       const payload = verify(token, config.jwtSecret) as any;
-
-      if (payload.role !== "ADMIN") {
-        return next(new Error("Admin access only"));
-      }
-
       socket.data.user = payload;
       next();
     } catch {
@@ -35,19 +30,39 @@ export const initSocket = (httpServer: HttpServer) => {
   });
 
   io.on("connection", (socket) => {
-    console.log("🟢 Admin connected via WebSocket");
+    const user = socket.data.user;
+
+    if (user?.userId) {
+      // Join user specific room
+      socket.join(`user:${user.userId}`);
+      socket.join(`role:${user.role}`);
+
+      if (user.role === "TEACHER") {
+        socket.join(`teacher:${user.userId}`);
+      }
+    }
+
+    // Join / leave assignment specific rooms
+    socket.on("join:assignment", (assignmentId: string) => {
+      if (assignmentId) {
+        socket.join(`assignment:${assignmentId}`);
+      }
+    });
+
+    socket.on("leave:assignment", (assignmentId: string) => {
+      if (assignmentId) {
+        socket.leave(`assignment:${assignmentId}`);
+      }
+    });
 
     socket.on("disconnect", () => {
-      console.log("🔴 Admin disconnected");
+      // Cleanup handled automatically by socket.io
     });
   });
 
   return io;
 };
 
-export const getIO = () => {
-  if (!io) {
-    throw new Error("Socket.io not initialized");
-  }
-  return io;
+export const getIO = (): SocketIOServer | null => {
+  return io || null;
 };

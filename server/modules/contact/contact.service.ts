@@ -30,10 +30,12 @@ export const handleContactSubmission = async ({
   // 2. Notify admins in real time via Socket.IO
   try {
     const io = getIO();
-    io.emit("contact:new", {
-      id: record._id,
-      createdAt: record.createdAt,
-    });
+    if (io) {
+      io.emit("contact:new", {
+        id: record._id,
+        createdAt: record.createdAt,
+      });
+    }
   } catch (err) {
     console.warn("Socket emit failed for contact submission:", err);
   }

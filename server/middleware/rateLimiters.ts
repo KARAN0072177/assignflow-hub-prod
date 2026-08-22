@@ -45,15 +45,16 @@ export const courseworkLimiter = rateLimit({
 });
 
 /**
- * General application rate limiter for general browsing & grading suite
- * 500 requests per 15 minutes (ensures teachers grading 100+ students are never blocked)
+ * Anti-Spam Rate Limiter for Assignment Comments
+ * 10 comments per 1 minute per IP/User
  */
-export const generalLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 500,
+export const commentLimiter = rateLimit({
+  windowMs: 1 * 60 * 1000, // 1 minute
+  max: 10, // max 10 comments per minute
   standardHeaders: true,
   legacyHeaders: false,
   message: {
-    message: "Too many requests from this IP. Please wait a few minutes.",
+    message: "Anti-spam rate limit exceeded: Maximum 10 comments per minute allowed. Please wait before posting again.",
   },
 });
+

@@ -52,24 +52,8 @@ const DashboardLayout = () => {
 
   return (
     <div className="flex min-h-screen bg-slate-100">
-      {/* Mobile Header Overlay */}
-      <AnimatePresence>
-        {sidebarOpen && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
-            className="fixed inset-0 bg-black/50 z-30 md:hidden"
-            onClick={() => setSidebarOpen(false)}
-          />
-        )}
-      </AnimatePresence>
-
-      {/* Sidebar */}
-      <div className="hidden md:block">
-        <Sidebar />
-      </div>
+      {/* Sidebar (handles both desktop sticky and mobile sliding drawer) */}
+      <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
       {/* Main Content Area */}
       <main className="flex-1 min-h-screen flex flex-col">

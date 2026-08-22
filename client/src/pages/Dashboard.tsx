@@ -11,12 +11,12 @@ import {
   TrendingUp,
   BarChart3,
   ChevronRight,
-  FileText,
   GraduationCap,
   FolderOpen,
   CheckCircle2,
   ArrowRight,
-  Loader2
+  Loader2,
+  MessageSquare
 } from "lucide-react";
 
 const Dashboard = () => {
@@ -76,12 +76,20 @@ const Dashboard = () => {
           hoverColor: "hover:bg-blue-100"
         },
         {
-          title: "View Assignments",
-          description: "Review student submissions",
-          icon: FileText,
-          path: "/dashboard/classrooms/my",
-          color: "bg-blue-50 text-blue-700",
-          hoverColor: "hover:bg-blue-100"
+          title: "Assignment Discussions",
+          description: "Answer student questions & doubts",
+          icon: MessageSquare,
+          path: "/dashboard/discussions",
+          color: "bg-purple-50 text-purple-700",
+          hoverColor: "hover:bg-purple-100"
+        },
+        {
+          title: "Students Analytics",
+          description: "Track progress and letter grades",
+          icon: Users,
+          path: "/dashboard/students",
+          color: "bg-emerald-50 text-emerald-700",
+          hoverColor: "hover:bg-emerald-100"
         }
       ]
     : [

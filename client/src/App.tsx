@@ -10,6 +10,7 @@ import MyClassrooms from "./pages/MyClassrooms";
 import ClassroomDetail from "./pages/ClassroomDetail";
 import MyGrades from "./pages/MyGrades";
 import TeacherStudents from "./pages/TeacherStudents";
+import TeacherCommentsHub from "./pages/TeacherCommentsHub";
 
 import Dashboard from "./pages/Dashboard";
 import DashboardLayout from "./layouts/DashboardLayout";
@@ -88,6 +89,7 @@ function AppRoutes() {
           <Route path="classrooms/join" element={<JoinClassroom />} />
           <Route path="grades" element={<MyGrades />} />
           <Route path="students" element={<TeacherStudents />} />
+          <Route path="discussions" element={<TeacherCommentsHub />} />
         </Route>
 
         {/* Admin routes */}
@@ -109,10 +111,14 @@ function AppRoutes() {
   );
 }
 
+import { SocketProvider } from "./context/SocketContext";
+
 export default function App() {
   return (
     <BrowserRouter>
-      <AppRoutes />
+      <SocketProvider>
+        <AppRoutes />
+      </SocketProvider>
     </BrowserRouter>
   );
 }

@@ -53,8 +53,7 @@ import verifyRoutes from "./modules/auth/auth.verify.routes"; // new import for 
 import http from "http";
 import { initSocket } from "./socket";
 import blogRoutes from "./modules/blog/blog.routes";
-
-
+import commentRoutes from "./modules/comments/comment.routes";
 
 const app = express();
 
@@ -172,6 +171,9 @@ app.use("/api/auth", authLimiter, verifyRoutes);
 app.use("/api/classrooms", courseworkLimiter, classroomRoutes);
 app.use("/api/assignments", courseworkLimiter, assignmentRoutes);
 app.use("/api/submissions", courseworkLimiter, submissionRoutes);
+
+// 💬 Assignment Discussions & Comments (protected by commentLimiter internally)
+app.use("/api/comments", commentRoutes);
 
 // 📊 Grade & Evaluation suite (never throttles heavy batch grading for teachers)
 app.use("/api/grades", gradeRoutes);
