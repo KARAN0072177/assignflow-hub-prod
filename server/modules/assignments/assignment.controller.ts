@@ -1,11 +1,15 @@
 import { Request, Response } from "express";
-import { file, z } from "zod";
-import { createAssignmentDraft } from "./assignment.service";
-import { AuthenticatedRequest } from "../../middleware/requireAuth";
+import { z } from "zod";
 import { Types } from "mongoose";
+import { AuthenticatedRequest } from "../../middleware/requireAuth";
 import { AssignmentType } from "../../models/assignment.model";
-import { publishAssignment } from "./assignment.service";
-import { getAssignmentsForClassroom } from "./assignment.service";
+import {
+  createAssignmentDraft,
+  publishAssignment,
+  getAssignmentsForClassroom,
+  markClassroomAssignmentsAsRead,
+  getStudentUnreadAssignments,
+} from "./assignment.service";
 
 const allowedExtensions = [".pdf", ".docx", ".xlsx", ".pptx"];
 const blockedExtensions = [
@@ -214,5 +218,59 @@ export const listAssignmentsForClassroomHandler = async (
     return res
       .status(500)
       .json({ message: "Failed to fetch assignments" });
+  }
+};
+
+/**
+ * Mark all assignments in a classroom as read for the student
+ */
+export const markClassroomReadHandler = async (
+  req: AuthenticatedRequest,
+  res: Response
+) => {
+  if (!req.user) {
+    return res.status(401).json({ message: "Authentication required" });
+  }
+
+  const { classroomId } = req.params;
+  if (!classroomId || !Types.ObjectId.isValid(classroomId)) {
+    return res.status(400).json({ message: "Valid classroom ID is required" });
+  }
+
+  try {
+    const result = await markClassroomAssignmentsAsRead(
+      new Types.ObjectId(classroomId),
+      new Types.ObjectId(req.user.userId)
+    );
+
+    return res.status(200).json(result);
+  } catch (error: any) {
+    return res
+      .status(500)
+      .json({ message: error.message || "Failed to mark assignments as read" });
+  }
+};
+
+/**
+ * Get student total unread assignments count & breakdown per classroom
+ */
+export const getStudentUnreadCountHandler = async (
+  req: AuthenticatedRequest,
+  res: Response
+) => {
+  if (!req.user) {
+    return res.status(401).json({ message: "Authentication required" });
+  }
+
+  try {
+    const data = await getStudentUnreadAssignments(
+      new Types.ObjectId(req.user.userId)
+    );
+
+    return res.status(200).json(data);
+  } catch (error: any) {
+    return res.status(500).json({
+      message: error.message || "Failed to fetch unread assignments count",
+    });
   }
 };

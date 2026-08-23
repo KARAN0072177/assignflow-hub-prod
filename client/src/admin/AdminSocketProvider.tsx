@@ -56,7 +56,10 @@ export const AdminSocketProvider = ({
       auth: {
         token,
       },
-      transports: ["websocket"],
+      transports: ["polling", "websocket"],
+      reconnection: true,
+      reconnectionAttempts: 10,
+      reconnectionDelay: 1000,
     });
 
     socketRef.current = socket;

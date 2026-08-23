@@ -12,8 +12,14 @@ import {
   PlusCircle,
   X,
   Info,
-  FileType
+  FileType,
+  Sparkles,
+  CheckCircle2,
+  Eye,
+  Edit3
 } from "lucide-react";
+import { enhanceDescriptionWithAi } from "../services/ai.api";
+import { MarkdownRenderer } from "./MarkdownRenderer";
 
 interface Props {
   classroomId: string;
@@ -40,6 +46,34 @@ const CreateAssignmentForm = ({ classroomId, onCreated }: Props) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [expanded, setExpanded] = useState(false);
+  const [isAiEnhancing, setIsAiEnhancing] = useState(false);
+  const [aiSuccessMsg, setAiSuccessMsg] = useState(false);
+  const [descTab, setDescTab] = useState<"write" | "preview">("write");
+
+  const handleAiEnhance = async () => {
+    try {
+      setIsAiEnhancing(true);
+      setError(null);
+      const res = await enhanceDescriptionWithAi({
+        title: title.trim(),
+        description: description.trim(),
+        type,
+      });
+
+      if (res?.enhancedDescription) {
+        setDescription(res.enhancedDescription);
+        setAiSuccessMsg(true);
+        setTimeout(() => setAiSuccessMsg(false), 3500);
+      }
+    } catch (err: any) {
+      setError(
+        err?.response?.data?.message ||
+          "Failed to enhance description with AI. Please check rate limits (max 5/min)."
+      );
+    } finally {
+      setIsAiEnhancing(false);
+    }
+  };
 
   const handleCreate = async () => {
     if (!title.trim()) {
@@ -287,21 +321,172 @@ const CreateAssignmentForm = ({ classroomId, onCreated }: Props) => {
               <div className="space-y-6">
                 {/* Description Field */}
                 <div className="space-y-2">
-                  <label className="block text-sm font-semibold text-slate-800">
-                    Description
-                    <span className="text-slate-600 font-normal ml-1">(optional)</span>
-                  </label>
-                  <textarea
-                    placeholder="Provide instructions, requirements, or additional context for this assignment..."
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                    disabled={loading}
-                    rows={5}
-                    className="w-full px-4 py-3 bg-white border border-slate-400 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-blue-600 transition-all duration-200 resize-none disabled:opacity-60 disabled:cursor-not-allowed text-slate-900 placeholder-slate-600 shadow-sm"
-                  />
-                  <p className="text-xs text-slate-600">
-                    Maximum 1000 characters. Markdown supported.
-                  </p>
+                  <div className="flex items-center justify-between flex-wrap gap-2">
+                    <div className="flex items-center gap-3">
+                      <label className="block text-sm font-semibold text-slate-800">
+                        Description
+                        <span className="text-slate-500 font-normal ml-1">(optional)</span>
+                      </label>
+
+                      {/* Write / Preview Tab Switcher */}
+                      <div className="flex items-center bg-slate-100 p-0.5 rounded-lg border border-slate-200 text-xs">
+                        <button
+                          type="button"
+                          onClick={() => setDescTab("write")}
+                          className={`flex items-center gap-1 px-2.5 py-1 rounded-md font-medium transition-all cursor-pointer ${
+                            descTab === "write"
+                              ? "bg-white text-slate-900 shadow-2xs font-semibold"
+                              : "text-slate-600 hover:text-slate-900"
+                          }`}
+                        >
+                          <Edit3 className="w-3 h-3" />
+                          <span>Write</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setDescTab("preview")}
+                          className={`flex items-center gap-1 px-2.5 py-1 rounded-md font-medium transition-all cursor-pointer ${
+                            descTab === "preview"
+                              ? "bg-white text-blue-600 shadow-2xs font-semibold"
+                              : "text-slate-600 hover:text-slate-900"
+                          }`}
+                        >
+                          <Eye className="w-3 h-3" />
+                          <span>Preview</span>
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* ✨ Enhance with AI Button */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setDescTab("write");
+                        handleAiEnhance();
+                      }}
+                      disabled={loading || isAiEnhancing}
+                      className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-xl transition-all shadow-xs cursor-pointer ${
+                        isAiEnhancing
+                          ? "bg-purple-100 text-purple-700 cursor-not-allowed opacity-80"
+                          : "bg-gradient-to-r from-purple-600 via-indigo-600 to-blue-600 hover:from-purple-700 hover:to-indigo-700 text-white shadow-purple-500/20 active:scale-95"
+                      }`}
+                      title="Enhance or auto-generate structured description using AI"
+                    >
+                      {isAiEnhancing ? (
+                        <>
+                          <Loader2 className="w-3.5 h-3.5 animate-spin text-purple-600" />
+                          <span>Enhancing with AI...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Sparkles className="w-3.5 h-3.5 text-amber-300 animate-pulse" />
+                          <span>Enhance with AI</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+
+                  {/* AI Success Toast Indicator */}
+                  <AnimatePresence>
+                    {aiSuccessMsg && (
+                      <motion.div
+                        initial={{ opacity: 0, y: -4 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -4 }}
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-50 text-emerald-800 text-xs font-semibold border border-emerald-200"
+                      >
+                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                        <span>Description formatted and enhanced with AI!</span>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+
+                  {descTab === "preview" ? (
+                    <div className="w-full min-h-[145px] max-h-[220px] overflow-y-auto px-4 py-3 bg-slate-50/90 border border-slate-300 rounded-xl shadow-inner">
+                      {description.trim() ? (
+                        <MarkdownRenderer content={description} />
+                      ) : (
+                        <p className="text-slate-400 text-xs italic py-8 text-center">
+                          No description content yet. Switch to "Write" or click "Enhance with AI" to generate rich Markdown instructions.
+                        </p>
+                      )}
+                    </div>
+                  ) : (
+                    /* Textarea with Modern AI Processing Animation */
+                    <div className="relative">
+                      {/* Animated glowing border during AI enhancement */}
+                      <div
+                        className={`relative rounded-xl p-[2px] transition-all duration-300 ${
+                          isAiEnhancing
+                            ? "bg-gradient-to-r from-purple-500 via-indigo-500 to-pink-500 shadow-lg shadow-purple-500/20"
+                            : aiSuccessMsg
+                            ? "bg-gradient-to-r from-emerald-400 to-teal-400 shadow-md shadow-emerald-500/20"
+                            : "bg-transparent"
+                        }`}
+                      >
+                        <textarea
+                          placeholder="Provide instructions, requirements, or additional context for this assignment (Markdown supported)..."
+                          value={description}
+                          onChange={(e) => setDescription(e.target.value)}
+                          disabled={loading || isAiEnhancing}
+                          maxLength={1000}
+                          rows={5}
+                          className={`w-full px-4 py-3 bg-white border rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-blue-600 transition-all duration-300 resize-none disabled:opacity-80 disabled:cursor-not-allowed text-slate-900 placeholder-slate-400 shadow-sm leading-relaxed text-sm font-normal ${
+                            isAiEnhancing
+                              ? "border-transparent bg-purple-50/20"
+                              : aiSuccessMsg
+                              ? "border-emerald-300 bg-emerald-50/20 ring-2 ring-emerald-300"
+                              : "border-slate-400"
+                          }`}
+                        />
+
+                        {/* 🔮 Modern AI Processing Overlay & Scanning Wave */}
+                        <AnimatePresence>
+                          {isAiEnhancing && (
+                            <motion.div
+                              initial={{ opacity: 0 }}
+                              animate={{ opacity: 1 }}
+                              exit={{ opacity: 0 }}
+                              transition={{ duration: 0.2 }}
+                              className="absolute inset-0 z-10 bg-white/85 backdrop-blur-[2px] rounded-lg flex flex-col items-center justify-center p-4 overflow-hidden"
+                            >
+                              {/* Scanning Light Beam */}
+                              <motion.div
+                                initial={{ x: "-100%" }}
+                                animate={{ x: "100%" }}
+                                transition={{
+                                  repeat: Infinity,
+                                  duration: 1.4,
+                                  ease: "easeInOut",
+                                }}
+                                className="absolute inset-y-0 w-32 bg-gradient-to-r from-transparent via-purple-400/25 to-transparent pointer-events-none"
+                              />
+
+                              {/* Floating AI Badge */}
+                              <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-gradient-to-r from-purple-600 to-indigo-600 text-white text-xs font-bold shadow-md shadow-purple-500/30 mb-3 animate-bounce">
+                                <Sparkles className="w-3.5 h-3.5 text-amber-300 animate-spin" />
+                                <span>AI is structuring coursework...</span>
+                              </div>
+
+                              {/* Shimmering Skeleton Lines */}
+                              <div className="w-full max-w-xs space-y-2">
+                                <div className="h-2.5 bg-gradient-to-r from-purple-200 via-indigo-200 to-purple-200 rounded-full animate-pulse w-full" />
+                                <div className="h-2.5 bg-gradient-to-r from-purple-200 via-indigo-200 to-purple-200 rounded-full animate-pulse w-4/5" />
+                                <div className="h-2.5 bg-gradient-to-r from-purple-200 via-indigo-200 to-purple-200 rounded-full animate-pulse w-3/5" />
+                              </div>
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="flex items-center justify-between text-xs text-slate-600">
+                    <span>Markdown supported (headings, bold, lists).</span>
+                    <span className={description.length > 950 ? "text-amber-600 font-semibold" : ""}>
+                      {description.length} / 1000
+                    </span>
+                  </div>
                 </div>
 
                 {/* File Upload with Drag and Drop */}

@@ -36,6 +36,8 @@ export interface IAssignment extends Document {
   fileType: "PDF" | "DOCX" | "XLSX" | "PPTX";
   fileSize?: number; // in bytes
 
+  readBy: Types.ObjectId[];
+
   createdAt: Date;
   updatedAt: Date;
 }
@@ -99,6 +101,13 @@ const AssignmentSchema: Schema<IAssignment> = new Schema(
       type: Number,
       required: false,
     },
+    readBy: [
+      {
+        type: Schema.Types.ObjectId,
+        ref: "User",
+        index: true,
+      },
+    ],
   },
   {
     timestamps: true,

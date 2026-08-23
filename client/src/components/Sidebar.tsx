@@ -27,7 +27,7 @@ const Sidebar = ({ isOpen = false, onClose }: SidebarProps) => {
   const role = localStorage.getItem("userRole");
   const location = useLocation();
   const [collapsed, setCollapsed] = useState(false);
-  const { unreadDiscussionsCount } = useAppSocket();
+  const { unreadDiscussionsCount, unreadAssignmentsCount } = useAppSocket();
 
   const homeItem = {
     path: "/home",
@@ -204,7 +204,7 @@ const Sidebar = ({ isOpen = false, onClose }: SidebarProps) => {
                     </div>
                     <span className="font-medium flex-1">{item.label}</span>
 
-                    {/* Discussions Unread Badge */}
+                    {/* Discussions Unread Badge (Teachers) */}
                     {item.path === "/dashboard/discussions" &&
                       unreadDiscussionsCount > 0 && (
                         <span
@@ -215,6 +215,21 @@ const Sidebar = ({ isOpen = false, onClose }: SidebarProps) => {
                           }`}
                         >
                           {unreadDiscussionsCount}
+                        </span>
+                      )}
+
+                    {/* New Assignments Badge (Students) */}
+                    {item.path === "/dashboard/classrooms/my" &&
+                      role === "STUDENT" &&
+                      unreadAssignmentsCount > 0 && (
+                        <span
+                          className={`ml-auto px-2 py-0.5 text-[11px] font-extrabold rounded-full shadow-xs ${
+                            location.pathname === item.path
+                              ? "bg-white text-emerald-800"
+                              : "bg-emerald-600 text-white animate-pulse"
+                          }`}
+                        >
+                          {unreadAssignmentsCount}
                         </span>
                       )}
                   </NavLink>
@@ -346,6 +361,12 @@ const Sidebar = ({ isOpen = false, onClose }: SidebarProps) => {
                   unreadDiscussionsCount > 0 && (
                     <span className="absolute -top-1 -right-1 w-3 h-3 bg-blue-600 rounded-full border-2 border-white animate-pulse" />
                   )}
+                {collapsed &&
+                  item.path === "/dashboard/classrooms/my" &&
+                  role === "STUDENT" &&
+                  unreadAssignmentsCount > 0 && (
+                    <span className="absolute -top-1 -right-1 w-3 h-3 bg-emerald-600 rounded-full border-2 border-white animate-pulse" />
+                  )}
               </div>
 
               {!collapsed && (
@@ -358,6 +379,7 @@ const Sidebar = ({ isOpen = false, onClose }: SidebarProps) => {
                 </motion.span>
               )}
 
+              {/* Discussions Unread Badge (Teachers) */}
               {!collapsed &&
                 item.path === "/dashboard/discussions" &&
                 unreadDiscussionsCount > 0 && (
@@ -369,6 +391,22 @@ const Sidebar = ({ isOpen = false, onClose }: SidebarProps) => {
                     }`}
                   >
                     {unreadDiscussionsCount}
+                  </span>
+                )}
+
+              {/* New Assignments Badge (Students) */}
+              {!collapsed &&
+                item.path === "/dashboard/classrooms/my" &&
+                role === "STUDENT" &&
+                unreadAssignmentsCount > 0 && (
+                  <span
+                    className={`ml-auto px-2 py-0.5 text-[11px] font-extrabold rounded-full shadow-xs ${
+                      location.pathname === item.path
+                        ? "bg-white text-emerald-800"
+                        : "bg-emerald-600 text-white animate-pulse"
+                    }`}
+                  >
+                    {unreadAssignmentsCount}
                   </span>
                 )}
             </NavLink>

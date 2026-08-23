@@ -136,3 +136,33 @@ export const getTeacherStudentsAnalyticsHandler = async (
       .json({ message: error?.message || "Failed to load student analytics" });
   }
 };
+
+/**
+ * Handler for students to get their server-evaluated AI performance insight
+ */
+export const getStudentAiInsightHandler = async (
+  req: AuthenticatedRequest,
+  res: Response
+) => {
+  if (req.user?.role !== "STUDENT") {
+    return res
+      .status(403)
+      .json({ message: "Only students can view AI performance insights" });
+  }
+
+  try {
+    const { getOrGenerateStudentPerformanceInsight } = await import(
+      "../ai/studentInsight.service"
+    );
+    const insight = await getOrGenerateStudentPerformanceInsight(
+      new Types.ObjectId(req.user.userId)
+    );
+
+    return res.status(200).json(insight);
+  } catch (error: any) {
+    console.error("Failed to generate student AI insight:", error);
+    return res.status(500).json({
+      message: error?.message || "Failed to generate student performance insight",
+    });
+  }
+};

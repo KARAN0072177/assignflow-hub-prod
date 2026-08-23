@@ -1,5 +1,10 @@
 import { useEffect, useState } from "react";
-import { getMyGrades, type StudentGrade } from "../services/grade.api";
+import {
+  getMyGrades,
+  getStudentAiInsight,
+  type StudentGrade,
+  type StudentAiInsight,
+} from "../services/grade.api";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Award,
@@ -13,27 +18,39 @@ import {
   CheckCircle2,
   Clock,
   Download,
-  FileText
+  FileText,
+  Sparkles,
+  Target,
 } from "lucide-react";
+import MarkdownRenderer from "../components/MarkdownRenderer";
 
 const MyGrades = () => {
   const [grades, setGrades] = useState<StudentGrade[]>([]);
+  const [aiInsight, setAiInsight] = useState<StudentAiInsight | null>(null);
   const [loading, setLoading] = useState(true);
+  const [insightLoading, setInsightLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchGrades = async () => {
+    const fetchGradesAndInsight = async () => {
       try {
-        const data = await getMyGrades();
-        setGrades(data);
+        const [gradesData, insightData] = await Promise.all([
+          getMyGrades(),
+          getStudentAiInsight().catch(() => null),
+        ]);
+        setGrades(gradesData);
+        if (insightData) {
+          setAiInsight(insightData);
+        }
       } catch (err: any) {
         setError("Failed to load grades");
       } finally {
         setLoading(false);
+        setInsightLoading(false);
       }
     };
 
-    fetchGrades();
+    fetchGradesAndInsight();
   }, []);
 
   const formatDate = (dateString?: string) => {
@@ -75,7 +92,7 @@ const MyGrades = () => {
 
   const calculateAverage = () => {
     if (grades.length === 0) return 0;
-    const total = grades.reduce((sum, grade) => sum + grade.score, 0);
+    const total = grades.reduce((sum: number, grade: StudentGrade) => sum + grade.score, 0);
     return Math.round((total / grades.length) * 10) / 10;
   };
 
@@ -169,6 +186,97 @@ const MyGrades = () => {
               </div>
             </div>
           </div>
+
+          {/* 🌟 AI Performance Advisor Card */}
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.35, delay: 0.05 }}
+            className="relative overflow-hidden rounded-2xl p-[1.5px] bg-gradient-to-r from-emerald-500 via-teal-500 to-indigo-500 shadow-md shadow-emerald-500/10 mb-8"
+          >
+            <div className="relative rounded-[14.5px] bg-gradient-to-br from-white via-emerald-50/35 to-teal-50/25 p-5 sm:p-6 backdrop-blur-sm">
+              {/* Subtle decorative aurora glow */}
+              <div className="absolute -top-12 -right-12 w-32 h-32 bg-gradient-to-br from-emerald-400/20 to-indigo-400/20 rounded-full blur-2xl pointer-events-none" />
+
+              {insightLoading ? (
+                <div className="flex items-center gap-3 py-2">
+                  <Loader2 className="w-5 h-5 text-emerald-600 animate-spin flex-shrink-0" />
+                  <div className="space-y-1.5 flex-1">
+                    <div className="h-3.5 bg-emerald-100 rounded-full w-1/3 animate-pulse" />
+                    <div className="h-3 bg-emerald-50 rounded-full w-3/4 animate-pulse" />
+                  </div>
+                </div>
+              ) : aiInsight ? (
+                <div className="space-y-3">
+                  {/* Card Header Row */}
+                  <div className="flex flex-wrap items-center justify-between gap-2.5">
+                    <div className="flex items-center gap-2.5">
+                      <div className="p-2 bg-gradient-to-br from-emerald-600 to-teal-600 text-white rounded-xl shadow-xs">
+                        <Sparkles className="w-4 h-4 text-amber-300 animate-pulse" />
+                      </div>
+                      <div>
+                        <h2 className="text-sm sm:text-base font-bold text-slate-900 tracking-tight flex items-center gap-1.5">
+                          AI Academic Advisor
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 uppercase tracking-wider">
+                            Live Guidance
+                          </span>
+                        </h2>
+                      </div>
+                    </div>
+
+                    {/* Badges: Sentiment & Focus Area */}
+                    <div className="flex items-center flex-wrap gap-2 text-xs">
+                      {aiInsight.focusArea && (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full font-semibold bg-white border border-slate-200 text-slate-700 shadow-2xs">
+                          <Target className="w-3.5 h-3.5 text-indigo-600" />
+                          <span>Focus: <strong className="text-indigo-700">{aiInsight.focusArea}</strong></span>
+                        </span>
+                      )}
+
+                      <span
+                        className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full font-bold shadow-2xs ${
+                          aiInsight.sentiment === "EXCELLING"
+                            ? "bg-emerald-100 text-emerald-800 border border-emerald-200"
+                            : aiInsight.sentiment === "GOOD"
+                            ? "bg-teal-100 text-teal-800 border border-teal-200"
+                            : aiInsight.sentiment === "NEEDS_IMPROVEMENT"
+                            ? "bg-amber-100 text-amber-800 border border-amber-200"
+                            : "bg-rose-100 text-rose-800 border border-rose-200"
+                        }`}
+                      >
+                        {aiInsight.sentiment === "EXCELLING" && "🌟 Outstanding Mastery"}
+                        {aiInsight.sentiment === "GOOD" && "⚡ Steady Progress"}
+                        {aiInsight.sentiment === "NEEDS_IMPROVEMENT" && "💡 Growth Opportunity"}
+                        {aiInsight.sentiment === "NEEDS_ATTENTION" && "📌 Focus Needed"}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Advice Content (Concise ~2 lines) */}
+                  <p className="text-slate-800 text-sm sm:text-[14.5px] font-medium leading-relaxed pt-1">
+                    {aiInsight.advice}
+                  </p>
+
+                  {/* Footer Subtext */}
+                  <div className="flex items-center justify-between text-[11px] text-slate-500 pt-1 border-t border-slate-200/60">
+                    <div className="flex items-center gap-1.5">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                      <span>
+                        {aiInsight.hasData
+                          ? `Evaluated across ${aiInsight.gradesCount} assignment${aiInsight.gradesCount !== 1 ? "s" : ""}`
+                          : "Submit assignments to unlock automated performance insights"}
+                      </span>
+                    </div>
+                    {aiInsight.isCached && (
+                      <span className="text-[10px] text-slate-800 font-mono">
+                        ⚡ Instant Cached
+                      </span>
+                    )}
+                  </div>
+                </div>
+              ) : null}
+            </div>
+          </motion.div>
         </motion.div>
 
         {/* Grades List */}
@@ -212,7 +320,7 @@ const MyGrades = () => {
               </motion.div>
             ) : (
               <div className="space-y-4">
-                {grades.map((grade, index) => (
+                {grades.map((grade: StudentGrade, index: number) => (
                   <motion.div
                     key={grade.assignment.id}
                     initial={{ opacity: 0, y: 20 }}
@@ -253,18 +361,20 @@ const MyGrades = () => {
 
                     {/* Assignment Info */}
                     {grade.assignment.description && (
-                      <p className="text-slate-600 mb-4">{grade.assignment.description}</p>
+                      <div className="mb-4 p-3.5 bg-slate-50/80 rounded-xl border border-slate-200/80 shadow-2xs">
+                        <MarkdownRenderer content={grade.assignment.description} />
+                      </div>
                     )}
 
                     {/* Feedback Section */}
                     {grade.feedback && (
                       <div className="mb-4">
-                        <div className="flex items-center gap-2 text-sm font-medium text-slate-700 mb-2">
-                          <MessageSquare className="w-4 h-4" />
+                        <div className="flex items-center gap-2 text-sm font-semibold text-slate-800 mb-2">
+                          <MessageSquare className="w-4 h-4 text-slate-600" />
                           Teacher Feedback
                         </div>
                         <div className="bg-slate-50 border border-slate-200 rounded-lg p-3">
-                          <p className="text-sm text-slate-700">{grade.feedback}</p>
+                          <MarkdownRenderer content={grade.feedback} />
                         </div>
                       </div>
                     )}

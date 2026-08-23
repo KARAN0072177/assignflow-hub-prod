@@ -205,7 +205,6 @@ export const resendResetPasswordOtp = async (email: string) => {
   return { success: true };
 };
 
-import { v4 as uuidv4 } from "uuid";
 import { RefreshToken } from "../../models/refreshToken.model";
 import { Types } from "mongoose";
 
@@ -232,8 +231,8 @@ export const generateTokens = async (
     { expiresIn: "15m" }
   );
 
-  const activeFamilyId = familyId || uuidv4();
-  const rawRefreshToken = `${uuidv4()}.${uuidv4()}`;
+  const activeFamilyId = familyId || crypto.randomUUID();
+  const rawRefreshToken = `${crypto.randomUUID()}.${crypto.randomUUID()}`;
   const tokenHash = hashToken(rawRefreshToken);
 
   const expiresAt = new Date();

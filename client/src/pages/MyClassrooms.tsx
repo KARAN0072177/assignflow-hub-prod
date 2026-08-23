@@ -11,8 +11,10 @@ import {
   User,
   ChevronRight,
   Clock,
-  Hash
+  Hash,
+  Sparkles
 } from "lucide-react";
+import { useAppSocket } from "../context/SocketContext";
 
 const MyClassrooms = () => {
   const [classrooms, setClassrooms] = useState<any[]>([]);
@@ -21,6 +23,7 @@ const MyClassrooms = () => {
 
   const role = localStorage.getItem("userRole");
   const isTeacher = role === "TEACHER";
+  const { classroomUnreadCounts, markClassroomAssignmentsAsRead } = useAppSocket();
 
   useEffect(() => {
     const fetchClassrooms = async () => {
@@ -172,73 +175,113 @@ const MyClassrooms = () => {
                 transition={{ duration: 0.3 }}
                 className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5"
               >
-                {classrooms.map((classroom, index) => (
-                  <motion.div
-                    key={classroom.id}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.3, delay: index * 0.05 }}
-                    whileHover={{ y: -4, transition: { duration: 0.2 } }}
-                    className="group"
-                  >
-                    <Link
-                      to={`/dashboard/classrooms/${classroom.id}`}
-                      className={`block h-full bg-white border border-slate-300 rounded-xl p-5 shadow-sm hover:shadow-md transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 ${isTeacher ? 'focus:ring-blue-500 hover:border-blue-400' : 'focus:ring-emerald-500 hover:border-emerald-400'}`}
+                {classrooms.map((classroom, index) => {
+                  const unreadCount =
+                    classroomUnreadCounts[classroom.id] !== undefined
+                      ? classroomUnreadCounts[classroom.id]
+                      : classroom.unreadAssignmentsCount || 0;
+
+                  return (
+                    <motion.div
+                      key={classroom.id}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.3, delay: index * 0.05 }}
+                      whileHover={{ y: -4, transition: { duration: 0.2 } }}
+                      className="group"
                     >
-                      <div className="flex items-start justify-between mb-4">
-                        <div className="flex items-center gap-3">
-                          <div className={`p-2 ${isTeacher ? 'bg-blue-50' : 'bg-emerald-50'} rounded-lg`}>
-                            <BookOpen className={`w-5 h-5 ${isTeacher ? 'text-blue-700' : 'text-emerald-700'}`} />
+                      <Link
+                        to={`/dashboard/classrooms/${classroom.id}`}
+                        onClick={() => markClassroomAssignmentsAsRead(classroom.id)}
+                        className={`block h-full bg-white border ${
+                          !isTeacher && unreadCount > 0
+                            ? "border-emerald-400 ring-2 ring-emerald-100 shadow-md"
+                            : "border-slate-300"
+                        } rounded-xl p-5 shadow-sm hover:shadow-md transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 ${
+                          isTeacher
+                            ? "focus:ring-blue-500 hover:border-blue-400"
+                            : "focus:ring-emerald-500 hover:border-emerald-400"
+                        }`}
+                      >
+                        <div className="flex items-start justify-between mb-4">
+                          <div className="flex items-center gap-3">
+                            <div
+                              className={`p-2 ${
+                                isTeacher ? "bg-blue-50" : "bg-emerald-50"
+                              } rounded-lg`}
+                            >
+                              <BookOpen
+                                className={`w-5 h-5 ${
+                                  isTeacher ? "text-blue-700" : "text-emerald-700"
+                                }`}
+                              />
+                            </div>
+                            <div>
+                              <h3 className="font-semibold text-slate-800 group-hover:text-slate-900 transition-colors line-clamp-1">
+                                {classroom.name}
+                              </h3>
+                              {classroom.code && (
+                                <div className="flex items-center gap-1 mt-1">
+                                  <Hash className="w-3 h-3 text-slate-500" />
+                                  <span className="text-xs font-mono text-slate-600">
+                                    {classroom.code}
+                                  </span>
+                                </div>
+                              )}
+                            </div>
                           </div>
-                          <div>
-                            <h3 className="font-semibold text-slate-800 group-hover:text-slate-900 transition-colors line-clamp-1">
-                              {classroom.name}
-                            </h3>
-                            {classroom.code && (
-                              <div className="flex items-center gap-1 mt-1">
-                                <Hash className="w-3 h-3 text-slate-500" />
-                                <span className="text-xs font-mono text-slate-600">
-                                  {classroom.code}
-                                </span>
+
+                          <div className="flex items-center gap-2">
+                            {/* 🔔 Live New Assignment Badge for Students */}
+                            {!isTeacher && unreadCount > 0 && (
+                              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-600 text-white shadow-xs animate-pulse">
+                                <Sparkles className="w-3 h-3 text-amber-300" />
+                                <span>{unreadCount} New</span>
+                              </span>
+                            )}
+                            <ChevronRight className="w-5 h-5 text-slate-400 group-hover:text-slate-600 transition-colors" />
+                          </div>
+                        </div>
+
+                        {classroom.description && (
+                          <p className="text-sm text-slate-600 line-clamp-2 mb-4">
+                            {classroom.description}
+                          </p>
+                        )}
+
+                        <div className="flex items-center justify-between pt-4 border-t border-slate-200">
+                          <div className="flex items-center gap-4 text-xs text-slate-600">
+                            <div className="flex items-center gap-1">
+                              <User className="w-3 h-3" />
+                              <span>
+                                {classroom.studentCount || 0}{" "}
+                                {classroom.studentCount === 1
+                                  ? "student"
+                                  : "students"}
+                              </span>
+                            </div>
+                            {classroom.createdAt && (
+                              <div className="flex items-center gap-1">
+                                <Clock className="w-3 h-3" />
+                                <span>{formatDate(classroom.createdAt)}</span>
                               </div>
                             )}
                           </div>
-                        </div>
-                        <ChevronRight className="w-5 h-5 text-slate-400 group-hover:text-slate-600 transition-colors" />
-                      </div>
 
-                      {classroom.description && (
-                        <p className="text-sm text-slate-600 line-clamp-2 mb-4">
-                          {classroom.description}
-                        </p>
-                      )}
-
-                      <div className="flex items-center justify-between pt-4 border-t border-slate-200">
-                        <div className="flex items-center gap-4 text-xs text-slate-600">
-                          <div className="flex items-center gap-1">
-                            <User className="w-3 h-3" />
-                            <span>
-                              {classroom.studentCount || 0}{" "}
-                              {classroom.studentCount === 1
-                                ? "student"
-                                : "students"}
-                            </span>
-                          </div>
-                          {classroom.createdAt && (
-                            <div className="flex items-center gap-1">
-                              <Clock className="w-3 h-3" />
-                              <span>{formatDate(classroom.createdAt)}</span>
-                            </div>
-                          )}
+                          <span
+                            className={`text-xs font-medium px-2.5 py-1 rounded-full ${
+                              isTeacher
+                                ? "bg-blue-100 text-blue-800"
+                                : "bg-emerald-100 text-emerald-800"
+                            }`}
+                          >
+                            {isTeacher ? "Teacher" : "Student"}
+                          </span>
                         </div>
-                        
-                        <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${isTeacher ? 'bg-blue-100 text-blue-800' : 'bg-emerald-100 text-emerald-800'}`}>
-                          {isTeacher ? 'Teacher' : 'Student'}
-                        </span>
-                      </div>
-                    </Link>
-                  </motion.div>
-                ))}
+                      </Link>
+                    </motion.div>
+                  );
+                })}
               </motion.div>
             )}
           </AnimatePresence>

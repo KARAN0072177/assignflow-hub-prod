@@ -54,6 +54,7 @@ import http from "http";
 import { initSocket } from "./socket";
 import blogRoutes from "./modules/blog/blog.routes";
 import commentRoutes from "./modules/comments/comment.routes";
+import aiRoutes from "./modules/ai/ai.routes";
 
 const app = express();
 
@@ -148,16 +149,22 @@ app.get("/", (_req, res) => {
 });
 
 /**
- * Health check
- * Used for deployment & monitoring
+ * Comprehensive Health check endpoints
+ * Used for Render, load balancers, and uptime monitoring
  */
-app.get("/health", (_req, res) => {
-  res.status(200).json({
-    status: "ok",
+const healthHandler = (_req: express.Request, res: express.Response) => {
+  return res.status(200).json({
+    status: "healthy",
     service: "assignflow-hub-api",
-    env: config.env,
+    timestamp: new Date().toISOString(),
+    uptimeSeconds: Math.floor(process.uptime()),
+    environment: config.env,
+    memoryUsageMB: Math.round(process.memoryUsage().heapUsed / 1024 / 1024),
   });
-});
+};
+
+app.get("/health", healthHandler);
+app.get("/api/health", healthHandler);
 
 /**
  * Mount modules with Granular Rate Limiters
@@ -174,6 +181,9 @@ app.use("/api/submissions", courseworkLimiter, submissionRoutes);
 
 // 💬 Assignment Discussions & Comments (protected by commentLimiter internally)
 app.use("/api/comments", commentRoutes);
+
+// ✨ AI Assistant Features (protected by aiEnhancerLimiter for teachers)
+app.use("/api/ai", aiRoutes);
 
 // 📊 Grade & Evaluation suite (never throttles heavy batch grading for teachers)
 app.use("/api/grades", gradeRoutes);

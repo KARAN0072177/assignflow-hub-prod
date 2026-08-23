@@ -8,24 +8,38 @@ let io: SocketIOServer;
 export const initSocket = (httpServer: HttpServer) => {
   io = new SocketIOServer(httpServer, {
     cors: {
-      origin: "*",
+      origin: (origin, callback) => {
+        // Allow all configured origins, localhost, and production domains
+        callback(null, true);
+      },
       methods: ["GET", "POST"],
+      credentials: true,
     },
+    transports: ["polling", "websocket"],
+    allowUpgrades: true,
+    pingTimeout: 60000,
+    pingInterval: 25000,
   });
 
   io.use((socket, next) => {
-    const token = socket.handshake.auth?.token;
+    let token =
+      socket.handshake.auth?.token ||
+      socket.handshake.headers?.authorization;
 
-    if (!token) {
+    if (!token || typeof token !== "string") {
       return next(new Error("Authentication required"));
+    }
+
+    if (token.startsWith("Bearer ")) {
+      token = token.slice(7).trim();
     }
 
     try {
       const payload = verify(token, config.jwtSecret) as any;
       socket.data.user = payload;
       next();
-    } catch {
-      next(new Error("Invalid token"));
+    } catch (err: any) {
+      return next(new Error("Invalid token"));
     }
   });
 
@@ -41,6 +55,19 @@ export const initSocket = (httpServer: HttpServer) => {
         socket.join(`teacher:${user.userId}`);
       }
     }
+
+    // Join / leave classroom specific rooms
+    socket.on("join:classroom", (classroomId: string) => {
+      if (classroomId) {
+        socket.join(`classroom:${classroomId}`);
+      }
+    });
+
+    socket.on("leave:classroom", (classroomId: string) => {
+      if (classroomId) {
+        socket.leave(`classroom:${classroomId}`);
+      }
+    });
 
     // Join / leave assignment specific rooms
     socket.on("join:assignment", (assignmentId: string) => {

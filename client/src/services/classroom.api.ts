@@ -46,11 +46,38 @@ export interface ClassroomListItem {
   code?: string;
   createdAt?: string;
   studentCount?: number;
+  unreadAssignmentsCount?: number;
 }
 
 export const getMyClassrooms = async (): Promise<ClassroomListItem[]> => {
   const response = await apiClient.get("/api/classrooms/my");
   return response.data;
+};
+
+/**
+ * Fetch total and per-classroom unread assignments count for student
+ */
+export const getStudentUnreadAssignmentsCount = async (): Promise<{
+  totalUnread: number;
+  classroomUnread: Record<string, number>;
+}> => {
+  const res = await apiClient.get<{
+    totalUnread: number;
+    classroomUnread: Record<string, number>;
+  }>("/api/assignments/student/unread-count");
+  return res.data;
+};
+
+/**
+ * Mark all assignments in a classroom as read for student
+ */
+export const markClassroomAssignmentsRead = async (
+  classroomId: string
+): Promise<{ success: boolean; classroomId: string }> => {
+  const res = await apiClient.post<{ success: boolean; classroomId: string }>(
+    `/api/assignments/classroom/${classroomId}/read`
+  );
+  return res.data;
 };
 
 // Get assignments for a specific classroom

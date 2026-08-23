@@ -1,6 +1,7 @@
 import { Classroom, ClassroomStatus } from "../../models/classroom.model";
 import { Types } from "mongoose";
 import { Membership } from "../../models/membership.model";
+import { Assignment, AssignmentState } from "../../models/assignment.model";
 import sanitizeHtml from "sanitize-html";
 
 const generateJoinCode = (): string => {
@@ -107,6 +108,26 @@ export const getStudentClassrooms = async (studentId: Types.ObjectId) => {
   const countMap = new Map<string, number>();
   counts.forEach((c) => countMap.set(c._id.toString(), c.count));
 
+  // Count unread published assignments for this student in each classroom
+  const unreadCounts = await Assignment.aggregate([
+    {
+      $match: {
+        classroomId: { $in: classroomIds },
+        state: AssignmentState.PUBLISHED,
+        readBy: { $ne: studentId },
+      },
+    },
+    {
+      $group: {
+        _id: "$classroomId",
+        unreadCount: { $sum: 1 },
+      },
+    },
+  ]);
+
+  const unreadMap = new Map<string, number>();
+  unreadCounts.forEach((u) => unreadMap.set(u._id.toString(), u.unreadCount));
+
   return classrooms.map((c) => ({
     id: c._id.toString(),
     name: c.name,
@@ -114,6 +135,7 @@ export const getStudentClassrooms = async (studentId: Types.ObjectId) => {
     code: c.code,
     createdAt: c.createdAt,
     studentCount: countMap.get(c._id.toString()) || 0,
+    unreadAssignmentsCount: unreadMap.get(c._id.toString()) || 0,
   }));
 };
 

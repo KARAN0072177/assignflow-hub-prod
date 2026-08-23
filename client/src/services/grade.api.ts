@@ -17,12 +17,33 @@ export interface StudentGrade {
   };
 }
 
+export interface StudentAiInsight {
+  hasData: boolean;
+  advice: string;
+  focusArea: string;
+  sentiment: "EXCELLING" | "GOOD" | "NEEDS_IMPROVEMENT" | "NEEDS_ATTENTION";
+  averageScore: number;
+  gradesCount: number;
+  lastGradeEvaluatedAt?: string | null;
+  generatedAt: string;
+  isCached: boolean;
+}
+
 /**
  * Student: get published grades
  * GET /api/grades/my
  */
 export const getMyGrades = async (): Promise<StudentGrade[]> => {
   const res = await apiClient.get<StudentGrade[]>("/api/grades/my");
+  return res.data;
+};
+
+/**
+ * Student: get server-evaluated AI academic performance advisor insight
+ * GET /api/grades/my/ai-insight
+ */
+export const getStudentAiInsight = async (): Promise<StudentAiInsight> => {
+  const res = await apiClient.get<StudentAiInsight>("/api/grades/my/ai-insight");
   return res.data;
 };
 

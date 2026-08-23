@@ -5,7 +5,9 @@ import CreateAssignmentForm from "../components/CreateAssignmentForm";
 import SubmissionBox from "../components/SubmissionBox";
 import TeacherSubmissions from "../components/TeacherSubmissions";
 import AssignmentComments from "../components/AssignmentComments";
+import MarkdownRenderer from "../components/MarkdownRenderer";
 import { motion, AnimatePresence } from "framer-motion";
+import { useAppSocket } from "../context/SocketContext";
 import {
   BookOpen,
   FileText,
@@ -70,6 +72,7 @@ const ClassroomDetail = () => {
   const role = localStorage.getItem("userRole");
   const isTeacher = role === "TEACHER";
   const accentColor = isTeacher ? "blue" : "emerald";
+  const { markClassroomAssignmentsAsRead, lastAssignmentEvent } = useAppSocket();
 
   const fetchData = async () => {
     try {
@@ -122,8 +125,21 @@ const ClassroomDetail = () => {
   useEffect(() => {
     if (id) {
       fetchData();
+      if (!isTeacher) {
+        markClassroomAssignmentsAsRead(id);
+      }
     }
-  }, [id]);
+  }, [id, isTeacher]);
+
+  // Live refresh assignment list if a new assignment is published in this classroom
+  useEffect(() => {
+    if (lastAssignmentEvent && lastAssignmentEvent.classroomId === id) {
+      fetchData();
+      if (!isTeacher) {
+        markClassroomAssignmentsAsRead(id);
+      }
+    }
+  }, [lastAssignmentEvent, id, isTeacher]);
 
   const handleCopyCode = (code: string) => {
     navigator.clipboard.writeText(code);
@@ -474,9 +490,9 @@ const ClassroomDetail = () => {
 
                     {/* Assignment Description */}
                     {assignment.description && (
-                      <p className="text-slate-600 text-sm leading-relaxed mb-4 pl-11">
-                        {assignment.description}
-                      </p>
+                      <div className="mb-4 ml-11 p-3.5 bg-slate-50/90 rounded-xl border border-slate-200/80 shadow-2xs">
+                        <MarkdownRenderer content={assignment.description} />
+                      </div>
                     )}
 
                     {/* Footer Row: Due Date & Action */}

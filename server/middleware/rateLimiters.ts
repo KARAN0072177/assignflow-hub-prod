@@ -58,3 +58,33 @@ export const commentLimiter = rateLimit({
   },
 });
 
+/**
+ * AI Enhancement Rate Limiter for Teachers
+ * 5 AI enhancement requests per 1 minute per IP/User
+ */
+export const aiEnhancerLimiter = rateLimit({
+  windowMs: 1 * 60 * 1000, // 1 minute
+  max: 5, // max 5 requests per minute
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    message: "AI rate limit reached: Maximum 5 enhancements per minute allowed. Please wait a moment before trying again.",
+  },
+});
+
+/**
+ * Student AI Performance Insight Rate Limiter
+ * 60 requests per 15 minutes per IP/User (Generous for high exam season traffic)
+ */
+export const studentInsightLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 60, // 60 requests per window
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    message: "Rate limit reached for AI performance insights. Please try again in a few minutes.",
+  },
+});
+
+
+

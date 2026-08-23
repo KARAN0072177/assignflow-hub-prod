@@ -6,6 +6,7 @@ import { Membership } from "../../models/membership.model";
 import { Submission } from "../../models/submission.model";
 import { logAuditEvent } from "../../utils/auditLogger";
 import sanitizeHtml from "sanitize-html";
+import { getIO } from "../../socket";
 
 interface CreateAssignmentParams {
   teacherId: Types.ObjectId;
@@ -67,6 +68,7 @@ export const createAssignmentDraft = async ({
     fileKey: "PENDING",
     fileType,
     fileSize,
+    readBy: [teacherId],
   });
 
   // 3. Generate S3 upload URL
@@ -91,7 +93,6 @@ export const createAssignmentDraft = async ({
 
 // Publish an assignment (change state from DRAFT to PUBLISHED)
 
-
 export const publishAssignment = async (
   assignmentId: Types.ObjectId,
   teacherId: Types.ObjectId
@@ -111,10 +112,124 @@ export const publishAssignment = async (
   }
 
   assignment.state = AssignmentState.PUBLISHED;
+  if (!assignment.readBy) {
+    assignment.readBy = [teacherId];
+  } else if (!assignment.readBy.some((id) => id.equals(teacherId))) {
+    assignment.readBy.push(teacherId);
+  }
+
   await assignment.save();
+
+  // ⚡ Live WebSocket Broadcast to Classroom and Students
+  try {
+    const io = getIO();
+    if (io) {
+      const payload = {
+        assignmentId: assignment._id.toString(),
+        classroomId: assignment.classroomId.toString(),
+        title: assignment.title,
+        type: assignment.type,
+        dueDate: assignment.dueDate,
+        createdAt: assignment.createdAt,
+      };
+
+      // Broadcast to classroom room
+      io.to(`classroom:${assignment.classroomId}`).emit("assignment:new", payload);
+
+      // Notify all enrolled student member rooms directly
+      const memberships = await Membership.find({
+        classroomId: assignment.classroomId,
+      }).select("studentId");
+
+      memberships.forEach((m) => {
+        io.to(`user:${m.studentId}`).emit("assignment:new", payload);
+      });
+    }
+  } catch (socketErr) {
+    console.error("Socket emit error on publish assignment:", socketErr);
+  }
 
   return assignment;
 };
+
+/**
+ * Mark all published assignments in a classroom as read for a student
+ */
+export const markClassroomAssignmentsAsRead = async (
+  classroomId: Types.ObjectId,
+  studentId: Types.ObjectId
+) => {
+  await Assignment.updateMany(
+    {
+      classroomId,
+      state: AssignmentState.PUBLISHED,
+      readBy: { $ne: studentId },
+    },
+    {
+      $addToSet: { readBy: studentId },
+    }
+  );
+
+  // Notify socket client of read state update
+  try {
+    const io = getIO();
+    if (io) {
+      io.to(`user:${studentId}`).emit("assignment:read", {
+        classroomId: classroomId.toString(),
+      });
+    }
+  } catch (socketErr) {
+    console.error("Socket emit error on mark read:", socketErr);
+  }
+
+  return { success: true, classroomId: classroomId.toString() };
+};
+
+/**
+ * Get total unread assignments count & per-classroom breakdown for a student
+ */
+export const getStudentUnreadAssignments = async (studentId: Types.ObjectId) => {
+  const memberships = await Membership.find({ studentId }).select("classroomId");
+  const classroomIds = memberships.map((m) => m.classroomId);
+
+  if (classroomIds.length === 0) {
+    return {
+      totalUnread: 0,
+      classroomUnread: {} as Record<string, number>,
+    };
+  }
+
+  const unreadAggregation = await Assignment.aggregate([
+    {
+      $match: {
+        classroomId: { $in: classroomIds },
+        state: AssignmentState.PUBLISHED,
+        readBy: { $ne: studentId },
+      },
+    },
+    {
+      $group: {
+        _id: "$classroomId",
+        count: { $sum: 1 },
+      },
+    },
+  ]);
+
+  const classroomUnread: Record<string, number> = {};
+  let totalUnread = 0;
+
+  unreadAggregation.forEach((item) => {
+    const cid = item._id.toString();
+    classroomUnread[cid] = item.count;
+    totalUnread += item.count;
+  });
+
+  return {
+    totalUnread,
+    classroomUnread,
+  };
+};
+
 
 
 
