@@ -34,6 +34,7 @@ import type {
   TeacherAnalyticsData,
   StudentAnalyticsProfile,
 } from "../services/grade.api";
+import { UserProfileHoverCard } from "./UserProfileHoverCard";
 
 interface Props {
   analytics: TeacherAnalyticsData;
@@ -582,19 +583,34 @@ export const StudentPerformanceAnalytics = ({ analytics }: Props) => {
 
                       {/* Student Info */}
                       <td className="py-4">
-                        <div className="flex items-center gap-3">
-                          <div className="w-9 h-9 rounded-full bg-gradient-to-br from-blue-600 to-indigo-600 text-white font-bold text-xs flex items-center justify-center shadow-2xs shrink-0">
-                            {initial}
+                        <UserProfileHoverCard
+                          identifier={student.name}
+                          userId={student.studentId}
+                          fallbackName={student.name}
+                          fallbackRole="STUDENT"
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className="w-9 h-9 rounded-full aspect-square bg-gradient-to-br from-blue-600 to-indigo-600 text-white font-bold text-xs flex items-center justify-center shadow-2xs shrink-0 overflow-hidden ring-1 ring-slate-200">
+                              {student.avatarUrl ? (
+                                <img
+                                  src={student.avatarUrl}
+                                  alt={student.name}
+                                  className="w-full h-full object-cover"
+                                />
+                              ) : (
+                                initial
+                              )}
+                            </div>
+                            <div>
+                              <p className="font-semibold text-slate-900 group-hover:text-blue-600 transition-colors capitalize text-sm">
+                                {student.name}
+                              </p>
+                              <p className="text-xs text-slate-500 font-mono">
+                                {student.email}
+                              </p>
+                            </div>
                           </div>
-                          <div>
-                            <p className="font-semibold text-slate-900 capitalize text-sm">
-                              {student.name}
-                            </p>
-                            <p className="text-xs text-slate-500 font-mono">
-                              {student.email}
-                            </p>
-                          </div>
-                        </div>
+                        </UserProfileHoverCard>
                       </td>
 
                       {/* Enrolled Classes Badges */}
@@ -705,8 +721,16 @@ export const StudentPerformanceAnalytics = ({ analytics }: Props) => {
               {/* Header */}
               <div className="flex items-start justify-between border-b border-slate-100 pb-4">
                 <div className="flex items-center gap-3.5">
-                  <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-700 text-white font-black text-lg flex items-center justify-center shadow-md">
-                    {(selectedStudent.name[0] || "S").toUpperCase()}
+                  <div className="w-12 h-12 rounded-full aspect-square bg-gradient-to-br from-blue-600 to-indigo-700 text-white font-black text-lg flex items-center justify-center shadow-md overflow-hidden ring-2 ring-white">
+                    {selectedStudent.avatarUrl ? (
+                      <img
+                        src={selectedStudent.avatarUrl}
+                        alt={selectedStudent.name}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      (selectedStudent.name[0] || "S").toUpperCase()
+                    )}
                   </div>
                   <div>
                     <h3 className="text-lg sm:text-xl font-extrabold text-slate-900 capitalize">

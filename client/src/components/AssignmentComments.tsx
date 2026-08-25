@@ -344,13 +344,21 @@ export const AssignmentComments = ({
                       fallbackRole={comment.authorRole}
                     >
                       <div
-                        className={`w-8 h-8 rounded-full aspect-square flex items-center justify-center text-xs font-bold shrink-0 ${
+                        className={`w-8 h-8 rounded-full aspect-square flex items-center justify-center text-xs font-bold shrink-0 overflow-hidden ring-1 ring-slate-200 ${
                           comment.authorRole === "TEACHER"
                             ? "bg-blue-600 text-white shadow-xs shadow-blue-500/20"
                             : "bg-slate-800 text-white"
                         }`}
                       >
-                        {comment.authorEmail.charAt(0).toUpperCase()}
+                        {comment.authorAvatarUrl ? (
+                          <img
+                            src={comment.authorAvatarUrl}
+                            alt={comment.authorName || comment.authorEmail}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          comment.authorEmail.charAt(0).toUpperCase()
+                        )}
                       </div>
                     </UserProfileHoverCard>
 
@@ -489,13 +497,21 @@ export const AssignmentComments = ({
                             fallbackRole={reply.authorRole}
                           >
                             <div
-                              className={`w-7 h-7 rounded-full aspect-square flex items-center justify-center text-[10px] font-bold shrink-0 ${
+                              className={`w-7 h-7 rounded-full aspect-square flex items-center justify-center text-[10px] font-bold shrink-0 overflow-hidden ring-1 ring-slate-200 ${
                                 reply.authorRole === "TEACHER"
                                   ? "bg-blue-600 text-white"
                                   : "bg-slate-700 text-white"
                               }`}
                             >
-                              {reply.authorEmail.charAt(0).toUpperCase()}
+                              {reply.authorAvatarUrl ? (
+                                <img
+                                  src={reply.authorAvatarUrl}
+                                  alt={reply.authorName || reply.authorEmail}
+                                  className="w-full h-full object-cover"
+                                />
+                              ) : (
+                                reply.authorEmail.charAt(0).toUpperCase()
+                              )}
                             </div>
                           </UserProfileHoverCard>
 

@@ -6,6 +6,7 @@ import { Membership } from "../../models/membership.model";
 import { User, UserRole } from "../../models/user.model";
 import { getIO } from "../../socket";
 import sanitizeHtml from "sanitize-html";
+import { generateDownloadUrl } from "../../utils/s3-download";
 
 interface CreateCommentParams {
   assignmentId: Types.ObjectId;
@@ -191,19 +192,56 @@ export const getCommentsForAssignment = async (
     .sort({ createdAt: 1 })
     .lean();
 
+  // Collect unique author IDs to populate current avatars & usernames
+  const authorIds = Array.from(
+    new Set(allComments.map((c) => c.authorId.toString()))
+  );
+  const authors = await User.find({ _id: { $in: authorIds } })
+    .select("_id username email avatarKey role")
+    .lean();
+
+  const authorMap = new Map<
+    string,
+    { username?: string; avatarUrl?: string | null }
+  >();
+
+  await Promise.all(
+    authors.map(async (u) => {
+      let avatarUrl: string | null = null;
+      if (u.avatarKey) {
+        try {
+          avatarUrl = await generateDownloadUrl(u.avatarKey);
+        } catch (err) {
+          console.warn("Failed to generate avatar url for comment author:", err);
+        }
+      }
+      authorMap.set(u._id.toString(), {
+        username: u.username,
+        avatarUrl,
+      });
+    })
+  );
+
   // Structure comments into threaded parent -> replies tree
   const rootComments: any[] = [];
   const repliesMap = new Map<string, any[]>();
 
   for (const c of allComments) {
+    const authorData = authorMap.get(c.authorId.toString());
+    const enrichedComment = {
+      ...c,
+      authorAvatarUrl: authorData?.avatarUrl || null,
+      authorName: authorData?.username ? `@${authorData.username}` : c.authorName,
+    };
+
     if (c.parentCommentId) {
       const parentId = c.parentCommentId.toString();
       if (!repliesMap.has(parentId)) {
         repliesMap.set(parentId, []);
       }
-      repliesMap.get(parentId)!.push(c);
+      repliesMap.get(parentId)!.push(enrichedComment);
     } else {
-      rootComments.push(c);
+      rootComments.push(enrichedComment);
     }
   }
 

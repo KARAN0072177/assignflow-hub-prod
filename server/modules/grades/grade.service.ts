@@ -248,9 +248,10 @@ export const getTeacherStudentsAnalytics = async (
         _id: Types.ObjectId;
         email: string;
         username?: string;
+        avatarKey?: string;
         createdAt: Date;
       };
-    }>("studentId", "email username createdAt")
+    }>("studentId", "email username avatarKey createdAt")
     .lean();
 
   // 4. Find all grades and submissions for these assignments
@@ -268,6 +269,7 @@ export const getTeacherStudentsAnalytics = async (
       studentId: string;
       email: string;
       username?: string | null;
+      avatarKey?: string;
       joinedAt: Date;
       classrooms: { id: string; name: string; code: string }[];
       classroomIds: Set<string>;
@@ -285,6 +287,7 @@ export const getTeacherStudentsAnalytics = async (
         studentId: sId,
         email: m.studentId.email,
         username: (m.studentId as any).username || null,
+        avatarKey: (m.studentId as any).avatarKey || undefined,
         joinedAt: m.createdAt,
         classrooms: classInfo ? [classInfo] : [],
         classroomIds: new Set([cId]),
@@ -295,6 +298,9 @@ export const getTeacherStudentsAnalytics = async (
         existing.classroomIds.add(cId);
         existing.classrooms.push(classInfo);
       }
+      if ((m.studentId as any).avatarKey && !existing.avatarKey) {
+        existing.avatarKey = (m.studentId as any).avatarKey;
+      }
       if (new Date(m.createdAt) < new Date(existing.joinedAt)) {
         existing.joinedAt = m.createdAt;
       }
@@ -302,102 +308,122 @@ export const getTeacherStudentsAnalytics = async (
   });
 
   // Calculate student-level metrics
-  const studentsList = Array.from(studentMap.values()).map((student) => {
-    // Applicable assignments for this student based on enrolled classrooms
-    const applicableAssignments = assignments.filter((a) =>
-      student.classroomIds.has(a.classroomId.toString())
-    );
-    const applicableAssignmentIds = new Set(
-      applicableAssignments.map((a) => a._id.toString())
-    );
+  const studentsList = await Promise.all(
+    Array.from(studentMap.values()).map(async (student) => {
+      let avatarUrl: string | null = null;
+      if (student.avatarKey) {
+        try {
+          avatarUrl = await generateDownloadUrl(student.avatarKey);
+        } catch (err) {
+          console.warn("Failed to generate avatar url for analytics student:", err);
+        }
+      }
 
-    // Grades for this student
-    const studentGrades = grades.filter(
-      (g) =>
-        g.studentId.toString() === student.studentId &&
-        applicableAssignmentIds.has(g.assignmentId.toString())
-    );
-
-    // Submissions for this student
-    const studentSubmissions = submissions.filter(
-      (s) =>
-        s.studentId.toString() === student.studentId &&
-        applicableAssignmentIds.has(s.assignmentId.toString())
-    );
-
-    const gradedCount = studentGrades.length;
-    const scores = studentGrades.map((g) => g.score);
-    const averageScore =
-      gradedCount > 0
-        ? Number((scores.reduce((a, b) => a + b, 0) / gradedCount).toFixed(1))
-        : null;
-    const highestScore = gradedCount > 0 ? Math.max(...scores) : null;
-    const lowestScore = gradedCount > 0 ? Math.min(...scores) : null;
-
-    let letterGrade = "N/A";
-    let performanceTier: "High Achiever" | "Good Standing" | "Needs Support" | "Not Graded" =
-      "Not Graded";
-
-    if (averageScore !== null) {
-      if (averageScore >= 90) letterGrade = "A";
-      else if (averageScore >= 80) letterGrade = "B";
-      else if (averageScore >= 70) letterGrade = "C";
-      else if (averageScore >= 60) letterGrade = "D";
-      else letterGrade = "F";
-
-      if (averageScore >= 85) performanceTier = "High Achiever";
-      else if (averageScore >= 70) performanceTier = "Good Standing";
-      else performanceTier = "Needs Support";
-    }
-
-    const submissionRate =
-      applicableAssignments.length > 0
-        ? Number(
-            (
-              (studentSubmissions.length / applicableAssignments.length) *
-              100
-            ).toFixed(1)
-          )
-        : 0;
-
-    const gradesHistory = studentGrades
-      .map((g) => {
-        const asg = assignmentMap.get(g.assignmentId.toString());
-        const cls = asg ? classroomMap.get(asg.classroomId.toString()) : null;
-        return {
-          assignmentId: g.assignmentId.toString(),
-          assignmentTitle: asg?.title || "Assignment",
-          classroomName: cls?.name || "Classroom",
-          score: g.score,
-          feedback: g.feedback || "",
-          published: g.published,
-          gradedAt: g.updatedAt || g.createdAt,
-        };
-      })
-      .sort(
-        (a, b) =>
-          new Date(b.gradedAt).getTime() - new Date(a.gradedAt).getTime()
+      // Applicable assignments for this student based on enrolled classrooms
+      const applicableAssignments = assignments.filter((a) =>
+        student.classroomIds.has(a.classroomId.toString())
+      );
+      const applicableAssignmentIds = new Set(
+        applicableAssignments.map((a) => a._id.toString())
       );
 
-    return {
-      studentId: student.studentId,
-      email: student.email,
-      username: student.username || null,
-      name: student.username ? `@${student.username}` : student.email.split("@")[0].replace(/[._]/g, " "),
-      joinedAt: student.joinedAt,
-      classrooms: student.classrooms,
-      totalAssigned: applicableAssignments.length,
-      totalSubmitted: studentSubmissions.length,
-      totalGraded: gradedCount,
-      averageScore,
-      highestScore,
-      lowestScore,
-      letterGrade,
-      performanceTier,
-      submissionRate,
-      gradesHistory,
-    };
-  });
+      // Grades for this student
+      const studentGrades = grades.filter(
+        (g) =>
+          g.studentId.toString() === student.studentId &&
+          applicableAssignmentIds.has(g.assignmentId.toString())
+      );
+
+      // Submissions for this student
+      const studentSubmissions = submissions.filter(
+        (s) =>
+          s.studentId.toString() === student.studentId &&
+          applicableAssignmentIds.has(s.assignmentId.toString())
+      );
+
+      const gradedCount = studentGrades.length;
+      const scores = studentGrades.map((g) => g.score);
+      const averageScore =
+        gradedCount > 0
+          ? Number((scores.reduce((a, b) => a + b, 0) / gradedCount).toFixed(1))
+          : null;
+      const highestScore = gradedCount > 0 ? Math.max(...scores) : null;
+      const lowestScore = gradedCount > 0 ? Math.min(...scores) : null;
+
+      let letterGrade = "N/A";
+      let performanceTier: "High Achiever" | "Good Standing" | "Needs Support" | "Not Graded" =
+        "Not Graded";
+
+      if (averageScore !== null) {
+        if (averageScore >= 90) letterGrade = "A";
+        else if (averageScore >= 80) letterGrade = "B";
+        else if (averageScore >= 70) letterGrade = "C";
+        else if (averageScore >= 60) letterGrade = "D";
+        else letterGrade = "F";
+
+        if (averageScore >= 85) performanceTier = "High Achiever";
+        else if (averageScore >= 70) performanceTier = "Good Standing";
+        else performanceTier = "Needs Support";
+      }
+
+      const lateSubmissionsCount = studentSubmissions.filter((s) => {
+        const asg = assignmentMap.get(s.assignmentId.toString());
+        if (!asg || !asg.dueDate) return false;
+        const submittedDate = new Date(s.updatedAt || s.createdAt);
+        return submittedDate > new Date(asg.dueDate);
+      }).length;
+
+      const submissionRate =
+        applicableAssignments.length > 0
+          ? Number(
+              (
+                (studentSubmissions.length / applicableAssignments.length) *
+                100
+              ).toFixed(1)
+            )
+          : 0;
+
+      const gradesHistory = studentGrades
+        .map((g) => {
+          const asg = assignmentMap.get(g.assignmentId.toString());
+          const cls = asg ? classroomMap.get(asg.classroomId.toString()) : null;
+          return {
+            assignmentId: g.assignmentId.toString(),
+            assignmentTitle: asg?.title || "Assignment",
+            classroomName: cls?.name || "Classroom",
+            score: g.score,
+            feedback: g.feedback || "",
+            published: g.published,
+            gradedAt: g.updatedAt || g.createdAt,
+          };
+        })
+        .sort(
+          (a, b) =>
+            new Date(b.gradedAt).getTime() - new Date(a.gradedAt).getTime()
+        );
+
+      return {
+        studentId: student.studentId,
+        email: student.email,
+        username: student.username || null,
+        name: student.username ? `@${student.username}` : student.email.split("@")[0].replace(/[._]/g, " "),
+        avatarUrl,
+        joinedAt: student.joinedAt,
+        classrooms: student.classrooms,
+        totalAssigned: applicableAssignments.length,
+        totalSubmitted: studentSubmissions.length,
+        totalGraded: gradedCount,
+        averageScore,
+        highestScore,
+        lowestScore,
+        letterGrade,
+        performanceTier,
+        lateSubmissionsCount,
+        submissionRate,
+        gradesHistory,
+      };
+    })
+  );
 
   // Calculate Overall Summary
   const gradedStudents = studentsList.filter((s) => s.averageScore !== null);

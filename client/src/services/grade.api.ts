@@ -95,7 +95,9 @@ export interface StudentGradeHistoryItem {
 export interface StudentAnalyticsProfile {
   studentId: string;
   email: string;
+  username?: string | null;
   name: string;
+  avatarUrl?: string | null;
   joinedAt: string;
   classrooms: { id: string; name: string; code: string }[];
   totalAssigned: number;

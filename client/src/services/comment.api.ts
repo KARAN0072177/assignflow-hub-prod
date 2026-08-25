@@ -14,6 +14,7 @@ export interface AssignmentCommentItem {
   authorRole: "STUDENT" | "TEACHER" | "ADMIN";
   authorEmail: string;
   authorName?: string;
+  authorAvatarUrl?: string | null;
   content: string;
   parentCommentId?: string;
   replyToUser?: CommentUser;

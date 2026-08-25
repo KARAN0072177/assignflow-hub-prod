@@ -13,6 +13,7 @@ import {
 } from "./auth.mail";
 import { generateDownloadUrl } from "../../utils/s3-download";
 import { generateAvatarUploadUrl } from "../../utils/s3-avatar";
+import { moderateImageS3, deleteS3Object } from "../../utils/rekognition-moderation";
 
 const SALT_ROUNDS = 10;
 
@@ -600,9 +601,54 @@ export const updateUserProfile = async (
     user.bio = payload.bio.trim();
   }
 
-  // 3. Update Avatar Key if provided
+  // 3. Update Avatar Key if provided (with AWS Rekognition moderation)
   if (payload.avatarKey !== undefined) {
-    user.avatarKey = payload.avatarKey;
+    if (payload.avatarKey && payload.avatarKey.trim() !== "") {
+      const cleanKey = payload.avatarKey.trim();
+
+      // Only moderate if setting a new key
+      if (cleanKey !== user.avatarKey) {
+        const moderation = await moderateImageS3(cleanKey);
+
+        if (!moderation.isSafe) {
+          // Permanently purge rejected unsafe image from S3 immediately
+          await deleteS3Object(cleanKey);
+
+          await logAuditEvent({
+            actorRole: "USER",
+            actorId: user._id,
+            action: "AVATAR_MODERATION_REJECTED",
+            entityType: "AUTH",
+            entityId: user._id,
+            metadata: {
+              fileKey: cleanKey,
+              flaggedCategories: moderation.flaggedCategories,
+            },
+          });
+
+          const rejectionErr: any = new Error(
+            "This image violates our community safety policy and cannot be used as a profile picture."
+          );
+          rejectionErr.statusCode = 422;
+          rejectionErr.code = "MODERATION_REJECTED";
+          rejectionErr.flaggedCategories = moderation.flaggedCategories;
+          throw rejectionErr;
+        }
+
+        // Clean up old avatar from S3 if replacing
+        if (user.avatarKey && user.avatarKey !== cleanKey) {
+          await deleteS3Object(user.avatarKey);
+        }
+
+        user.avatarKey = cleanKey;
+      }
+    } else {
+      // Removing avatar
+      if (user.avatarKey) {
+        await deleteS3Object(user.avatarKey);
+      }
+      user.avatarKey = undefined;
+    }
   }
 
   await user.save();

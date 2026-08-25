@@ -323,8 +323,11 @@ export const updateProfileHandler = async (req: Request, res: Response) => {
       user: updatedUser,
     });
   } catch (error: any) {
-    return res.status(400).json({
+    const status = error.statusCode || 400;
+    return res.status(status).json({
       message: error.message || "Failed to update profile",
+      code: error.code || "UPDATE_PROFILE_FAILED",
+      flaggedCategories: error.flaggedCategories || [],
     });
   }
 };
