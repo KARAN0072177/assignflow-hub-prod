@@ -393,8 +393,11 @@ const TeacherSubmissions = ({ assignmentId, dueDate }: Props) => {
                             const isRowGrading =
                               activeGradingId === submission.id;
                             const late = isLate(submission.submittedAt);
-                            const namePart = submission.student.email.split("@")[0];
-                            const initial = (namePart[0] || "S").toUpperCase();
+                            const studentUsername = (submission.student as any).username;
+                            const displayName = studentUsername
+                              ? `@${studentUsername}`
+                              : submission.student.email.split("@")[0];
+                            const initial = (studentUsername ? studentUsername[0] : submission.student.email[0] || "S").toUpperCase();
 
                             return (
                               <React.Fragment key={submission.id}>
@@ -418,6 +421,9 @@ const TeacherSubmissions = ({ assignmentId, dueDate }: Props) => {
                                       </div>
                                       <div className="truncate max-w-[180px] sm:max-w-[240px]">
                                         <p className="font-semibold text-slate-900 text-xs sm:text-sm truncate">
+                                          {displayName}
+                                        </p>
+                                        <p className="text-[11px] text-slate-500 font-mono truncate">
                                           {submission.student.email}
                                         </p>
                                       </div>

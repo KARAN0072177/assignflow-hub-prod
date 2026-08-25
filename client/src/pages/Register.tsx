@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { registerUser } from "../services/auth.api";
+import { registerUser, checkUsernameAvailability } from "../services/auth.api";
 import { type UserRole } from "../types/auth.types";
 import { Link } from "react-router-dom";
 import { motion, AnimatePresence, useMotionValue, useSpring, useTransform } from "framer-motion";
@@ -21,11 +21,16 @@ import {
   Shield,
   Zap,
   Star,
-  Award
+  Award,
+  AtSign,
+  XCircle,
 } from "lucide-react";
 
 const Register = () => {
   const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
+  const [usernameStatus, setUsernameStatus] = useState<"idle" | "checking" | "available" | "taken" | "invalid">("idle");
+  const [usernameMsg, setUsernameMsg] = useState("");
   const [password, setPassword] = useState("");
   const [role, setRole] = useState<UserRole>("STUDENT");
   const [loading, setLoading] = useState(false);
@@ -35,6 +40,47 @@ const Register = () => {
   const [success, setSuccess] = useState(false);
   const [registeredEmail, setRegisteredEmail] = useState(""); // Store email for success message
   const [focusedField, setFocusedField] = useState<string | null>(null);
+
+  // Debounced username availability check
+  useEffect(() => {
+    if (!username.trim()) {
+      setUsernameStatus("idle");
+      setUsernameMsg("");
+      return;
+    }
+
+    const clean = username.trim().toLowerCase();
+    if (clean.length < 3 || clean.length > 30) {
+      setUsernameStatus("invalid");
+      setUsernameMsg("Username must be 3-30 characters");
+      return;
+    }
+
+    if (!/^[a-zA-Z0-9_.-]+$/.test(clean)) {
+      setUsernameStatus("invalid");
+      setUsernameMsg("Only letters, numbers, _, -, and . allowed");
+      return;
+    }
+
+    setUsernameStatus("checking");
+    const timer = setTimeout(async () => {
+      try {
+        const res = await checkUsernameAvailability(clean);
+        if (res.available) {
+          setUsernameStatus("available");
+          setUsernameMsg("Username available!");
+        } else {
+          setUsernameStatus("taken");
+          setUsernameMsg(res.message || "Username already taken");
+        }
+      } catch (err: any) {
+        setUsernameStatus("taken");
+        setUsernameMsg(err?.response?.data?.message || "Username already taken");
+      }
+    }, 400);
+
+    return () => clearTimeout(timer);
+  }, [username]);
 
   // Mouse movement for 3D effects
   const mouseX = useMotionValue(0);
@@ -64,8 +110,13 @@ const Register = () => {
     e.preventDefault();
     setError(null);
 
-    if (!email.trim() || !password.trim()) {
-      setError("Please fill in all fields");
+    if (!email.trim() || !password.trim() || !username.trim()) {
+      setError("Please fill in all required fields");
+      return;
+    }
+
+    if (usernameStatus === "taken" || usernameStatus === "invalid") {
+      setError("Please choose a valid and available username");
       return;
     }
 
@@ -81,7 +132,12 @@ const Register = () => {
 
     try {
       setLoading(true);
-      await registerUser({ email, password, role });
+      await registerUser({
+        email,
+        password,
+        role,
+        username: username.trim().toLowerCase(),
+      });
       setRegisteredEmail(email); // Store email for success message
       setSuccess(true);
     } catch (err: any) {
@@ -419,6 +475,70 @@ const Register = () => {
                 <p className="text-xs text-slate-600 flex items-center gap-1">
                   <span className="inline-block w-1 h-1 bg-blue-500 rounded-full" />
                   Use your institutional email for better verification
+                </p>
+              </div>
+
+              {/* Username Field */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="block text-sm font-semibold text-slate-800">
+                    Username
+                    <span className="text-red-600 ml-1">*</span>
+                  </label>
+                  {usernameMsg && (
+                    <span
+                      className={`text-xs font-semibold ${
+                        usernameStatus === "available"
+                          ? "text-emerald-600"
+                          : usernameStatus === "checking"
+                          ? "text-blue-600"
+                          : "text-red-600"
+                      }`}
+                    >
+                      {usernameMsg}
+                    </span>
+                  )}
+                </div>
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={username}
+                    required
+                    minLength={3}
+                    maxLength={30}
+                    onChange={(e) => setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_.-]/g, ""))}
+                    onFocus={() => setFocusedField('username')}
+                    onBlur={() => setFocusedField(null)}
+                    className={`w-full pl-12 pr-12 py-4 bg-white/70 border-2 rounded-xl focus:ring-4 transition-all duration-300 text-slate-900 placeholder-slate-500 font-medium
+                      ${focusedField === 'username' 
+                        ? 'border-blue-500 ring-blue-500/20 bg-white' 
+                        : 'border-slate-200 hover:border-blue-300'
+                      }
+                      ${usernameStatus === 'available' ? 'border-emerald-500 bg-emerald-50/30' : ''}
+                      ${usernameStatus === 'taken' || usernameStatus === 'invalid' ? 'border-red-400 bg-red-50/30' : ''}
+                    `}
+                    placeholder="e.g. alex_rivera"
+                    disabled={loading}
+                  />
+                  <div className="absolute left-4 top-1/2 -translate-y-1/2">
+                    <AtSign className={`w-5 h-5 transition-colors duration-300 
+                      ${focusedField === 'username' ? 'text-blue-600' : 'text-slate-500'}`} 
+                    />
+                  </div>
+                  <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center">
+                    {usernameStatus === "checking" && (
+                      <Loader2 className="w-5 h-5 text-blue-500 animate-spin" />
+                    )}
+                    {usernameStatus === "available" && (
+                      <CheckCircle2 className="w-5 h-5 text-emerald-500" />
+                    )}
+                    {(usernameStatus === "taken" || usernameStatus === "invalid") && (
+                      <XCircle className="w-5 h-5 text-red-500" />
+                    )}
+                  </div>
+                </div>
+                <p className="text-xs text-slate-500">
+                  Your public handle (3-30 characters: letters, numbers, _, -, .)
                 </p>
               </div>
 

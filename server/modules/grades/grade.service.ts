@@ -244,8 +244,13 @@ export const getTeacherStudentsAnalytics = async (
     classroomId: { $in: classroomIds },
   })
     .populate<{
-      studentId: { _id: Types.ObjectId; email: string; createdAt: Date };
-    }>("studentId", "email createdAt")
+      studentId: {
+        _id: Types.ObjectId;
+        email: string;
+        username?: string;
+        createdAt: Date;
+      };
+    }>("studentId", "email username createdAt")
     .lean();
 
   // 4. Find all grades and submissions for these assignments
@@ -262,6 +267,7 @@ export const getTeacherStudentsAnalytics = async (
     {
       studentId: string;
       email: string;
+      username?: string | null;
       joinedAt: Date;
       classrooms: { id: string; name: string; code: string }[];
       classroomIds: Set<string>;
@@ -278,6 +284,7 @@ export const getTeacherStudentsAnalytics = async (
       studentMap.set(sId, {
         studentId: sId,
         email: m.studentId.email,
+        username: (m.studentId as any).username || null,
         joinedAt: m.createdAt,
         classrooms: classInfo ? [classInfo] : [],
         classroomIds: new Set([cId]),
@@ -375,7 +382,8 @@ export const getTeacherStudentsAnalytics = async (
     return {
       studentId: student.studentId,
       email: student.email,
-      name: student.email.split("@")[0].replace(/[._]/g, " "),
+      username: student.username || null,
+      name: student.username ? `@${student.username}` : student.email.split("@")[0].replace(/[._]/g, " "),
       joinedAt: student.joinedAt,
       classrooms: student.classrooms,
       totalAssigned: applicableAssignments.length,

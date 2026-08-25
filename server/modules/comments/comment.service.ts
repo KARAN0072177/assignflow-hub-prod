@@ -112,7 +112,7 @@ export const createComment = async ({
     authorId: userId,
     authorRole: role,
     authorEmail: author.email,
-    authorName: author.email.split("@")[0],
+    authorName: author.username ? `@${author.username}` : author.email.split("@")[0],
     content: cleanContent,
     parentCommentId: parentCommentId || undefined,
     replyToUser: replyToUserData,

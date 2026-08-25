@@ -517,8 +517,9 @@ const TeacherStudents = () => {
                             </thead>
                             <tbody className="divide-y divide-slate-100 text-sm">
                               {classroom.students.map((student, sIdx) => {
-                                const namePart = student.email.split("@")[0];
-                                const initial = (namePart[0] || "S").toUpperCase();
+                                const usernameVal = (student as any).username;
+                                const displayName = usernameVal ? `@${usernameVal}` : student.email.split("@")[0].replace(/[._]/g, " ");
+                                const initial = (usernameVal ? usernameVal[0] : student.email[0] || "S").toUpperCase();
 
                                 return (
                                   <tr
@@ -533,8 +534,8 @@ const TeacherStudents = () => {
                                         <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 text-white font-bold text-xs flex items-center justify-center shadow-2xs">
                                           {initial}
                                         </div>
-                                        <span className="font-semibold text-slate-800 capitalize">
-                                          {namePart.replace(/[._]/g, " ")}
+                                        <span className="font-semibold text-slate-800">
+                                          {displayName}
                                         </span>
                                       </div>
                                     </td>

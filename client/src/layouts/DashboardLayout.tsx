@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import Sidebar from "../components/Sidebar";
 import Breadcrumbs from "../components/Breadcrumbs";
 import { Menu, X, Bell, User } from "lucide-react";
+import { getMe } from "../services/auth.api";
 
 const DashboardLayout = () => {
   const navigate = useNavigate();
@@ -11,9 +12,10 @@ const DashboardLayout = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [userRole, setUserRole] = useState<string | null>(null);
+  const [username, setUsername] = useState<string | null>(null);
 
   useEffect(() => {
-    const checkAuth = () => {
+    const checkAuth = async () => {
       const token = localStorage.getItem("authToken");
       const role = localStorage.getItem("userRole");
 
@@ -23,12 +25,33 @@ const DashboardLayout = () => {
       }
 
       setUserRole(role);
-      setIsLoading(false);
+
+      // Check username status from storage and verify with backend
+      const storedUsername = localStorage.getItem("username");
+      if (storedUsername) {
+        setUsername(storedUsername);
+        setIsLoading(false);
+      }
+
+      try {
+        const user = await getMe();
+        if (!user.username) {
+          // No username set! Redirect to onboarding /username page
+          navigate("/username");
+          return;
+        }
+        setUsername(user.username);
+      } catch (err: any) {
+        if (err?.response?.status === 401) {
+          navigate("/login");
+          return;
+        }
+      } finally {
+        setIsLoading(false);
+      }
     };
 
-    // Small delay for smoother transition
-    const timer = setTimeout(checkAuth, 100);
-    return () => clearTimeout(timer);
+    checkAuth();
   }, [navigate]);
 
   // Reset scroll on route change
@@ -106,17 +129,22 @@ const DashboardLayout = () => {
               </button>
               
               {/* User Profile */}
-              <div className="flex items-center gap-2 p-2 rounded-lg hover:bg-slate-50 transition-colors duration-200 cursor-pointer">
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+              <div className="flex items-center gap-2 p-1.5 sm:p-2 rounded-xl hover:bg-slate-50 border border-transparent hover:border-slate-200 transition-all duration-200 cursor-pointer">
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs ${
                   userRole === 'TEACHER' 
-                    ? 'bg-blue-100 text-blue-600' 
-                    : 'bg-emerald-100 text-emerald-600'
+                    ? 'bg-blue-100 text-blue-700' 
+                    : 'bg-emerald-100 text-emerald-700'
                 }`}>
-                  <User className="w-4 h-4" />
+                  {username ? username[0].toUpperCase() : <User className="w-4 h-4" />}
                 </div>
-                <span className="hidden sm:inline text-sm font-medium text-slate-700">
-                  {userRole === 'TEACHER' ? 'Teacher' : 'Student'} Account
-                </span>
+                <div className="hidden sm:flex flex-col text-left">
+                  <span className="text-xs font-bold text-slate-800 flex items-center gap-0.5">
+                    {username ? `@${username}` : (userRole === 'TEACHER' ? 'Teacher' : 'Student')}
+                  </span>
+                  <span className="text-[10px] text-slate-500 font-medium">
+                    {userRole === 'TEACHER' ? 'Teacher' : 'Student'}
+                  </span>
+                </div>
               </div>
             </div>
           </div>

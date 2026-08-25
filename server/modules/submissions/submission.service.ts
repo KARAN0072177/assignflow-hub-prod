@@ -163,7 +163,7 @@ export const getSubmissionsForAssignment = async (
   }
 
   const submissions = await Submission.find({ assignmentId })
-    .populate("studentId", "email")
+    .populate("studentId", "email username")
     .sort({ createdAt: -1 });
 
   return Promise.all(
@@ -181,6 +181,7 @@ export const getSubmissionsForAssignment = async (
         student: {
           id: studentObjectId,
           email: (s.studentId as any)?.email,
+          username: (s.studentId as any)?.username || null,
         },
         state: s.state,
         submittedAt: s.updatedAt || s.createdAt,

@@ -8,6 +8,9 @@ import {
   verifyResetOtp,
   rotateRefreshToken,
   logoutUser,
+  getCurrentUser,
+  setUsername,
+  checkUsernameAvailable,
 } from "./auth.service";
 import { UserRole } from "../../models/user.model";
 import { logAuditEvent } from "../../utils/auditLogger";
@@ -25,6 +28,7 @@ const registerSchema = z.object({
   email: z.string().email(),
   password: z.string().min(8),
   role: z.nativeEnum(UserRole),
+  username: z.string().min(3).max(30).optional(),
 });
 
 const loginSchema = z.object({
@@ -35,13 +39,13 @@ const loginSchema = z.object({
 export const register = async (req: Request, res: Response) => {
   const parsed = registerSchema.safeParse(req.body);
   if (!parsed.success) {
-    return res.status(400).json({ message: "Invalid input" });
+    return res.status(400).json({ message: "Invalid input", errors: parsed.error.format() });
   }
 
-  const { email, password, role } = parsed.data;
+  const { email, password, role, username } = parsed.data;
 
   try {
-    const result = await registerUser(email, password, role);
+    const result = await registerUser(email, password, role, username);
 
     // 🔍 Audit log (optional, but good)
     await logAuditEvent({
@@ -50,7 +54,7 @@ export const register = async (req: Request, res: Response) => {
       action: "USER_REGISTER",
       entityType: "AUTH",
       entityId: result.user.id,
-      metadata: { email, role },
+      metadata: { email, role, username: result.user.username },
     });
 
     res.status(201).json(result);
@@ -228,4 +232,66 @@ export const logout = async (req: Request, res: Response) => {
   }
 
   return res.status(200).json({ message: "Logged out successfully" });
+};
+
+/**
+ * Get current authenticated user details
+ * GET /api/auth/me
+ */
+export const getMe = async (req: Request, res: Response) => {
+  const authReq = req as AuthenticatedRequest;
+  if (!authReq.user?.userId) {
+    return res.status(401).json({ message: "Unauthorized" });
+  }
+
+  try {
+    const user = await getCurrentUser(authReq.user.userId);
+    return res.status(200).json(user);
+  } catch (error: any) {
+    return res.status(400).json({ message: error.message || "Failed to fetch user profile" });
+  }
+};
+
+/**
+ * Check if a username is available
+ * GET /api/auth/check-username?username=xyz
+ */
+export const checkUsernameController = async (req: Request, res: Response) => {
+  const username = req.query.username as string;
+  if (!username) {
+    return res.status(400).json({ available: false, message: "Username parameter is required" });
+  }
+
+  try {
+    const result = await checkUsernameAvailable(username);
+    return res.status(200).json(result);
+  } catch (error: any) {
+    return res.status(400).json({ available: false, message: error.message || "Error checking username" });
+  }
+};
+
+/**
+ * Set or update user's username
+ * POST /api/auth/set-username
+ */
+export const setUsernameController = async (req: Request, res: Response) => {
+  const authReq = req as AuthenticatedRequest;
+  if (!authReq.user?.userId) {
+    return res.status(401).json({ message: "Unauthorized" });
+  }
+
+  const { username } = req.body;
+  if (!username) {
+    return res.status(400).json({ message: "Username is required" });
+  }
+
+  try {
+    const updatedUser = await setUsername(authReq.user.userId, username);
+    return res.status(200).json({
+      message: "Username set successfully",
+      user: updatedUser,
+    });
+  } catch (error: any) {
+    return res.status(400).json({ message: error.message || "Failed to set username" });
+  }
 };

@@ -60,7 +60,10 @@ const Navbar = () => {
     } finally {
       // Clear session
       localStorage.removeItem("authToken");
+      localStorage.removeItem("refreshToken");
       localStorage.removeItem("userRole");
+      localStorage.removeItem("userEmail");
+      localStorage.removeItem("username");
 
       // Notify other components
       window.dispatchEvent(new Event("storage"));

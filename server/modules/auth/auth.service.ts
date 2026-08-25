@@ -22,11 +22,26 @@ const SALT_ROUNDS = 10;
 export const registerUser = async (
   email: string,
   password: string,
-  role: UserRole
+  role: UserRole,
+  username?: string
 ) => {
-  const existingUser = await User.findOne({ email });
-  if (existingUser) {
-    throw new Error("User already exists");
+  const existingEmail = await User.findOne({ email });
+  if (existingEmail) {
+    throw new Error("User with this email already exists");
+  }
+
+  let cleanUsername: string | undefined = undefined;
+  if (username && username.trim()) {
+    cleanUsername = username.trim().toLowerCase();
+    if (!/^[a-zA-Z0-9_.-]{3,30}$/.test(cleanUsername)) {
+      throw new Error(
+        "Username must be between 3 and 30 characters and contain only letters, numbers, underscores, hyphens, or dots."
+      );
+    }
+    const existingUsername = await User.findOne({ username: cleanUsername });
+    if (existingUsername) {
+      throw new Error("Username is already taken. Please choose another one.");
+    }
   }
 
   const hashedPassword = await bcrypt.hash(password, SALT_ROUNDS);
@@ -37,6 +52,7 @@ export const registerUser = async (
   // Create user (NOT verified yet)
   const user = await User.create({
     email,
+    username: cleanUsername,
     password: hashedPassword,
     role,
     isVerified: false,
@@ -58,6 +74,7 @@ export const registerUser = async (
     user: {
       id: user._id,
       email: user.email,
+      username: user.username || null,
       role: user.role,
     },
   };
@@ -309,6 +326,7 @@ export const loginUser = async (
     user: {
       id: user._id,
       email: user.email,
+      username: user.username || null,
       role: user.role,
     },
   };
@@ -378,8 +396,123 @@ export const rotateRefreshToken = async (
     user: {
       id: user._id,
       email: user.email,
+      username: user.username || null,
       role: user.role,
     },
+  };
+};
+
+/**
+ * ============================
+ * GET CURRENT USER PROFILE
+ * ============================
+ */
+export const getCurrentUser = async (userId: string | Types.ObjectId) => {
+  const user = await User.findById(userId);
+  if (!user) {
+    throw new Error("User not found");
+  }
+
+  return {
+    id: user._id,
+    email: user.email,
+    username: user.username || null,
+    role: user.role,
+    isVerified: user.isVerified,
+    createdAt: user.createdAt,
+  };
+};
+
+/**
+ * ============================
+ * CHECK USERNAME AVAILABILITY
+ * ============================
+ */
+export const checkUsernameAvailable = async (username: string) => {
+  if (!username || !username.trim()) {
+    return { available: false, message: "Username cannot be empty" };
+  }
+
+  const clean = username.trim().toLowerCase();
+  if (clean.length < 3 || clean.length > 30) {
+    return {
+      available: false,
+      message: "Username must be between 3 and 30 characters",
+    };
+  }
+
+  if (!/^[a-zA-Z0-9_.-]+$/.test(clean)) {
+    return {
+      available: false,
+      message: "Username can only contain letters, numbers, underscores, hyphens, and dots",
+    };
+  }
+
+  const existing = await User.findOne({ username: clean });
+  if (existing) {
+    return { available: false, message: "Username is already taken" };
+  }
+
+  return { available: true, message: "Username is available!" };
+};
+
+/**
+ * ============================
+ * SET / UPDATE USERNAME
+ * ============================
+ */
+export const setUsername = async (
+  userId: string | Types.ObjectId,
+  newUsername: string
+) => {
+  if (!newUsername || !newUsername.trim()) {
+    throw new Error("Username cannot be empty");
+  }
+
+  const clean = newUsername.trim().toLowerCase();
+  if (clean.length < 3 || clean.length > 30) {
+    throw new Error("Username must be between 3 and 30 characters");
+  }
+
+  if (!/^[a-zA-Z0-9_.-]+$/.test(clean)) {
+    throw new Error(
+      "Username can only contain letters, numbers, underscores, hyphens, and dots"
+    );
+  }
+
+  // Check if taken by another user
+  const existing = await User.findOne({
+    username: clean,
+    _id: { $ne: new Types.ObjectId(userId) },
+  });
+
+  if (existing) {
+    throw new Error("Username is already taken. Please pick another one.");
+  }
+
+  const user = await User.findById(userId);
+  if (!user) {
+    throw new Error("User not found");
+  }
+
+  user.username = clean;
+  await user.save();
+
+  await logAuditEvent({
+    actorRole: "USER",
+    actorId: user._id,
+    action: "USER_UPDATE",
+    entityType: "AUTH",
+    entityId: user._id,
+    metadata: { username: clean },
+  });
+
+  return {
+    id: user._id,
+    email: user.email,
+    username: user.username,
+    role: user.role,
+    isVerified: user.isVerified,
   };
 };
 

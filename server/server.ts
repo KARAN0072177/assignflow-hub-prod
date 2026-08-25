@@ -63,11 +63,7 @@ const app = express();
  */
 
 import { noSqlSanitizer, xssSanitizer } from "./middleware/security";
-import {
-  authLimiter,
-  publicFormsLimiter,
-  courseworkLimiter,
-} from "./middleware/rateLimiters";
+import { publicFormsLimiter } from "./middleware/rateLimiters";
 
 // CORS MUST BE FIRST
 const corsOptions: cors.CorsOptions = {
@@ -170,14 +166,14 @@ app.get("/api/health", healthHandler);
  * Mount modules with Granular Rate Limiters
  */
 
-// 🔐 Authentication routes (protected by strict authLimiter)
-app.use("/api/auth", authLimiter, authRoutes);
-app.use("/api/auth", authLimiter, verifyRoutes);
+// 🔐 Authentication routes
+app.use("/api/auth", authRoutes);
+app.use("/api/auth", verifyRoutes);
 
-// 📁 Coursework & Classroom management (protected by courseworkLimiter)
-app.use("/api/classrooms", courseworkLimiter, classroomRoutes);
-app.use("/api/assignments", courseworkLimiter, assignmentRoutes);
-app.use("/api/submissions", courseworkLimiter, submissionRoutes);
+// 📁 Coursework & Classroom management
+app.use("/api/classrooms", classroomRoutes);
+app.use("/api/assignments", assignmentRoutes);
+app.use("/api/submissions", submissionRoutes);
 
 // 💬 Assignment Discussions & Comments (protected by commentLimiter internally)
 app.use("/api/comments", commentRoutes);

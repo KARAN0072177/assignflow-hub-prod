@@ -238,8 +238,13 @@ export const getTeacherClassroomsWithStudents = async (
     classroomId: { $in: classroomIds },
   })
     .populate<{
-      studentId: { _id: Types.ObjectId; email: string; createdAt: Date };
-    }>("studentId", "email createdAt")
+      studentId: {
+        _id: Types.ObjectId;
+        email: string;
+        username?: string;
+        createdAt: Date;
+      };
+    }>("studentId", "email username createdAt")
     .sort({ createdAt: -1 })
     .lean();
 
@@ -254,6 +259,7 @@ export const getTeacherClassroomsWithStudents = async (
       .map((m) => ({
         id: m.studentId._id.toString(),
         email: m.studentId.email,
+        username: (m.studentId as any).username || null,
         joinedAt: m.createdAt,
       }));
 

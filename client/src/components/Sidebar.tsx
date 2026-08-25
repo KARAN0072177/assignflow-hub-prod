@@ -24,7 +24,8 @@ interface SidebarProps {
 }
 
 const Sidebar = ({ isOpen = false, onClose }: SidebarProps) => {
-  const role = localStorage.getItem("userRole");
+  const [role, setRole] = useState(localStorage.getItem("userRole"));
+  const [username, setUsername] = useState(localStorage.getItem("username"));
   const location = useLocation();
   const [collapsed, setCollapsed] = useState(false);
   const { unreadDiscussionsCount, unreadAssignmentsCount } = useAppSocket();
@@ -34,6 +35,16 @@ const Sidebar = ({ isOpen = false, onClose }: SidebarProps) => {
     label: "Home",
     icon: <Home className="w-5 h-5" />,
   };
+
+  useEffect(() => {
+    const handleStorageChange = () => {
+      setRole(localStorage.getItem("userRole"));
+      setUsername(localStorage.getItem("username"));
+    };
+
+    window.addEventListener("storage", handleStorageChange);
+    return () => window.removeEventListener("storage", handleStorageChange);
+  }, []);
 
   // Close mobile sidebar on route change
   useEffect(() => {
@@ -45,6 +56,8 @@ const Sidebar = ({ isOpen = false, onClose }: SidebarProps) => {
   const handleLogout = () => {
     localStorage.removeItem("authToken");
     localStorage.removeItem("userRole");
+    localStorage.removeItem("userEmail");
+    localStorage.removeItem("username");
     window.dispatchEvent(new Event("storage"));
     window.location.href = "/login";
   };
@@ -240,19 +253,21 @@ const Sidebar = ({ isOpen = false, onClose }: SidebarProps) => {
               <div className="p-4 border-t border-slate-200">
                 <div className="flex items-center gap-3 mb-3 p-2.5 bg-slate-50 rounded-xl">
                   <div
-                    className={`p-2 rounded-lg ${
+                    className={`w-8 h-8 rounded-lg flex items-center justify-center font-bold text-xs ${
                       role === "TEACHER"
-                        ? "bg-blue-100 text-blue-600"
-                        : "bg-emerald-100 text-emerald-600"
+                        ? "bg-blue-100 text-blue-700"
+                        : "bg-emerald-100 text-emerald-700"
                     }`}
                   >
-                    <User className="w-4 h-4" />
+                    {username ? username[0].toUpperCase() : <User className="w-4 h-4" />}
                   </div>
-                  <div>
-                    <p className="font-semibold text-xs text-slate-800">
-                      {role === "TEACHER" ? "Teacher Account" : "Student Account"}
+                  <div className="overflow-hidden">
+                    <p className="font-semibold text-xs text-slate-800 truncate">
+                      {username ? `@${username}` : (role === "TEACHER" ? "Teacher Account" : "Student Account")}
                     </p>
-                    <p className="text-[11px] text-slate-500">Active session</p>
+                    <p className="text-[11px] text-slate-500">
+                      {role === "TEACHER" ? "Teacher" : "Student"} • Online
+                    </p>
                   </div>
                 </div>
 
@@ -418,19 +433,21 @@ const Sidebar = ({ isOpen = false, onClose }: SidebarProps) => {
           <div className="p-4 border-t border-slate-200">
             <div className="flex items-center gap-3 mb-3 p-2.5 bg-slate-50 rounded-xl">
               <div
-                className={`p-2 rounded-lg ${
+                className={`w-8 h-8 rounded-lg flex items-center justify-center font-bold text-xs ${
                   role === "TEACHER"
-                    ? "bg-blue-100 text-blue-600"
-                    : "bg-emerald-100 text-emerald-600"
+                    ? "bg-blue-100 text-blue-700"
+                    : "bg-emerald-100 text-emerald-700"
                 }`}
               >
-                <User className="w-4 h-4" />
+                {username ? username[0].toUpperCase() : <User className="w-4 h-4" />}
               </div>
-              <div>
-                <p className="font-semibold text-xs text-slate-800">
-                  {role === "TEACHER" ? "Teacher Account" : "Student Account"}
+              <div className="overflow-hidden">
+                <p className="font-semibold text-xs text-slate-800 truncate">
+                  {username ? `@${username}` : (role === "TEACHER" ? "Teacher Account" : "Student Account")}
                 </p>
-                <p className="text-[11px] text-slate-500">Active session</p>
+                <p className="text-[11px] text-slate-500">
+                  {role === "TEACHER" ? "Teacher" : "Student"} • Online
+                </p>
               </div>
             </div>
 
