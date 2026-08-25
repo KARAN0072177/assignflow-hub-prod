@@ -86,5 +86,16 @@ export const studentInsightLimiter = rateLimit({
   },
 });
 
-
-
+/**
+ * Teacher AI Class Insight Rate Limiter
+ * 10 requests per 10 minutes per IP/User to prevent abuse of manual generation
+ */
+export const teacherInsightLimiter = rateLimit({
+  windowMs: 10 * 60 * 1000, // 10 minutes
+  max: 10, // 10 requests per window
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    message: "Rate limit reached for AI insights generation. Please wait a few minutes before trying again.",
+  },
+});

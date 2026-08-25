@@ -289,8 +289,8 @@ export const StudentPerformanceAnalytics = ({ analytics }: Props) => {
             </div>
           </div>
 
-          <div className="h-64 w-full pt-2">
-            <ResponsiveContainer width="100%" height="100%">
+          <div className="h-64 w-full pt-2 min-w-0">
+            <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={200}>
               <BarChart data={gradeDistribution} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
                 <XAxis dataKey="grade" stroke="#94a3b8" fontSize={12} tickLine={false} />
@@ -344,13 +344,13 @@ export const StudentPerformanceAnalytics = ({ analytics }: Props) => {
             </p>
           </div>
 
-          <div className="h-56 w-full flex items-center justify-center">
+          <div className="h-56 w-full flex items-center justify-center min-w-0">
             {tierPieData.length === 0 ? (
               <div className="text-center text-slate-400 text-xs py-8">
                 No student grade data available yet.
               </div>
             ) : (
-              <ResponsiveContainer width="100%" height="100%">
+              <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={180}>
                 <PieChart>
                   <Pie
                     data={tierPieData}
@@ -416,8 +416,8 @@ export const StudentPerformanceAnalytics = ({ analytics }: Props) => {
             </div>
           </div>
 
-          <div className="h-64 w-full pt-2">
-            <ResponsiveContainer width="100%" height="100%">
+          <div className="h-64 w-full pt-2 min-w-0">
+            <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={200}>
               <BarChart data={topStudentsChartData} margin={{ top: 10, right: 10, left: -20, bottom: 20 }}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
                 <XAxis dataKey="name" stroke="#64748b" fontSize={11} interval={0} angle={-15} textAnchor="end" />
@@ -781,8 +781,8 @@ export const StudentPerformanceAnalytics = ({ analytics }: Props) => {
                   <span className="text-xs font-bold uppercase tracking-wider text-slate-500 block">
                     Grade Progression Over Time
                   </span>
-                  <div className="h-44 w-full bg-slate-50/70 border border-slate-200 rounded-2xl p-3">
-                    <ResponsiveContainer width="100%" height="100%">
+                  <div className="h-44 w-full bg-slate-50/70 border border-slate-200 rounded-2xl p-3 min-w-0">
+                    <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={140}>
                       <LineChart
                         data={[...selectedStudent.gradesHistory].reverse().map((g) => ({
                           assignment: g.assignmentTitle.length > 10 ? `${g.assignmentTitle.substring(0, 8)}..` : g.assignmentTitle,

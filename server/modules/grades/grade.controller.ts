@@ -166,3 +166,100 @@ export const getStudentAiInsightHandler = async (
     });
   }
 };
+
+/**
+ * Handler for teachers to get their cached AI class insights (with pagination)
+ */
+export const getTeacherAiInsightHandler = async (
+  req: AuthenticatedRequest,
+  res: Response
+) => {
+  if (req.user?.role !== "TEACHER") {
+    return res.status(403).json({ message: "Only teachers can view AI class insights" });
+  }
+
+  const page = parseInt(req.query.page as string) || 1;
+  const limit = parseInt(req.query.limit as string) || 5;
+
+  try {
+    const { getTeacherAiInsights } = await import("../ai/teacherInsight.service");
+    const result = await getTeacherAiInsights(req.user.userId, page, limit);
+    return res.status(200).json(result);
+  } catch (error: any) {
+    console.error("Failed to fetch teacher AI insight:", error);
+    return res.status(500).json({ message: "Failed to fetch teacher class insight" });
+  }
+};
+
+/**
+ * Handler for teachers to manually trigger generation of AI class insights
+ */
+export const generateTeacherAiInsightHandler = async (
+  req: AuthenticatedRequest,
+  res: Response
+) => {
+  if (req.user?.role !== "TEACHER") {
+    return res.status(403).json({ message: "Only teachers can generate AI class insights" });
+  }
+
+  try {
+    const { generateTeacherAiInsights } = await import("../ai/teacherInsight.service");
+    const insight = await generateTeacherAiInsights(req.user.userId);
+    return res.status(200).json(insight);
+  } catch (error: any) {
+    console.error("Failed to generate teacher AI insight:", error);
+    return res.status(500).json({ message: "Failed to generate teacher class insight" });
+  }
+};
+
+/**
+ * Handler for teachers to delete an AI insight record
+ */
+export const deleteTeacherAiInsightHandler = async (
+  req: AuthenticatedRequest,
+  res: Response
+) => {
+  if (req.user?.role !== "TEACHER") {
+    return res.status(403).json({ message: "Only teachers can delete AI class insights" });
+  }
+
+  const { id } = req.params;
+  if (!id) {
+    return res.status(400).json({ message: "Insight ID is required" });
+  }
+
+  try {
+    const { deleteTeacherAiInsight } = await import("../ai/teacherInsight.service");
+    const result = await deleteTeacherAiInsight(req.user.userId, id);
+    return res.status(200).json(result);
+  } catch (error: any) {
+    console.error("Failed to delete teacher AI insight:", error);
+    return res.status(400).json({ message: error.message || "Failed to delete insight" });
+  }
+};
+
+/**
+ * Handler for teachers to pin/unpin an AI insight record (up to 3)
+ */
+export const togglePinTeacherAiInsightHandler = async (
+  req: AuthenticatedRequest,
+  res: Response
+) => {
+  if (req.user?.role !== "TEACHER") {
+    return res.status(403).json({ message: "Only teachers can pin AI class insights" });
+  }
+
+  const { id } = req.params;
+  if (!id) {
+    return res.status(400).json({ message: "Insight ID is required" });
+  }
+
+  try {
+    const { togglePinTeacherAiInsight } = await import("../ai/teacherInsight.service");
+    const result = await togglePinTeacherAiInsight(req.user.userId, id);
+    return res.status(200).json(result);
+  } catch (error: any) {
+    console.error("Failed to toggle pin on teacher AI insight:", error);
+    return res.status(400).json({ message: error.message || "Failed to toggle pin" });
+  }
+};

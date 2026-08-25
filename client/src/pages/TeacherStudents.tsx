@@ -25,9 +25,10 @@ import {
   type TeacherAnalyticsData,
 } from "../services/grade.api";
 import { StudentPerformanceAnalytics } from "../components/StudentPerformanceAnalytics";
+import { TeacherAiInsightsTab } from "../components/TeacherAiInsightsTab";
 
 const TeacherStudents = () => {
-  const [activeTab, setActiveTab] = useState<"analytics" | "roster">("analytics");
+  const [activeTab, setActiveTab] = useState<"analytics" | "roster" | "insights">("analytics");
   const [classrooms, setClassrooms] = useState<TeacherClassroomWithStudents[]>([]);
   const [analytics, setAnalytics] = useState<TeacherAnalyticsData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -151,41 +152,23 @@ const TeacherStudents = () => {
 
   if (loading) {
     return (
-      <div className="min-h-[60vh] flex items-center justify-center py-12">
-        <div className="text-center">
-          <div className="relative mb-4">
-            <div className="w-12 h-12 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mx-auto" />
-          </div>
-          <p className="text-slate-700 font-medium">
-            Loading student performance analytics and rosters...
-          </p>
-        </div>
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="min-h-[60vh] flex items-center justify-center py-12 px-4">
-        <div className="max-w-md w-full bg-white border border-red-200 rounded-2xl p-6 shadow-sm text-center">
-          <div className="w-12 h-12 rounded-xl bg-red-50 text-red-600 flex items-center justify-center mx-auto mb-4">
-            <AlertCircle className="w-6 h-6" />
-          </div>
-          <h3 className="text-lg font-bold text-slate-900 mb-1">Error Loading Data</h3>
-          <p className="text-sm text-slate-600 mb-6">{error}</p>
-          <button
-            onClick={() => window.location.reload()}
-            className="px-4 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors"
-          >
-            Retry
-          </button>
-        </div>
+      <div className="p-4 bg-red-50 text-red-600 rounded-xl border border-red-100 flex items-center gap-3">
+        <AlertCircle className="w-5 h-5" />
+        <p>{error}</p>
       </div>
     );
   }
 
   return (
-    <div className="space-y-8 pb-12">
+    <div className="space-y-8 pb-12 max-w-7xl mx-auto">
       {/* Header Section */}
       <motion.div
         initial={{ opacity: 0, y: -10 }}
@@ -217,7 +200,7 @@ const TeacherStudents = () => {
       </motion.div>
 
       {/* Primary Section Switcher Tabs */}
-      <div className="flex items-center gap-2 p-1.5 bg-slate-200/70 border border-slate-300/60 rounded-2xl max-w-fit shadow-2xs">
+      <div className="flex flex-wrap items-center gap-2 p-1.5 bg-slate-200/70 border border-slate-300/60 rounded-2xl max-w-fit shadow-2xs">
         <button
           onClick={() => setActiveTab("analytics")}
           className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
@@ -249,6 +232,18 @@ const TeacherStudents = () => {
             {classrooms.length} Classes
           </span>
         </button>
+
+        <button
+          onClick={() => setActiveTab("insights")}
+          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
+            activeTab === "insights"
+              ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-xs"
+              : "text-indigo-600 hover:text-indigo-800 hover:bg-white/50"
+          }`}
+        >
+          <Sparkles className={`w-4 h-4 ${activeTab === "insights" ? "text-blue-100" : "text-indigo-500"}`} />
+          <span>AI Insights</span>
+        </button>
       </div>
 
       {/* Tab 1: Global Student Performance Analytics */}
@@ -260,6 +255,11 @@ const TeacherStudents = () => {
         >
           <StudentPerformanceAnalytics analytics={analytics} />
         </motion.div>
+      )}
+
+      {/* Tab 1.5: AI Insights */}
+      {activeTab === "insights" && (
+        <TeacherAiInsightsTab />
       )}
 
       {/* Tab 2: Class Rosters & Enrollments */}

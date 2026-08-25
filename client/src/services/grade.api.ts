@@ -156,3 +156,70 @@ export const getTeacherStudentsAnalytics =
     );
     return res.data;
   };
+
+export interface TeacherAiInsight {
+  _id: string;
+  summary: string;
+  actionItems: string[];
+  metrics: Record<string, string>;
+  isPinned?: boolean;
+  pinnedAt?: string | null;
+  generatedAt: string;
+}
+
+export interface TeacherAiInsightsResponse {
+  insights: TeacherAiInsight[];
+  totalCount: number;
+  totalPages: number;
+  currentPage: number;
+}
+
+/**
+ * Teacher: get cached AI class insights (with pagination)
+ * GET /api/grades/teacher/ai-insights?page=1&limit=5
+ */
+export const getTeacherAiInsights = async (
+  page: number = 1,
+  limit: number = 5
+): Promise<TeacherAiInsightsResponse> => {
+  const res = await apiClient.get<TeacherAiInsightsResponse>(
+    `/api/grades/teacher/ai-insights?page=${page}&limit=${limit}`
+  );
+  return res.data;
+};
+
+/**
+ * Teacher: manually generate AI class insights
+ * POST /api/grades/teacher/ai-insights/generate
+ */
+export const generateTeacherAiInsights = async (): Promise<TeacherAiInsight> => {
+  const res = await apiClient.post<TeacherAiInsight>("/api/grades/teacher/ai-insights/generate");
+  return res.data;
+};
+
+/**
+ * Teacher: delete an AI class insight
+ * DELETE /api/grades/teacher/ai-insights/:id
+ */
+export const deleteTeacherAiInsight = async (
+  id: string
+): Promise<{ message: string; id: string }> => {
+  const res = await apiClient.delete<{ message: string; id: string }>(
+    `/api/grades/teacher/ai-insights/${id}`
+  );
+  return res.data;
+};
+
+/**
+ * Teacher: toggle pin status of an AI class insight (up to 3)
+ * PATCH /api/grades/teacher/ai-insights/:id/pin
+ */
+export const togglePinTeacherAiInsight = async (
+  id: string
+): Promise<{ _id: string; isPinned: boolean; pinnedAt?: string | null; message: string }> => {
+  const res = await apiClient.patch<{ _id: string; isPinned: boolean; pinnedAt?: string | null; message: string }>(
+    `/api/grades/teacher/ai-insights/${id}/pin`,
+    {}
+  );
+  return res.data;
+};
