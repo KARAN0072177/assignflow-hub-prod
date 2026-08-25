@@ -16,8 +16,12 @@ import {
   getProfileCardHandler,
 } from "./auth.controller";
 import { requireAuth } from "../../middleware/requireAuth";
+import { authIpSecurityMiddleware } from "../../utils/authSecurityLimiter";
 
 const router = Router();
+
+// Apply IP Ban / Rate limiting guard across all auth routes
+router.use(authIpSecurityMiddleware);
 
 // Public auth routes
 router.post("/register", register);

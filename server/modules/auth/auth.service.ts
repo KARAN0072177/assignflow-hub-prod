@@ -14,6 +14,7 @@ import {
 import { generateDownloadUrl } from "../../utils/s3-download";
 import { generateAvatarUploadUrl } from "../../utils/s3-avatar";
 import { moderateImageS3, deleteS3Object } from "../../utils/rekognition-moderation";
+import { blockIp } from "../../utils/authSecurityLimiter";
 
 const SALT_ROUNDS = 10;
 
@@ -486,7 +487,8 @@ export const checkUsernameAvailable = async (
  */
 export const setUsername = async (
   userId: string | Types.ObjectId,
-  newUsername: string
+  newUsername: string,
+  clientIp?: string
 ) => {
   if (!newUsername || !newUsername.trim()) {
     throw new Error("Username cannot be empty");
@@ -503,6 +505,32 @@ export const setUsername = async (
     );
   }
 
+  const user = await User.findById(userId);
+  if (!user) {
+    throw new Error("User not found");
+  }
+
+  // If user already has a username and is modifying it, check 2 changes in 30 days limit
+  if (user.username && user.username !== clean) {
+    const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
+    const thirtyDaysAgo = new Date(Date.now() - THIRTY_DAYS_MS);
+    const recentChanges = (user.usernameChanges || []).filter(
+      (c) => new Date(c.changedAt) >= thirtyDaysAgo
+    );
+
+    if (recentChanges.length >= 2) {
+      if (clientIp) {
+        blockIp(clientIp, "Exceeded username change limit: 2 times in 30 days");
+      }
+      const err: any = new Error(
+        "You can only change your username 2 times every 30 days. Please try again later."
+      );
+      err.statusCode = 429;
+      err.code = "USERNAME_CHANGE_LIMIT_EXCEEDED";
+      throw err;
+    }
+  }
+
   // Check if taken by another user
   const existing = await User.findOne({
     username: clean,
@@ -513,10 +541,13 @@ export const setUsername = async (
     throw new Error("Username is already taken. Please pick another one.");
   }
 
-  const user = await User.findById(userId);
-  if (!user) {
-    throw new Error("User not found");
+  if (!user.usernameChanges) {
+    user.usernameChanges = [];
   }
+  user.usernameChanges.push({
+    changedAt: new Date(),
+    oldUsername: user.username,
+  });
 
   user.username = clean;
   await user.save();
@@ -562,7 +593,8 @@ export const updateUserProfile = async (
     bio?: string;
     username?: string;
     avatarKey?: string;
-  }
+  },
+  clientIp?: string
 ) => {
   const user = await User.findById(userId);
   if (!user) {
@@ -582,6 +614,27 @@ export const updateUserProfile = async (
         );
       }
 
+      // Check 2 changes in 30 days limit if user already has a username
+      if (user.username) {
+        const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
+        const thirtyDaysAgo = new Date(Date.now() - THIRTY_DAYS_MS);
+        const recentChanges = (user.usernameChanges || []).filter(
+          (c) => new Date(c.changedAt) >= thirtyDaysAgo
+        );
+
+        if (recentChanges.length >= 2) {
+          if (clientIp) {
+            blockIp(clientIp, "Exceeded username change limit: 2 times in 30 days");
+          }
+          const err: any = new Error(
+            "You can only change your username 2 times every 30 days. Please try again later."
+          );
+          err.statusCode = 429;
+          err.code = "USERNAME_CHANGE_LIMIT_EXCEEDED";
+          throw err;
+        }
+      }
+
       const existing = await User.findOne({
         username: cleanUsername,
         _id: { $ne: new Types.ObjectId(userId) },
@@ -589,6 +642,15 @@ export const updateUserProfile = async (
       if (existing) {
         throw new Error("Username is already taken. Please pick another one.");
       }
+
+      if (!user.usernameChanges) {
+        user.usernameChanges = [];
+      }
+      user.usernameChanges.push({
+        changedAt: new Date(),
+        oldUsername: user.username,
+      });
+
       user.username = cleanUsername;
     }
   }

@@ -34,6 +34,12 @@ export interface IUser extends Document {
   resetOtpLastSentAt?: Date;
   resetOtpAttempts?: number;
 
+  // 📝 Username Change History (2 changes in 30 days limitation)
+  usernameChanges?: {
+    changedAt: Date;
+    oldUsername?: string;
+  }[];
+
   createdAt: Date;
   updatedAt: Date;
 }
@@ -125,6 +131,21 @@ const UserSchema: Schema<IUser> = new Schema(
       type: Number,
       default: 0,
     },
+
+    // ============================
+    // Username Change History (2 in 30 days)
+    // ============================
+    usernameChanges: [
+      {
+        changedAt: {
+          type: Date,
+          default: Date.now,
+        },
+        oldUsername: {
+          type: String,
+        },
+      },
+    ],
   },
   {
     timestamps: true,

@@ -22,10 +22,14 @@ import { Types } from "mongoose";
 import { resendResetPasswordOtp } from "./auth.service";
 
 import {
-  isLoginBlocked,
-  recordFailedLogin,
-  resetLoginAttempts,
-} from "../../utils/loginAttemptLimiter";
+  getClientIp,
+  isIpBlocked,
+  recordFailedLoginAttempt,
+  resetFailedLoginAttempts,
+  checkAndRecordRegisterAttempt,
+  checkAndRecordPasswordChangeAttempt,
+  GENERIC_RATE_LIMIT_MSG,
+} from "../../utils/authSecurityLimiter";
 
 const registerSchema = z.object({
   email: z.string().email(),
@@ -40,6 +44,13 @@ const loginSchema = z.object({
 });
 
 export const register = async (req: Request, res: Response) => {
+  const ip = getClientIp(req);
+
+  // 1. IP Ban check & 5 accounts created under 1 minute rate limit
+  if (isIpBlocked(ip) || checkAndRecordRegisterAttempt(ip)) {
+    return res.status(429).json({ message: GENERIC_RATE_LIMIT_MSG });
+  }
+
   const parsed = registerSchema.safeParse(req.body);
   if (!parsed.success) {
     return res.status(400).json({ message: "Invalid input", errors: parsed.error.format() });
@@ -50,7 +61,7 @@ export const register = async (req: Request, res: Response) => {
   try {
     const result = await registerUser(email, password, role, username);
 
-    // 🔍 Audit log (optional, but good)
+    // 🔍 Audit log
     await logAuditEvent({
       actorRole: "USER",
       actorId: result.user.id,
@@ -67,6 +78,16 @@ export const register = async (req: Request, res: Response) => {
 };
 
 export const login = async (req: Request, res: Response) => {
+  const ip = getClientIp(req);
+  const userAgent = req.headers["user-agent"];
+
+  // 1. Block if IP is banned
+  if (isIpBlocked(ip)) {
+    return res.status(429).json({
+      message: GENERIC_RATE_LIMIT_MSG,
+    });
+  }
+
   const parsed = loginSchema.safeParse(req.body);
   if (!parsed.success) {
     return res.status(400).json({ message: "Invalid input" });
@@ -74,27 +95,11 @@ export const login = async (req: Request, res: Response) => {
 
   const { email, password } = parsed.data;
 
-  // ✅ GET CLIENT IP
-  const ip =
-    req.ip ||
-    req.headers["x-forwarded-for"] ||
-    req.connection.remoteAddress ||
-    "unknown";
-
-  const userAgent = req.headers["user-agent"];
-
-  // ✅ BLOCK IF TOO MANY FAILED ATTEMPTS
-  if (isLoginBlocked(ip as string)) {
-    return res.status(429).json({
-      message: "Too many failed login attempts. Try again later.",
-    });
-  }
-
   try {
-    const result = await loginUser(email, password, userAgent, ip as string);
+    const result = await loginUser(email, password, userAgent, ip);
 
-    // ✅ RESET FAILED ATTEMPTS ON SUCCESS
-    resetLoginAttempts(ip as string);
+    // ✅ Reset failed login attempts on successful login
+    resetFailedLoginAttempts(ip);
 
     // 🔍 Audit log
     await logAuditEvent({
@@ -108,8 +113,12 @@ export const login = async (req: Request, res: Response) => {
 
     res.status(200).json(result);
   } catch (error: any) {
-    // ✅ RECORD FAILED ATTEMPT
-    recordFailedLogin(ip as string);
+    // 🚨 Record ONLY failed login attempt (10 under 1 min -> 30m IP block)
+    const isNowBlocked = recordFailedLoginAttempt(ip);
+
+    if (isNowBlocked) {
+      return res.status(429).json({ message: GENERIC_RATE_LIMIT_MSG });
+    }
 
     res.status(401).json({ message: error.message });
   }
@@ -144,6 +153,11 @@ export const refreshTokenController = async (req: Request, res: Response) => {
 // ============================
 
 export const forgotPassword = async (req: Request, res: Response) => {
+  const ip = getClientIp(req);
+  if (isIpBlocked(ip) || checkAndRecordPasswordChangeAttempt(ip)) {
+    return res.status(429).json({ message: GENERIC_RATE_LIMIT_MSG });
+  }
+
   try {
     const { email } = req.body;
     if (!email) {
@@ -157,6 +171,11 @@ export const forgotPassword = async (req: Request, res: Response) => {
 };
 
 export const verifyOtp = async (req: Request, res: Response) => {
+  const ip = getClientIp(req);
+  if (isIpBlocked(ip)) {
+    return res.status(429).json({ message: GENERIC_RATE_LIMIT_MSG });
+  }
+
   try {
     const { email, otp } = req.body;
     if (!email || !otp) {
@@ -173,6 +192,11 @@ export const resetPasswordController = async (
   req: Request,
   res: Response
 ) => {
+  const ip = getClientIp(req);
+  if (isIpBlocked(ip) || checkAndRecordPasswordChangeAttempt(ip)) {
+    return res.status(429).json({ message: GENERIC_RATE_LIMIT_MSG });
+  }
+
   try {
     const { email, password } = req.body;
     if (!email || !password) {
@@ -191,6 +215,11 @@ export const resetPasswordController = async (
 // ============================
 
 export const resendResetOtpController = async (req: Request, res: Response) => {
+  const ip = getClientIp(req);
+  if (isIpBlocked(ip) || checkAndRecordPasswordChangeAttempt(ip)) {
+    return res.status(429).json({ message: GENERIC_RATE_LIMIT_MSG });
+  }
+
   try {
     const { email } = req.body;
 
@@ -283,19 +312,25 @@ export const setUsernameController = async (req: Request, res: Response) => {
     return res.status(401).json({ message: "Unauthorized" });
   }
 
+  const ip = getClientIp(req);
+  if (isIpBlocked(ip)) {
+    return res.status(429).json({ message: GENERIC_RATE_LIMIT_MSG });
+  }
+
   const { username } = req.body;
   if (!username) {
     return res.status(400).json({ message: "Username is required" });
   }
 
   try {
-    const updatedUser = await setUsername(authReq.user.userId, username);
+    const updatedUser = await setUsername(authReq.user.userId, username, ip);
     return res.status(200).json({
       message: "Username set successfully",
       user: updatedUser,
     });
   } catch (error: any) {
-    return res.status(400).json({ message: error.message || "Failed to set username" });
+    const status = error.statusCode || 400;
+    return res.status(status).json({ message: error.message || "Failed to set username" });
   }
 };
 
@@ -309,14 +344,23 @@ export const updateProfileHandler = async (req: Request, res: Response) => {
     return res.status(401).json({ message: "Unauthorized" });
   }
 
+  const ip = getClientIp(req);
+  if (isIpBlocked(ip)) {
+    return res.status(429).json({ message: GENERIC_RATE_LIMIT_MSG });
+  }
+
   const { bio, username, avatarKey } = req.body;
 
   try {
-    const updatedUser = await updateUserProfile(authReq.user.userId, {
-      bio,
-      username,
-      avatarKey,
-    });
+    const updatedUser = await updateUserProfile(
+      authReq.user.userId,
+      {
+        bio,
+        username,
+        avatarKey,
+      },
+      ip
+    );
 
     return res.status(200).json({
       message: "Profile updated successfully",
