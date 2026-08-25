@@ -44,6 +44,7 @@ import ForgotPassword from "./pages/ForgotPassword";
 import VerifyOtp from "./pages/VerifyOtp";
 import ResetPassword from "./pages/ResetPassword";
 import ChooseUsername from "./pages/ChooseUsername";
+import Profile from "./pages/Profile";
 
 function AppRoutes() {
   const location = useLocation();
@@ -53,6 +54,7 @@ function AppRoutes() {
     "/register",
     "/username",
     "/dashboard",
+    "/profile",
     "/admin",
     "/verify-email",
     "/forgot-password",
@@ -92,9 +94,15 @@ function AppRoutes() {
         <Route path="/accessibility" element={<AccessibilityPage />} />
         <Route path="/blog/:slug" element={<BlogDetailPage />} />
 
+        {/* Profile standalone route */}
+        <Route path="/profile" element={<DashboardLayout />}>
+          <Route index element={<Profile />} />
+        </Route>
+
         {/* Dashboard layout */}
         <Route path="/dashboard" element={<DashboardLayout />}>
           <Route index element={<Dashboard />} />
+          <Route path="profile" element={<Profile />} />
           <Route path="classrooms/my" element={<MyClassrooms />} />
           <Route path="classrooms/:id" element={<ClassroomDetail />} />
           <Route path="classrooms/create" element={<CreateClassroom />} />

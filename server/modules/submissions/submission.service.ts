@@ -163,7 +163,7 @@ export const getSubmissionsForAssignment = async (
   }
 
   const submissions = await Submission.find({ assignmentId })
-    .populate("studentId", "email username")
+    .populate("studentId", "email username avatarKey")
     .sort({ createdAt: -1 });
 
   return Promise.all(
@@ -176,12 +176,22 @@ export const getSubmissionsForAssignment = async (
         ],
       });
 
+      let avatarUrl: string | null = null;
+      if ((s.studentId as any)?.avatarKey) {
+        try {
+          avatarUrl = await generateDownloadUrl((s.studentId as any).avatarKey);
+        } catch (err) {
+          console.warn("Failed to generate presigned avatar for submission student:", err);
+        }
+      }
+
       return {
         id: s._id,
         student: {
           id: studentObjectId,
           email: (s.studentId as any)?.email,
           username: (s.studentId as any)?.username || null,
+          avatarUrl,
         },
         state: s.state,
         submittedAt: s.updatedAt || s.createdAt,

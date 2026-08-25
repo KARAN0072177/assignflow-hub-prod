@@ -11,6 +11,9 @@ import {
   getMe,
   setUsernameController,
   checkUsernameController,
+  updateProfileHandler,
+  getAvatarUploadUrlHandler,
+  getProfileCardHandler,
 } from "./auth.controller";
 import { requireAuth } from "../../middleware/requireAuth";
 
@@ -21,6 +24,7 @@ router.post("/register", register);
 router.post("/login", login);
 router.post("/refresh-token", refreshTokenController);
 router.get("/check-username", checkUsernameController);
+router.get("/profile-card/:identifier", getProfileCardHandler);
 
 // Password reset routes
 router.post("/forgot-password", forgotPassword);
@@ -31,6 +35,8 @@ router.post("/resend-reset-otp", resendResetOtpController);
 // Authenticated user routes
 router.get("/me", requireAuth, getMe);
 router.post("/set-username", requireAuth, setUsernameController);
+router.patch("/profile", requireAuth, updateProfileHandler);
+router.post("/avatar/presigned-url", requireAuth, getAvatarUploadUrlHandler);
 
 // Session revocation / logout
 router.post("/logout", logout);

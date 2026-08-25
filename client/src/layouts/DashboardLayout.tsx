@@ -13,6 +13,18 @@ const DashboardLayout = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [userRole, setUserRole] = useState<string | null>(null);
   const [username, setUsername] = useState<string | null>(null);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    const handleStorage = () => {
+      setUsername(localStorage.getItem("username"));
+      setUserRole(localStorage.getItem("userRole"));
+      setAvatarUrl(localStorage.getItem("userAvatar"));
+    };
+
+    window.addEventListener("storage", handleStorage);
+    return () => window.removeEventListener("storage", handleStorage);
+  }, []);
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -26,10 +38,12 @@ const DashboardLayout = () => {
 
       setUserRole(role);
 
-      // Check username status from storage and verify with backend
+      // Check username & avatar status from storage
       const storedUsername = localStorage.getItem("username");
+      const storedAvatar = localStorage.getItem("userAvatar");
       if (storedUsername) {
         setUsername(storedUsername);
+        setAvatarUrl(storedAvatar || null);
         setIsLoading(false);
       }
 
@@ -41,6 +55,7 @@ const DashboardLayout = () => {
           return;
         }
         setUsername(user.username);
+        setAvatarUrl(user.avatarUrl || null);
       } catch (err: any) {
         if (err?.response?.status === 401) {
           navigate("/login");
@@ -101,7 +116,8 @@ const DashboardLayout = () => {
               </div>
               <div className="md:hidden">
                 <h1 className="text-lg font-semibold text-slate-800">
-                  {location.pathname.includes('students') ? 'Class Students' :
+                  {location.pathname.includes('profile') ? 'My Profile' :
+                   location.pathname.includes('students') ? 'Class Students' :
                    location.pathname.includes('grades') ? 'My Grades' :
                    location.pathname.includes('join') ? 'Join Classroom' :
                    location.pathname.includes('create') ? 'Create Classroom' :
@@ -128,24 +144,39 @@ const DashboardLayout = () => {
                 <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
               </button>
               
-              {/* User Profile */}
-              <div className="flex items-center gap-2 p-1.5 sm:p-2 rounded-xl hover:bg-slate-50 border border-transparent hover:border-slate-200 transition-all duration-200 cursor-pointer">
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs ${
+              {/* User Profile Trigger -> Navigates to /profile */}
+              <button
+                type="button"
+                onClick={() => navigate("/profile")}
+                title="View & Edit Profile"
+                className="flex items-center gap-2 p-1.5 sm:p-2 rounded-2xl hover:bg-slate-100/80 border border-transparent hover:border-slate-200 transition-all duration-200 cursor-pointer text-left group"
+              >
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs overflow-hidden shadow-2xs ${
                   userRole === 'TEACHER' 
                     ? 'bg-blue-100 text-blue-700' 
                     : 'bg-emerald-100 text-emerald-700'
                 }`}>
-                  {username ? username[0].toUpperCase() : <User className="w-4 h-4" />}
+                  {avatarUrl ? (
+                    <img
+                      src={avatarUrl}
+                      alt={username || "Avatar"}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : username ? (
+                    username[0].toUpperCase()
+                  ) : (
+                    <User className="w-4 h-4" />
+                  )}
                 </div>
                 <div className="hidden sm:flex flex-col text-left">
-                  <span className="text-xs font-bold text-slate-800 flex items-center gap-0.5">
+                  <span className="text-xs font-bold text-slate-800 group-hover:text-blue-600 transition-colors flex items-center gap-0.5">
                     {username ? `@${username}` : (userRole === 'TEACHER' ? 'Teacher' : 'Student')}
                   </span>
                   <span className="text-[10px] text-slate-500 font-medium">
                     {userRole === 'TEACHER' ? 'Teacher' : 'Student'}
                   </span>
                 </div>
-              </div>
+              </button>
             </div>
           </div>
           

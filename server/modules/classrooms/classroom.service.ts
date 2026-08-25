@@ -3,6 +3,7 @@ import { Types } from "mongoose";
 import { Membership } from "../../models/membership.model";
 import { Assignment, AssignmentState } from "../../models/assignment.model";
 import sanitizeHtml from "sanitize-html";
+import { generateDownloadUrl } from "../../utils/s3-download";
 
 const generateJoinCode = (): string => {
   const letters = Math.random().toString(36).substring(2, 6).toUpperCase();
@@ -242,37 +243,54 @@ export const getTeacherClassroomsWithStudents = async (
         _id: Types.ObjectId;
         email: string;
         username?: string;
+        avatarKey?: string;
         createdAt: Date;
       };
-    }>("studentId", "email username createdAt")
+    }>("studentId", "email username avatarKey createdAt")
     .sort({ createdAt: -1 })
     .lean();
 
   // 3. Map students to their respective classroom
-  const result = classrooms.map((classroom) => {
-    const classMemberships = memberships.filter((m) =>
-      m.classroomId.equals(classroom._id)
-    );
+  const result = await Promise.all(
+    classrooms.map(async (classroom) => {
+      const classMemberships = memberships.filter((m) =>
+        m.classroomId.equals(classroom._id)
+      );
 
-    const students = classMemberships
-      .filter((m) => m.studentId)
-      .map((m) => ({
-        id: m.studentId._id.toString(),
-        email: m.studentId.email,
-        username: (m.studentId as any).username || null,
-        joinedAt: m.createdAt,
-      }));
+      const students = await Promise.all(
+        classMemberships
+          .filter((m) => m.studentId)
+          .map(async (m) => {
+            let avatarUrl: string | null = null;
+            if ((m.studentId as any).avatarKey) {
+              try {
+                avatarUrl = await generateDownloadUrl((m.studentId as any).avatarKey);
+              } catch (err) {
+                console.warn("Failed to generate avatar url for classroom student:", err);
+              }
+            }
 
-    return {
-      id: classroom._id.toString(),
-      name: classroom.name,
-      description: classroom.description || "",
-      code: classroom.code,
-      createdAt: classroom.createdAt,
-      studentCount: students.length,
-      students,
-    };
-  });
+            return {
+              id: m.studentId._id.toString(),
+              email: m.studentId.email,
+              username: (m.studentId as any).username || null,
+              avatarUrl,
+              joinedAt: m.createdAt,
+            };
+          })
+      );
+
+      return {
+        id: classroom._id.toString(),
+        name: classroom.name,
+        description: classroom.description || "",
+        code: classroom.code,
+        createdAt: classroom.createdAt,
+        studentCount: students.length,
+        students,
+      };
+    })
+  );
 
   return result;
 };

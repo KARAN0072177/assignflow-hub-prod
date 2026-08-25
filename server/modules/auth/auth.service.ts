@@ -11,6 +11,8 @@ import {
   generateResetOtpEmailTemplate,
   generateVerificationEmailTemplate,
 } from "./auth.mail";
+import { generateDownloadUrl } from "../../utils/s3-download";
+import { generateAvatarUploadUrl } from "../../utils/s3-avatar";
 
 const SALT_ROUNDS = 10;
 
@@ -413,10 +415,22 @@ export const getCurrentUser = async (userId: string | Types.ObjectId) => {
     throw new Error("User not found");
   }
 
+  let avatarUrl: string | null = null;
+  if (user.avatarKey) {
+    try {
+      avatarUrl = await generateDownloadUrl(user.avatarKey);
+    } catch (err) {
+      console.warn("Could not generate presigned avatar URL:", err);
+    }
+  }
+
   return {
     id: user._id,
     email: user.email,
     username: user.username || null,
+    bio: user.bio || "",
+    avatarKey: user.avatarKey || null,
+    avatarUrl,
     role: user.role,
     isVerified: user.isVerified,
     createdAt: user.createdAt,
@@ -428,7 +442,10 @@ export const getCurrentUser = async (userId: string | Types.ObjectId) => {
  * CHECK USERNAME AVAILABILITY
  * ============================
  */
-export const checkUsernameAvailable = async (username: string) => {
+export const checkUsernameAvailable = async (
+  username: string,
+  excludeUserId?: string | Types.ObjectId
+) => {
   if (!username || !username.trim()) {
     return { available: false, message: "Username cannot be empty" };
   }
@@ -448,7 +465,12 @@ export const checkUsernameAvailable = async (username: string) => {
     };
   }
 
-  const existing = await User.findOne({ username: clean });
+  const query: any = { username: clean };
+  if (excludeUserId) {
+    query._id = { $ne: new Types.ObjectId(excludeUserId) };
+  }
+
+  const existing = await User.findOne(query);
   if (existing) {
     return { available: false, message: "Username is already taken" };
   }
@@ -498,6 +520,15 @@ export const setUsername = async (
   user.username = clean;
   await user.save();
 
+  let avatarUrl: string | null = null;
+  if (user.avatarKey) {
+    try {
+      avatarUrl = await generateDownloadUrl(user.avatarKey);
+    } catch (err) {
+      console.warn("Could not generate presigned avatar URL:", err);
+    }
+  }
+
   await logAuditEvent({
     actorRole: "USER",
     actorId: user._id,
@@ -511,8 +542,168 @@ export const setUsername = async (
     id: user._id,
     email: user.email,
     username: user.username,
+    bio: user.bio || "",
+    avatarKey: user.avatarKey || null,
+    avatarUrl,
     role: user.role,
     isVerified: user.isVerified,
+  };
+};
+
+/**
+ * ============================
+ * UPDATE USER PROFILE (Bio, Username, Avatar)
+ * ============================
+ */
+export const updateUserProfile = async (
+  userId: string | Types.ObjectId,
+  payload: {
+    bio?: string;
+    username?: string;
+    avatarKey?: string;
+  }
+) => {
+  const user = await User.findById(userId);
+  if (!user) {
+    throw new Error("User not found");
+  }
+
+  // 1. Update Username if provided
+  if (payload.username !== undefined && payload.username.trim()) {
+    const cleanUsername = payload.username.trim().toLowerCase();
+    if (cleanUsername !== user.username) {
+      if (cleanUsername.length < 3 || cleanUsername.length > 30) {
+        throw new Error("Username must be between 3 and 30 characters");
+      }
+      if (!/^[a-zA-Z0-9_.-]+$/.test(cleanUsername)) {
+        throw new Error(
+          "Username can only contain letters, numbers, underscores, hyphens, and dots"
+        );
+      }
+
+      const existing = await User.findOne({
+        username: cleanUsername,
+        _id: { $ne: new Types.ObjectId(userId) },
+      });
+      if (existing) {
+        throw new Error("Username is already taken. Please pick another one.");
+      }
+      user.username = cleanUsername;
+    }
+  }
+
+  // 2. Update Bio if provided
+  if (payload.bio !== undefined) {
+    if (payload.bio.length > 500) {
+      throw new Error("Bio cannot exceed 500 characters");
+    }
+    user.bio = payload.bio.trim();
+  }
+
+  // 3. Update Avatar Key if provided
+  if (payload.avatarKey !== undefined) {
+    user.avatarKey = payload.avatarKey;
+  }
+
+  await user.save();
+
+  let avatarUrl: string | null = null;
+  if (user.avatarKey) {
+    try {
+      avatarUrl = await generateDownloadUrl(user.avatarKey);
+    } catch (err) {
+      console.warn("Could not generate presigned avatar URL:", err);
+    }
+  }
+
+  await logAuditEvent({
+    actorRole: "USER",
+    actorId: user._id,
+    action: "USER_PROFILE_UPDATE",
+    entityType: "AUTH",
+    entityId: user._id,
+    metadata: {
+      username: user.username,
+      hasBio: !!user.bio,
+      hasAvatar: !!user.avatarKey,
+    },
+  });
+
+  return {
+    id: user._id,
+    email: user.email,
+    username: user.username || null,
+    bio: user.bio || "",
+    avatarKey: user.avatarKey || null,
+    avatarUrl,
+    role: user.role,
+    isVerified: user.isVerified,
+  };
+};
+
+/**
+ * ============================
+ * GENERATE AVATAR PRESIGNED UPLOAD URL
+ * ============================
+ */
+export const getAvatarUploadUrlService = async (
+  userId: string | Types.ObjectId,
+  fileName: string,
+  fileType: string
+) => {
+  return generateAvatarUploadUrl({
+    userId: userId.toString(),
+    originalFileName: fileName,
+    mimeType: fileType,
+  });
+};
+
+/**
+ * ============================
+ * GET PUBLIC PROFILE CARD (Teams Hover Card)
+ * ============================
+ */
+export const getPublicProfileCard = async (identifier: string) => {
+  if (!identifier || !identifier.trim()) {
+    throw new Error("Identifier is required");
+  }
+
+  const clean = identifier.trim().replace(/^@/, "");
+  const escaped = clean.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+  const conditions: any[] = [
+    { username: clean.toLowerCase() },
+    { username: new RegExp(`^${escaped}$`, "i") },
+    { email: clean.toLowerCase() },
+    { email: new RegExp(`^${escaped}@`, "i") },
+  ];
+
+  if (Types.ObjectId.isValid(clean)) {
+    conditions.unshift({ _id: new Types.ObjectId(clean) });
+  }
+
+  const user = await User.findOne({ $or: conditions });
+  if (!user) {
+    throw new Error("User not found");
+  }
+
+  let avatarUrl: string | null = null;
+  if (user.avatarKey) {
+    try {
+      avatarUrl = await generateDownloadUrl(user.avatarKey);
+    } catch (err) {
+      console.warn("Could not generate presigned avatar URL for card:", err);
+    }
+  }
+
+  return {
+    id: user._id,
+    username: user.username || null,
+    email: user.email,
+    role: user.role,
+    bio: user.bio || "",
+    avatarUrl,
+    joinedAt: user.createdAt,
   };
 };
 

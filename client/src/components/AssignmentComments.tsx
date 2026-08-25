@@ -20,6 +20,7 @@ import {
   type AssignmentCommentItem,
 } from "../services/comment.api";
 import { useAppSocket } from "../context/SocketContext";
+import { UserProfileHoverCard } from "./UserProfileHoverCard";
 
 interface Props {
   assignmentId: string;
@@ -214,6 +215,29 @@ export const AssignmentComments = ({
     }
   };
 
+  const renderCommentContentWithMentions = (text: string) => {
+    if (!text) return null;
+    const parts = text.split(/(@[a-zA-Z0-9_.-]+)/g);
+
+    return parts.map((part, idx) => {
+      if (part.startsWith("@") && part.length > 1) {
+        const handle = part.slice(1);
+        return (
+          <UserProfileHoverCard
+            key={idx}
+            identifier={handle}
+            fallbackName={handle}
+          >
+            <span className="font-semibold text-blue-600 hover:text-blue-800 underline decoration-blue-300 decoration-1 underline-offset-2">
+              {part}
+            </span>
+          </UserProfileHoverCard>
+        );
+      }
+      return <span key={idx}>{part}</span>;
+    });
+  };
+
   // Helper to check if current user authored this comment
   const isOwnComment = (authorEmail: string) => {
     if (!currentUserEmail) return false;
@@ -313,21 +337,35 @@ export const AssignmentComments = ({
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex items-start gap-2.5">
                     {/* User Avatar */}
-                    <div
-                      className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${
-                        comment.authorRole === "TEACHER"
-                          ? "bg-blue-600 text-white shadow-xs shadow-blue-500/20"
-                          : "bg-slate-800 text-white"
-                      }`}
+                    <UserProfileHoverCard
+                      identifier={comment.authorName || comment.authorEmail}
+                      userId={comment.authorId}
+                      fallbackName={comment.authorName || comment.authorEmail.split("@")[0]}
+                      fallbackRole={comment.authorRole}
                     >
-                      {comment.authorEmail.charAt(0).toUpperCase()}
-                    </div>
+                      <div
+                        className={`w-8 h-8 rounded-full aspect-square flex items-center justify-center text-xs font-bold shrink-0 ${
+                          comment.authorRole === "TEACHER"
+                            ? "bg-blue-600 text-white shadow-xs shadow-blue-500/20"
+                            : "bg-slate-800 text-white"
+                        }`}
+                      >
+                        {comment.authorEmail.charAt(0).toUpperCase()}
+                      </div>
+                    </UserProfileHoverCard>
 
                     <div>
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-semibold text-xs text-slate-900">
-                          {comment.authorName || comment.authorEmail.split("@")[0]}
-                        </span>
+                        <UserProfileHoverCard
+                          identifier={comment.authorName || comment.authorEmail}
+                          userId={comment.authorId}
+                          fallbackName={comment.authorName || comment.authorEmail.split("@")[0]}
+                          fallbackRole={comment.authorRole}
+                        >
+                          <span className="font-semibold text-xs text-slate-900 hover:text-blue-600 transition-colors">
+                            {comment.authorName || comment.authorEmail.split("@")[0]}
+                          </span>
+                        </UserProfileHoverCard>
 
                         {comment.authorRole === "TEACHER" ? (
                           <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-100 text-blue-800 border border-blue-200">
@@ -347,7 +385,7 @@ export const AssignmentComments = ({
                       </div>
 
                       <p className="mt-2 text-xs text-slate-700 leading-relaxed whitespace-pre-line">
-                        {comment.content}
+                        {renderCommentContentWithMentions(comment.content)}
                       </p>
                     </div>
                   </div>
@@ -444,22 +482,36 @@ export const AssignmentComments = ({
 
                       <div className="flex items-start justify-between gap-3">
                         <div className="flex items-start gap-2">
-                          <div
-                            className={`w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0 ${
-                              reply.authorRole === "TEACHER"
-                                ? "bg-blue-600 text-white"
-                                : "bg-slate-700 text-white"
-                            }`}
+                          <UserProfileHoverCard
+                            identifier={reply.authorName || reply.authorEmail}
+                            userId={reply.authorId}
+                            fallbackName={reply.authorName || reply.authorEmail.split("@")[0]}
+                            fallbackRole={reply.authorRole}
                           >
-                            {reply.authorEmail.charAt(0).toUpperCase()}
-                          </div>
+                            <div
+                              className={`w-7 h-7 rounded-full aspect-square flex items-center justify-center text-[10px] font-bold shrink-0 ${
+                                reply.authorRole === "TEACHER"
+                                  ? "bg-blue-600 text-white"
+                                  : "bg-slate-700 text-white"
+                              }`}
+                            >
+                              {reply.authorEmail.charAt(0).toUpperCase()}
+                            </div>
+                          </UserProfileHoverCard>
 
                           <div>
                             <div className="flex items-center gap-1.5 flex-wrap">
-                              <span className="font-semibold text-xs text-slate-900">
-                                {reply.authorName ||
-                                  reply.authorEmail.split("@")[0]}
-                              </span>
+                              <UserProfileHoverCard
+                                identifier={reply.authorName || reply.authorEmail}
+                                userId={reply.authorId}
+                                fallbackName={reply.authorName || reply.authorEmail.split("@")[0]}
+                                fallbackRole={reply.authorRole}
+                              >
+                                <span className="font-semibold text-xs text-slate-900 hover:text-blue-600 transition-colors">
+                                  {reply.authorName ||
+                                    reply.authorEmail.split("@")[0]}
+                                </span>
+                              </UserProfileHoverCard>
 
                               {reply.authorRole === "TEACHER" ? (
                                 <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-blue-100 text-blue-800">
@@ -472,9 +524,18 @@ export const AssignmentComments = ({
                               )}
 
                               {reply.replyToUser && (
-                                <span className="text-[10px] text-blue-600 font-medium">
-                                  replied to @
-                                  {reply.replyToUser.email.split("@")[0]}
+                                <span className="text-[10px] text-slate-500 font-medium">
+                                  replied to{" "}
+                                  <UserProfileHoverCard
+                                    identifier={reply.replyToUser.email.split("@")[0]}
+                                    userId={reply.replyToUser.id}
+                                    fallbackName={reply.replyToUser.email.split("@")[0]}
+                                    fallbackRole={reply.replyToUser.role}
+                                  >
+                                    <span className="text-blue-600 hover:text-blue-800 font-bold">
+                                      @{reply.replyToUser.email.split("@")[0]}
+                                    </span>
+                                  </UserProfileHoverCard>
                                 </span>
                               )}
 
@@ -484,7 +545,7 @@ export const AssignmentComments = ({
                             </div>
 
                             <p className="mt-1.5 text-xs text-slate-700 leading-relaxed whitespace-pre-line">
-                              {reply.content}
+                              {renderCommentContentWithMentions(reply.content)}
                             </p>
                           </div>
                         </div>

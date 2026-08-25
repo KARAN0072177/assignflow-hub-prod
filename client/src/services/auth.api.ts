@@ -60,6 +60,11 @@ export const getMe = async (): Promise<UserProfile> => {
   if (user.email) {
     localStorage.setItem("userEmail", user.email);
   }
+  if (user.avatarUrl) {
+    localStorage.setItem("userAvatar", user.avatarUrl);
+  } else {
+    localStorage.removeItem("userAvatar");
+  }
   return user;
 };
 
@@ -86,6 +91,91 @@ export const setUsername = async (
   return response.data;
 };
 
+export const updateProfile = async (
+  payload: { bio?: string; username?: string; avatarKey?: string }
+): Promise<{ message: string; user: UserProfile }> => {
+  const response = await apiClient.patch<{ message: string; user: UserProfile }>(
+    "/api/auth/profile",
+    payload
+  );
+  const user = response.data.user;
+  if (user.username) {
+    localStorage.setItem("username", user.username);
+  }
+  if (user.avatarUrl) {
+    localStorage.setItem("userAvatar", user.avatarUrl);
+  }
+  window.dispatchEvent(new Event("storage"));
+  return response.data;
+};
+
+export const getAvatarPresignedUrl = async (
+  fileName: string,
+  fileType: string
+): Promise<{ uploadUrl: string; fileKey: string }> => {
+  const response = await apiClient.post<{ uploadUrl: string; fileKey: string }>(
+    "/api/auth/avatar/presigned-url",
+    { fileName, fileType }
+  );
+  return response.data;
+};
+
+export const uploadAvatarToS3 = async (
+  uploadUrl: string,
+  file: File
+): Promise<void> => {
+  const response = await fetch(uploadUrl, {
+    method: "PUT",
+    headers: {
+      "Content-Type": file.type,
+    },
+    body: file,
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to upload avatar to S3 (${response.statusText})`);
+  }
+};
+
+export interface PublicProfileCard {
+  id: string;
+  username: string | null;
+  email: string;
+  role: "STUDENT" | "TEACHER" | "ADMIN";
+  bio?: string;
+  avatarUrl?: string | null;
+  joinedAt?: string;
+}
+
+const profileCardCache = new Map<string, { data: PublicProfileCard; timestamp: number }>();
+const CACHE_TTL_MS = 1000 * 60 * 5; // 5 minutes cache
+
+export const getProfileCard = async (
+  identifier: string
+): Promise<PublicProfileCard> => {
+  const clean = identifier.trim().toLowerCase().replace(/^@/, "");
+  const cached = profileCardCache.get(clean);
+
+  if (cached && Date.now() - cached.timestamp < CACHE_TTL_MS) {
+    return cached.data;
+  }
+
+  const response = await apiClient.get<PublicProfileCard>(
+    `/api/auth/profile-card/${encodeURIComponent(clean)}`
+  );
+
+  const data = response.data;
+  profileCardCache.set(clean, { data, timestamp: Date.now() });
+  if (data.username) {
+    profileCardCache.set(data.username.toLowerCase(), { data, timestamp: Date.now() });
+  }
+  if (data.id) {
+    profileCardCache.set(data.id, { data, timestamp: Date.now() });
+  }
+
+  return data;
+};
+
 export const logoutUser = async () => {
   const refreshToken = localStorage.getItem("refreshToken");
 
@@ -99,6 +189,7 @@ export const logoutUser = async () => {
     localStorage.removeItem("userRole");
     localStorage.removeItem("userEmail");
     localStorage.removeItem("username");
+    localStorage.removeItem("userAvatar");
     window.dispatchEvent(new Event("storage"));
   }
 };

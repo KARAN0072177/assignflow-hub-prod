@@ -11,6 +11,9 @@ import {
   getCurrentUser,
   setUsername,
   checkUsernameAvailable,
+  updateUserProfile,
+  getAvatarUploadUrlService,
+  getPublicProfileCard,
 } from "./auth.service";
 import { UserRole } from "../../models/user.model";
 import { logAuditEvent } from "../../utils/auditLogger";
@@ -293,5 +296,89 @@ export const setUsernameController = async (req: Request, res: Response) => {
     });
   } catch (error: any) {
     return res.status(400).json({ message: error.message || "Failed to set username" });
+  }
+};
+
+/**
+ * Update user profile (bio, username, avatarKey)
+ * PATCH /api/auth/profile
+ */
+export const updateProfileHandler = async (req: Request, res: Response) => {
+  const authReq = req as AuthenticatedRequest;
+  if (!authReq.user?.userId) {
+    return res.status(401).json({ message: "Unauthorized" });
+  }
+
+  const { bio, username, avatarKey } = req.body;
+
+  try {
+    const updatedUser = await updateUserProfile(authReq.user.userId, {
+      bio,
+      username,
+      avatarKey,
+    });
+
+    return res.status(200).json({
+      message: "Profile updated successfully",
+      user: updatedUser,
+    });
+  } catch (error: any) {
+    return res.status(400).json({
+      message: error.message || "Failed to update profile",
+    });
+  }
+};
+
+/**
+ * Get S3 presigned upload URL for user avatar
+ * POST /api/auth/avatar/presigned-url
+ */
+export const getAvatarUploadUrlHandler = async (
+  req: Request,
+  res: Response
+) => {
+  const authReq = req as AuthenticatedRequest;
+  if (!authReq.user?.userId) {
+    return res.status(401).json({ message: "Unauthorized" });
+  }
+
+  const { fileName, fileType } = req.body;
+  if (!fileName || !fileType) {
+    return res.status(400).json({
+      message: "fileName and fileType are required",
+    });
+  }
+
+  try {
+    const result = await getAvatarUploadUrlService(
+      authReq.user.userId,
+      fileName,
+      fileType
+    );
+    return res.status(200).json(result);
+  } catch (error: any) {
+    return res.status(400).json({
+      message: error.message || "Failed to generate avatar upload URL",
+    });
+  }
+};
+
+/**
+ * Get public profile card for hover persona display
+ * GET /api/auth/profile-card/:identifier
+ */
+export const getProfileCardHandler = async (req: Request, res: Response) => {
+  const { identifier } = req.params;
+  if (!identifier) {
+    return res.status(400).json({ message: "Identifier is required" });
+  }
+
+  try {
+    const profileCard = await getPublicProfileCard(identifier);
+    return res.status(200).json(profileCard);
+  } catch (error: any) {
+    return res.status(404).json({
+      message: error.message || "User profile card not found",
+    });
   }
 };

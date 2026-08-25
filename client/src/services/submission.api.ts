@@ -48,6 +48,8 @@ export interface TeacherSubmission {
   student: {
     id: string;
     email: string;
+    username?: string | null;
+    avatarUrl?: string | null;
   };
   state: "DRAFT" | "SUBMITTED" | "LOCKED";
   submittedAt: string;

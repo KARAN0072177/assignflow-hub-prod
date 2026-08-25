@@ -23,6 +23,7 @@ import {
   ChevronRight,
   UserCheck
 } from "lucide-react";
+import { UserProfileHoverCard } from "./UserProfileHoverCard";
 
 /* =======================
    Types
@@ -413,21 +414,36 @@ const TeacherSubmissions = ({ assignmentId, dueDate }: Props) => {
                                     {globalIndex}
                                   </td>
 
-                                  {/* Student Name & Email */}
+                                  {/* Student Name, Avatar & Email */}
                                   <td className="py-3.5">
-                                    <div className="flex items-center gap-2.5">
-                                      <div className="w-7 h-7 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 text-white font-bold text-xs flex items-center justify-center shadow-2xs shrink-0">
-                                        {initial}
+                                    <UserProfileHoverCard
+                                      identifier={displayName}
+                                      userId={submission.student.id}
+                                      fallbackName={displayName}
+                                      fallbackRole="STUDENT"
+                                    >
+                                      <div className="flex items-center gap-2.5">
+                                        <div className="w-8 h-8 rounded-full aspect-square bg-gradient-to-br from-blue-500 to-indigo-600 text-white font-bold text-xs flex items-center justify-center shadow-2xs shrink-0 overflow-hidden ring-1 ring-slate-200">
+                                          {(submission.student as any).avatarUrl ? (
+                                            <img
+                                              src={(submission.student as any).avatarUrl}
+                                              alt={displayName}
+                                              className="w-full h-full object-cover"
+                                            />
+                                          ) : (
+                                            initial
+                                          )}
+                                        </div>
+                                        <div className="truncate max-w-[180px] sm:max-w-[240px]">
+                                          <p className="font-semibold text-slate-900 text-xs sm:text-sm group-hover:text-blue-600 transition-colors truncate">
+                                            {displayName}
+                                          </p>
+                                          <p className="text-[11px] text-slate-500 font-mono truncate">
+                                            {submission.student.email}
+                                          </p>
+                                        </div>
                                       </div>
-                                      <div className="truncate max-w-[180px] sm:max-w-[240px]">
-                                        <p className="font-semibold text-slate-900 text-xs sm:text-sm truncate">
-                                          {displayName}
-                                        </p>
-                                        <p className="text-[11px] text-slate-500 font-mono truncate">
-                                          {submission.student.email}
-                                        </p>
-                                      </div>
-                                    </div>
+                                    </UserProfileHoverCard>
                                   </td>
 
                                   {/* Submitted Date & Late Badge */}

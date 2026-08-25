@@ -16,9 +16,18 @@ export interface UserProfile {
   id: string;
   email: string;
   username?: string | null;
+  bio?: string;
+  avatarKey?: string | null;
+  avatarUrl?: string | null;
   role: UserRole;
   isVerified?: boolean;
   createdAt?: string;
+}
+
+export interface UpdateProfilePayload {
+  bio?: string;
+  username?: string;
+  avatarKey?: string;
 }
 
 export interface LoginResponse {

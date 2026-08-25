@@ -26,6 +26,7 @@ import {
 } from "../services/grade.api";
 import { StudentPerformanceAnalytics } from "../components/StudentPerformanceAnalytics";
 import { TeacherAiInsightsTab } from "../components/TeacherAiInsightsTab";
+import { UserProfileHoverCard } from "../components/UserProfileHoverCard";
 
 const TeacherStudents = () => {
   const [activeTab, setActiveTab] = useState<"analytics" | "roster" | "insights">("analytics");
@@ -530,14 +531,29 @@ const TeacherStudents = () => {
                                       {sIdx + 1}
                                     </td>
                                     <td className="py-3.5 font-medium text-slate-900">
-                                      <div className="flex items-center gap-3">
-                                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 text-white font-bold text-xs flex items-center justify-center shadow-2xs">
-                                          {initial}
+                                      <UserProfileHoverCard
+                                        identifier={displayName}
+                                        userId={student.id}
+                                        fallbackName={displayName}
+                                        fallbackRole="STUDENT"
+                                      >
+                                        <div className="flex items-center gap-3">
+                                          <div className="w-8 h-8 rounded-full aspect-square bg-gradient-to-br from-blue-500 to-indigo-600 text-white font-bold text-xs flex items-center justify-center shadow-2xs overflow-hidden ring-1 ring-slate-200">
+                                            {(student as any).avatarUrl ? (
+                                              <img
+                                                src={(student as any).avatarUrl}
+                                                alt={displayName}
+                                                className="w-full h-full object-cover"
+                                              />
+                                            ) : (
+                                              initial
+                                            )}
+                                          </div>
+                                          <span className="font-semibold text-slate-800 hover:text-blue-600 transition-colors">
+                                            {displayName}
+                                          </span>
                                         </div>
-                                        <span className="font-semibold text-slate-800">
-                                          {displayName}
-                                        </span>
-                                      </div>
+                                      </UserProfileHoverCard>
                                     </td>
                                     <td className="py-3.5 text-slate-600 font-mono text-xs">
                                       {student.email}

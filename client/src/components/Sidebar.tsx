@@ -26,6 +26,7 @@ interface SidebarProps {
 const Sidebar = ({ isOpen = false, onClose }: SidebarProps) => {
   const [role, setRole] = useState(localStorage.getItem("userRole"));
   const [username, setUsername] = useState(localStorage.getItem("username"));
+  const [avatarUrl, setAvatarUrl] = useState(localStorage.getItem("userAvatar"));
   const location = useLocation();
   const [collapsed, setCollapsed] = useState(false);
   const { unreadDiscussionsCount, unreadAssignmentsCount } = useAppSocket();
@@ -40,6 +41,7 @@ const Sidebar = ({ isOpen = false, onClose }: SidebarProps) => {
     const handleStorageChange = () => {
       setRole(localStorage.getItem("userRole"));
       setUsername(localStorage.getItem("username"));
+      setAvatarUrl(localStorage.getItem("userAvatar"));
     };
 
     window.addEventListener("storage", handleStorageChange);
@@ -251,25 +253,39 @@ const Sidebar = ({ isOpen = false, onClose }: SidebarProps) => {
 
               {/* User Info & Logout on Mobile */}
               <div className="p-4 border-t border-slate-200">
-                <div className="flex items-center gap-3 mb-3 p-2.5 bg-slate-50 rounded-xl">
+                <NavLink
+                  to="/profile"
+                  onClick={onClose}
+                  className="flex items-center gap-3 mb-3 p-2.5 bg-slate-50 hover:bg-slate-100/90 rounded-xl transition-colors group"
+                >
                   <div
-                    className={`w-8 h-8 rounded-lg flex items-center justify-center font-bold text-xs ${
+                    className={`w-8 h-8 rounded-lg flex items-center justify-center font-bold text-xs overflow-hidden shadow-2xs ${
                       role === "TEACHER"
                         ? "bg-blue-100 text-blue-700"
                         : "bg-emerald-100 text-emerald-700"
                     }`}
                   >
-                    {username ? username[0].toUpperCase() : <User className="w-4 h-4" />}
+                    {avatarUrl ? (
+                      <img
+                        src={avatarUrl}
+                        alt={username || "Avatar"}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : username ? (
+                      username[0].toUpperCase()
+                    ) : (
+                      <User className="w-4 h-4" />
+                    )}
                   </div>
                   <div className="overflow-hidden">
-                    <p className="font-semibold text-xs text-slate-800 truncate">
+                    <p className="font-semibold text-xs text-slate-800 group-hover:text-blue-600 transition-colors truncate">
                       {username ? `@${username}` : (role === "TEACHER" ? "Teacher Account" : "Student Account")}
                     </p>
                     <p className="text-[11px] text-slate-500">
-                      {role === "TEACHER" ? "Teacher" : "Student"} • Online
+                      {role === "TEACHER" ? "Teacher" : "Student"} • View Profile
                     </p>
                   </div>
-                </div>
+                </NavLink>
 
                 <button
                   onClick={handleLogout}
@@ -431,25 +447,39 @@ const Sidebar = ({ isOpen = false, onClose }: SidebarProps) => {
         {/* User Info & Logout on Desktop */}
         {!collapsed && (
           <div className="p-4 border-t border-slate-200">
-            <div className="flex items-center gap-3 mb-3 p-2.5 bg-slate-50 rounded-xl">
+            <NavLink
+              to="/profile"
+              className="flex items-center gap-3 mb-3 p-2.5 bg-slate-50 hover:bg-slate-100/90 rounded-xl transition-colors group"
+              title="View & Edit Profile"
+            >
               <div
-                className={`w-8 h-8 rounded-lg flex items-center justify-center font-bold text-xs ${
+                className={`w-8 h-8 rounded-lg flex items-center justify-center font-bold text-xs overflow-hidden shadow-2xs ${
                   role === "TEACHER"
                     ? "bg-blue-100 text-blue-700"
                     : "bg-emerald-100 text-emerald-700"
                 }`}
               >
-                {username ? username[0].toUpperCase() : <User className="w-4 h-4" />}
+                {avatarUrl ? (
+                  <img
+                    src={avatarUrl}
+                    alt={username || "Avatar"}
+                    className="w-full h-full object-cover"
+                  />
+                ) : username ? (
+                  username[0].toUpperCase()
+                ) : (
+                  <User className="w-4 h-4" />
+                )}
               </div>
               <div className="overflow-hidden">
-                <p className="font-semibold text-xs text-slate-800 truncate">
+                <p className="font-semibold text-xs text-slate-800 group-hover:text-blue-600 transition-colors truncate">
                   {username ? `@${username}` : (role === "TEACHER" ? "Teacher Account" : "Student Account")}
                 </p>
                 <p className="text-[11px] text-slate-500">
-                  {role === "TEACHER" ? "Teacher" : "Student"} • Online
+                  {role === "TEACHER" ? "Teacher" : "Student"} • View Profile
                 </p>
               </div>
-            </div>
+            </NavLink>
 
             <button
               onClick={handleLogout}
