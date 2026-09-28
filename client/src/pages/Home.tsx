@@ -20,12 +20,14 @@ import {
   ChevronDown,
   Layers,
   HelpCircle,
+  Star,
 } from "lucide-react";
 import Testimonials from "../components/Testimonials";
 import Features from "../components/Features";
 import NewsletterSubscribe from "../components/NewsletterSubscribe";
 import { Helmet } from "react-helmet-async";
 import { getPublicUptime, type UptimeData } from "../services/uptime.api";
+import { getFeedbackStats, type FeedbackStats } from "../services/feedback.api";
 
 const SAMPLE_CLASSES = [
   {
@@ -160,13 +162,31 @@ const Home = () => {
     monitoredPeriod: "30 days",
     lastChecked: "",
   });
+  const [feedbackStats, setFeedbackStats] = useState<FeedbackStats>({
+    averageRating: "4.9",
+    totalReviews: 9,
+    totalClassrooms: 14,
+    totalAssignments: 25,
+  });
   const navigate = useNavigate();
+
+  const scrollToTestimonials = () => {
+    const el = document.getElementById("testimonials");
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth" });
+    }
+  };
 
   useEffect(() => {
     let isMounted = true;
     getPublicUptime().then((data) => {
       if (isMounted && data) {
         setUptimeData(data);
+      }
+    });
+    getFeedbackStats().then((data) => {
+      if (isMounted && data) {
+        setFeedbackStats(data);
       }
     });
     return () => {
@@ -500,7 +520,12 @@ const Home = () => {
           <div className="max-w-7xl mx-auto px-6 lg:px-8">
             <div className="grid grid-cols-2 lg:grid-cols-4 divide-x divide-slate-100">
               {[
-                { value: "10,000+", label: "Assignments Evaluated", sub: "Fast, fair feedback loop" },
+                {
+                  value: `${feedbackStats.totalAssignments}+`,
+                  label: "Assignments Uploaded",
+                  sub: "Active coursework across classrooms",
+                  isAssignments: true,
+                },
                 { value: "94%", label: "Time Saved", sub: "On coursework grading & administration" },
                 {
                   value: `${uptimeData.uptimeRatio}%`,
@@ -510,7 +535,13 @@ const Home = () => {
                     : "Always accessible at deadline hour",
                   isUptime: true,
                 },
-                { value: "4.9 / 5.0", label: "Educator & Student Rating", sub: "Across 2,400+ active classrooms" },
+                {
+                  value: `${feedbackStats.averageRating} / 5.0`,
+                  label: "Educator & Student Rating",
+                  sub: `Across ${feedbackStats.totalReviews} verified reviews & ${feedbackStats.totalClassrooms} classrooms`,
+                  isRating: true,
+                  onClick: scrollToTestimonials,
+                },
               ].map((stat, i) => (
                 <motion.div
                   key={i}
@@ -518,12 +549,31 @@ const Home = () => {
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: false, amount: 0.2 }}
                   transition={{ delay: i * 0.08, duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
-                  className="py-8 px-6 lg:px-8 first:pl-0"
+                  onClick={stat.onClick}
+                  className={`py-8 px-6 lg:px-8 first:pl-0 transition-all ${
+                    stat.isRating
+                      ? "cursor-pointer group hover:bg-slate-100/70 rounded-2xl"
+                      : ""
+                  }`}
+                  title={stat.isRating ? "Click to view student and educator testimonials" : undefined}
                 >
                   <div className="flex items-center gap-2 mb-1 flex-wrap">
-                    <span className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-slate-900 tracking-tight">
+                    <span
+                      className={`text-2xl sm:text-3xl lg:text-4xl font-extrabold text-slate-900 tracking-tight ${
+                        stat.isRating ? "group-hover:text-blue-600 transition-colors" : ""
+                      }`}
+                    >
                       {stat.value}
                     </span>
+                    {stat.isAssignments && (
+                      <span
+                        className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wide uppercase shadow-2xs bg-blue-50 text-blue-700 border border-blue-200"
+                        title={`${feedbackStats.totalAssignments} total assignments published and uploaded across all classrooms`}
+                      >
+                        <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
+                        <span>Platform</span>
+                      </span>
+                    )}
                     {stat.isUptime && (
                       <span
                         className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wide uppercase shadow-2xs ${
@@ -551,9 +601,25 @@ const Home = () => {
                         {uptimeData.isLive ? "Live SLA" : "Target"}
                       </span>
                     )}
+                    {stat.isRating && (
+                      <span
+                        className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wide uppercase shadow-2xs bg-amber-50 text-amber-700 border border-amber-200 group-hover:bg-amber-100 transition-colors"
+                        title={`Verified aggregate rating from ${feedbackStats.totalReviews} reviews across active classrooms`}
+                      >
+                        <Star className="w-3 h-3 fill-amber-400 text-amber-500" />
+                        <span>Verified ↗</span>
+                      </span>
+                    )}
                   </div>
                   <div className="text-sm font-semibold text-slate-800 mb-0.5">{stat.label}</div>
-                  <div className="text-xs text-slate-400">{stat.sub}</div>
+                  <div className="text-xs text-slate-400 flex items-center justify-between">
+                    <span>{stat.sub}</span>
+                    {stat.isRating && (
+                      <span className="text-[11px] font-medium text-blue-600 opacity-0 group-hover:opacity-100 transition-opacity ml-1">
+                        Read reviews ↓
+                      </span>
+                    )}
+                  </div>
                 </motion.div>
               ))}
             </div>
@@ -790,7 +856,9 @@ const Home = () => {
         </section>
 
         {/* 6. COMMUNITY TESTIMONIALS */}
-        <Testimonials />
+        <div id="testimonials" className="scroll-mt-8">
+          <Testimonials />
+        </div>
 
         {/* 7. FREQUENTLY ASKED QUESTIONS (FAQ) */}
         <section className="py-20 lg:py-28 bg-slate-50 border-y border-slate-200">

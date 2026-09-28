@@ -194,8 +194,8 @@ app.use("/api/admin", adminSystemRoutes);
 app.use("/api/admin", adminContactRoutes);
 app.use("/api/admin/newsletter", adminNewsletterRoutes);
 
-// 📨 Public communication forms (protected by publicFormsLimiter)
-app.use("/api/feedback", publicFormsLimiter, feedbackRoutes);
+// 📨 Public communication forms (protected by granular limiters)
+app.use("/api/feedback", feedbackRoutes);
 app.use("/api/contact", publicFormsLimiter, contactRoutes);
 app.use("/api/newsletter", publicFormsLimiter, newsletterRoutes);
 
