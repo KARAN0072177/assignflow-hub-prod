@@ -167,6 +167,7 @@ const Home = () => {
     totalReviews: 9,
     totalClassrooms: 14,
     totalAssignments: 25,
+    totalSubmissions: 25,
   });
   const navigate = useNavigate();
 
@@ -522,11 +523,16 @@ const Home = () => {
               {[
                 {
                   value: `${feedbackStats.totalAssignments}+`,
-                  label: "Assignments Uploaded",
-                  sub: "Active coursework across classrooms",
+                  label: "Coursework Published",
+                  sub: "Active assignments created by educators",
                   isAssignments: true,
                 },
-                { value: "94%", label: "Time Saved", sub: "On coursework grading & administration" },
+                {
+                  value: `${feedbackStats.totalSubmissions}+`,
+                  label: "Student Submissions",
+                  sub: "Delivered & uploaded across classrooms",
+                  isSubmissions: true,
+                },
                 {
                   value: `${uptimeData.uptimeRatio}%`,
                   label: "Platform Uptime",
@@ -568,10 +574,19 @@ const Home = () => {
                     {stat.isAssignments && (
                       <span
                         className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wide uppercase shadow-2xs bg-blue-50 text-blue-700 border border-blue-200"
-                        title={`${feedbackStats.totalAssignments} total assignments published and uploaded across all classrooms`}
+                        title={`${feedbackStats.totalAssignments} total coursework assignments published across all classrooms`}
                       >
                         <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
-                        <span>Platform</span>
+                        <span>Teacher</span>
+                      </span>
+                    )}
+                    {stat.isSubmissions && (
+                      <span
+                        className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wide uppercase shadow-2xs bg-indigo-50 text-indigo-700 border border-indigo-200"
+                        title={`${feedbackStats.totalSubmissions} total coursework assignments uploaded by students`}
+                      >
+                        <span className="w-1.5 h-1.5 rounded-full bg-indigo-500" />
+                        <span>Student</span>
                       </span>
                     )}
                     {stat.isUptime && (

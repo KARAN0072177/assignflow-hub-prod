@@ -5,6 +5,7 @@ import sanitizeHtml from "sanitize-html";
 import { Feedback } from "../../models/feedback.model";
 import { Classroom } from "../../models/classroom.model";
 import { Assignment } from "../../models/assignment.model";
+import { Submission } from "../../models/submission.model";
 
 const feedbackSchema = z.object({
   rating: z.number().min(1).max(5),
@@ -17,6 +18,7 @@ interface FeedbackStatsCache {
     totalReviews: number;
     totalClassrooms: number;
     totalAssignments: number;
+    totalSubmissions: number;
   };
   expiresAt: number;
 }
@@ -81,7 +83,7 @@ export const getFeedbackStats = async (
       });
     }
 
-    const [ratingAgg, totalReviews, totalClassrooms, totalAssignments] = await Promise.all([
+    const [ratingAgg, totalReviews, totalClassrooms, totalAssignments, totalSubmissions] = await Promise.all([
       Feedback.aggregate([
         {
           $group: {
@@ -94,6 +96,7 @@ export const getFeedbackStats = async (
       Feedback.countDocuments(),
       Classroom.countDocuments(),
       Assignment.countDocuments(),
+      Submission.countDocuments(),
     ]);
 
     const rawAvg =
@@ -108,6 +111,7 @@ export const getFeedbackStats = async (
       totalReviews,
       totalClassrooms,
       totalAssignments,
+      totalSubmissions,
     };
 
     statsCache = {
@@ -128,6 +132,7 @@ export const getFeedbackStats = async (
         totalReviews: 9,
         totalClassrooms: 14,
         totalAssignments: 25,
+        totalSubmissions: 25,
       },
     });
   }

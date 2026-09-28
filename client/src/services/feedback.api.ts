@@ -9,6 +9,7 @@ export interface FeedbackStats {
   totalReviews: number;
   totalClassrooms: number;
   totalAssignments: number;
+  totalSubmissions: number;
 }
 
 export interface FeedbackStatsResponse {
@@ -47,9 +48,9 @@ export const getFeedbackStats = async (): Promise<FeedbackStats> => {
     if (response.data && response.data.data) {
       return response.data.data;
     }
-    return { averageRating: "4.9", totalReviews: 9, totalClassrooms: 14, totalAssignments: 25 };
+    return { averageRating: "4.9", totalReviews: 9, totalClassrooms: 14, totalAssignments: 25, totalSubmissions: 25 };
   } catch (error) {
     console.warn("Failed to fetch feedback stats, using fallback:", error);
-    return { averageRating: "4.9", totalReviews: 9, totalClassrooms: 14, totalAssignments: 25 };
+    return { averageRating: "4.9", totalReviews: 9, totalClassrooms: 14, totalAssignments: 25, totalSubmissions: 25 };
   }
 };
