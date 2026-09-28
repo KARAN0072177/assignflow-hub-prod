@@ -25,6 +25,7 @@ import Testimonials from "../components/Testimonials";
 import Features from "../components/Features";
 import NewsletterSubscribe from "../components/NewsletterSubscribe";
 import { Helmet } from "react-helmet-async";
+import { getPublicUptime, type UptimeData } from "../services/uptime.api";
 
 const SAMPLE_CLASSES = [
   {
@@ -152,7 +153,26 @@ const Home = () => {
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
   const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(0);
   const [showBackToTop, setShowBackToTop] = useState(false);
+  const [uptimeData, setUptimeData] = useState<UptimeData>({
+    uptimeRatio: "99.95",
+    status: "operational",
+    isLive: false,
+    monitoredPeriod: "30 days",
+    lastChecked: "",
+  });
   const navigate = useNavigate();
+
+  useEffect(() => {
+    let isMounted = true;
+    getPublicUptime().then((data) => {
+      if (isMounted && data) {
+        setUptimeData(data);
+      }
+    });
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   useEffect(() => {
     const checkAuth = () => {
@@ -482,7 +502,14 @@ const Home = () => {
               {[
                 { value: "10,000+", label: "Assignments Evaluated", sub: "Fast, fair feedback loop" },
                 { value: "94%", label: "Time Saved", sub: "On coursework grading & administration" },
-                { value: "99.95%", label: "Platform Uptime", sub: "Always accessible at deadline hour" },
+                {
+                  value: `${uptimeData.uptimeRatio}%`,
+                  label: "Platform Uptime",
+                  sub: uptimeData.isLive
+                    ? "Live monitored via UptimeRobot"
+                    : "Always accessible at deadline hour",
+                  isUptime: true,
+                },
                 { value: "4.9 / 5.0", label: "Educator & Student Rating", sub: "Across 2,400+ active classrooms" },
               ].map((stat, i) => (
                 <motion.div
@@ -493,8 +520,37 @@ const Home = () => {
                   transition={{ delay: i * 0.08, duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
                   className="py-8 px-6 lg:px-8 first:pl-0"
                 >
-                  <div className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-slate-900 tracking-tight mb-1">
-                    {stat.value}
+                  <div className="flex items-center gap-2 mb-1 flex-wrap">
+                    <span className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-slate-900 tracking-tight">
+                      {stat.value}
+                    </span>
+                    {stat.isUptime && (
+                      <span
+                        className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wide uppercase shadow-2xs ${
+                          uptimeData.status === "operational"
+                            ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                            : uptimeData.status === "degraded"
+                            ? "bg-amber-50 text-amber-700 border border-amber-200"
+                            : "bg-rose-50 text-rose-700 border border-rose-200"
+                        }`}
+                        title={
+                          uptimeData.isLive
+                            ? `Live monitored via UptimeRobot (${uptimeData.monitoredPeriod})`
+                            : "Platform SLA Target"
+                        }
+                      >
+                        <span
+                          className={`w-1.5 h-1.5 rounded-full ${
+                            uptimeData.status === "operational"
+                              ? "bg-emerald-500 animate-pulse"
+                              : uptimeData.status === "degraded"
+                              ? "bg-amber-500 animate-pulse"
+                              : "bg-rose-500 animate-pulse"
+                          }`}
+                        />
+                        {uptimeData.isLive ? "Live SLA" : "Target"}
+                      </span>
+                    )}
                   </div>
                   <div className="text-sm font-semibold text-slate-800 mb-0.5">{stat.label}</div>
                   <div className="text-xs text-slate-400">{stat.sub}</div>

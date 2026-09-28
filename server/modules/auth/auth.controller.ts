@@ -101,16 +101,6 @@ export const login = async (req: Request, res: Response) => {
     // ✅ Reset failed login attempts on successful login
     resetFailedLoginAttempts(ip);
 
-    // 🔍 Audit log
-    await logAuditEvent({
-      actorRole: "USER",
-      actorId: result.user.id,
-      action: "USER_LOGIN",
-      entityType: "AUTH",
-      entityId: result.user.id,
-      metadata: { email },
-    });
-
     res.status(200).json(result);
   } catch (error: any) {
     // 🚨 Record ONLY failed login attempt (10 under 1 min -> 30m IP block)

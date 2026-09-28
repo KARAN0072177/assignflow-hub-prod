@@ -310,7 +310,8 @@ export const loginUser = async (
     ipAddress
   );
 
-  await logAuditEvent({
+  // Fire-and-forget audit log so it never blocks HTTP login response
+  void logAuditEvent({
     actorRole: "USER",
     actorId: user._id,
     action: "USER_LOGIN",

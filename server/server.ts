@@ -1,4 +1,6 @@
 // server/server.ts
+process.env.UV_THREADPOOL_SIZE = process.env.UV_THREADPOOL_SIZE || "16";
+
 import "./config/dns";
 import "./types/express";
 import express from "express";
@@ -47,6 +49,7 @@ import sitemapRoutes from "./modules/seo/sitemap.routes"; // new import for site
 import robotsRoutes from "./modules/seo/robots.routes"; // new import for robots.txt route 
 
 import verifyRoutes from "./modules/auth/auth.verify.routes"; // new import for email verification routes
+import uptimeRoutes from "./modules/system/uptime.routes";
 
 // websockets imports
 
@@ -201,6 +204,9 @@ app.use("/api/blogs", blogRoutes);
 app.use("/", sitemapRoutes);
 app.use("/", robotsRoutes);
 
+// 🌐 Public System Status & Uptime
+app.use("/api/system", uptimeRoutes);
+
 app.get("/api/test-auth", requireAuth, (req, res) => {
   res.json({ message: "Authenticated access granted", user: req.user });
 });
@@ -252,6 +258,7 @@ const startServer = async () => {
       console.log(
         `🚀 AssignFlow Hub API + WebSocket running on port ${PORT} (${config.env})`
       );
+      console.log(`🧵 Node Libuv Threadpool Size: ${process.env.UV_THREADPOOL_SIZE || 4}`);
     });
   } catch (error) {
     console.error("❌ Failed to start server:", error);

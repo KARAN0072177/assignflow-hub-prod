@@ -1,0 +1,8 @@
+{
+  "watch": ["."],
+  "ext": "ts",
+  "exec": "ts-node server.ts",
+  "env": {
+    "UV_THREADPOOL_SIZE": "16"
+  }
+}

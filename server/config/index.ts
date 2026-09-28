@@ -15,6 +15,8 @@ const envSchema = z.object({
   JWT_SECRET: z.string().min(10, "JWT_SECRET must be at least 10 characters"),
 
   RESEND_API_KEY: z.string().min(10),
+  UPTIMEROBOT_API_KEY: z.string().optional(),
+  UPTIMEROBOT_MONITOR_ID: z.string().optional(),
 });
 
 /**
@@ -44,4 +46,7 @@ export const config = {
   bullmqAdminPass: process.env.BULLMQ_ADMIN_PASS!,
 
   resendApiKey: parsedEnv.data.RESEND_API_KEY,
+
+  uptimeRobotApiKey: parsedEnv.data.UPTIMEROBOT_API_KEY || process.env.UPTIMEROBOT_API_KEY || "",
+  uptimeRobotMonitorId: parsedEnv.data.UPTIMEROBOT_MONITOR_ID || process.env.UPTIMEROBOT_MONITOR_ID || "",
 };

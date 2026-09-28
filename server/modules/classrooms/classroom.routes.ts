@@ -13,6 +13,7 @@ const router = Router();
 
 router.post("/", requireAuth, createClassroomHandler); // Create classroom route
 router.post("/join", requireAuth, joinClassroomHandler); // Join classroom route
+router.get("/", requireAuth, getMyClassroomsHandler); // Get classrooms route
 router.get("/my", requireAuth, getMyClassroomsHandler); // Get my classrooms route
 router.get(
   "/teacher/students",

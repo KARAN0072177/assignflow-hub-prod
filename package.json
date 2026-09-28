@@ -1,4 +1,8 @@
 {
+  "scripts": {
+    "test:load:login": "k6 run load-tests/auth-login.js",
+    "test:load:login:10": "k6 run --iterations 10 load-tests/auth-login.js"
+  },
   "devDependencies": {
     "autoprefixer": "^10.4.16",
     "postcss": "^8.4.31",

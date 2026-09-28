@@ -4,6 +4,8 @@ node_modules/
 # environment
 .env
 .env.*
+!.env.example
+!**/.env.example
 
 # build outputs
 dist/
@@ -15,3 +17,13 @@ logs/
 
 # OS
 .DS_Store
+
+# documentation (kept private)
+/docs/
+docs/
+
+# load tests (kept local)
+/load-tests/
+load-tests/
+/load-test/
+load-test/
