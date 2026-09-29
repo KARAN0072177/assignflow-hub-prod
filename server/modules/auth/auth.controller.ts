@@ -34,8 +34,16 @@ import {
 const registerSchema = z.object({
   email: z.string().email(),
   password: z.string().min(8),
-  role: z.nativeEnum(UserRole),
+  role: z.enum([UserRole.STUDENT, UserRole.TEACHER], {
+    message: "Only STUDENT or TEACHER roles can be registered",
+  }),
   username: z.string().min(3).max(30).optional(),
+});
+
+const resetPasswordSchema = z.object({
+  email: z.string().email(),
+  password: z.string().min(8, "Password must be at least 8 characters"),
+  resetToken: z.string().min(1, "Reset token is required"),
 });
 
 const loginSchema = z.object({
@@ -171,8 +179,8 @@ export const verifyOtp = async (req: Request, res: Response) => {
     if (!email || !otp) {
       return res.status(400).json({ message: "Email and OTP are required" });
     }
-    await verifyResetOtp(email, otp);
-    res.json({ message: "OTP verified" });
+    const { resetToken } = await verifyResetOtp(email, otp);
+    res.json({ message: "OTP verified", resetToken });
   } catch (error: any) {
     res.status(400).json({ message: error.message || "Invalid or expired OTP" });
   }
@@ -187,12 +195,17 @@ export const resetPasswordController = async (
     return res.status(429).json({ message: GENERIC_RATE_LIMIT_MSG });
   }
 
+  const parsed = resetPasswordSchema.safeParse(req.body);
+  if (!parsed.success) {
+    return res.status(400).json({
+      message: parsed.error.issues[0]?.message || "Invalid input parameters",
+    });
+  }
+
+  const { email, password, resetToken } = parsed.data;
+
   try {
-    const { email, password } = req.body;
-    if (!email || !password) {
-      return res.status(400).json({ message: "Email and password are required" });
-    }
-    await resetPassword(email, password);
+    await resetPassword(email, password, resetToken);
     res.json({ message: "Password reset successful" });
   } catch (error: any) {
     res.status(400).json({ message: error.message || "Failed to reset password" });

@@ -25,6 +25,7 @@ const ResetPassword = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const email = location.state?.email;
+  const resetToken = location.state?.resetToken;
 
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
@@ -71,6 +72,11 @@ const ResetPassword = () => {
   const handleReset = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    if (!resetToken) {
+      setError("Reset token is missing or expired. Please request a new OTP.");
+      return;
+    }
+
     if (password.length < 8) {
       setError("Password must be at least 8 characters");
       return;
@@ -88,6 +94,7 @@ const ResetPassword = () => {
       await axios.post(`${API_BASE_URL}/api/auth/reset-password`, {
         email,
         password,
+        resetToken,
       });
 
       // Show success and redirect to login
@@ -103,13 +110,13 @@ const ResetPassword = () => {
   const doPasswordsMatch = password && confirm && password === confirm;
   const isPasswordValid = password.length >= 8;
 
-  if (!email) {
+  if (!email || !resetToken) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50/30 flex items-center justify-center p-4">
         <div className="bg-white/90 backdrop-blur-xl rounded-3xl shadow-2xl p-8 text-center border border-white/50">
           <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
-          <h2 className="text-xl font-bold text-slate-800 mb-2">Invalid Access</h2>
-          <p className="text-slate-600 mb-4">No email address provided.</p>
+          <h2 className="text-xl font-bold text-slate-800 mb-2">Invalid or Expired Session</h2>
+          <p className="text-slate-600 mb-4">No verified reset token provided. Please complete OTP verification first.</p>
           <Link
             to="/forgot-password"
             className="text-blue-600 hover:text-blue-800 font-medium inline-flex items-center gap-2"

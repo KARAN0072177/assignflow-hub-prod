@@ -29,6 +29,10 @@ export const registerUser = async (
   role: UserRole,
   username?: string
 ) => {
+  if (role === UserRole.ADMIN || (role !== UserRole.STUDENT && role !== UserRole.TEACHER)) {
+    throw new Error("Registration with ADMIN role is not permitted.");
+  }
+
   const existingEmail = await User.findOne({ email });
   if (existingEmail) {
     throw new Error("User with this email already exists");
@@ -136,11 +140,20 @@ export const verifyResetOtp = async (
     throw new Error("Invalid or expired OTP");
   }
 
+  // Generate secure single-use reset token
+  const rawResetToken = crypto.randomBytes(32).toString("hex");
+  const hashedResetToken = crypto
+    .createHash("sha256")
+    .update(rawResetToken)
+    .digest("hex");
+
   user.resetPasswordOtp = undefined;
   user.resetPasswordOtpExpires = undefined;
+  user.resetPasswordToken = hashedResetToken;
+  user.resetPasswordTokenExpires = new Date(Date.now() + 15 * 60 * 1000); // 15 mins validity
   await user.save();
 
-  return true;
+  return { resetToken: rawResetToken };
 };
 
 
@@ -150,22 +163,38 @@ export const verifyResetOtp = async (
 
 export const resetPassword = async (
   email: string,
-  newPassword: string
+  newPassword: string,
+  resetToken: string
 ) => {
-  const hashedPassword = await bcrypt.hash(newPassword, 10);
+  if (!resetToken || typeof resetToken !== "string") {
+    throw new Error("Reset token is required to reset password");
+  }
 
-  const user = await User.findOneAndUpdate(
-    { email },
-    {
-      password: hashedPassword,
-      resetPasswordOtp: undefined,
-      resetPasswordOtpExpires: undefined,
-    }
-  );
+  const hashedResetToken = crypto
+    .createHash("sha256")
+    .update(resetToken.trim())
+    .digest("hex");
+
+  const user = await User.findOne({
+    email: email.toLowerCase().trim(),
+    resetPasswordToken: hashedResetToken,
+    resetPasswordTokenExpires: { $gt: new Date() },
+  });
 
   if (!user) {
-    throw new Error("User not found");
+    throw new Error("Invalid or expired password reset session. Please request a new OTP.");
   }
+
+  const hashedPassword = await bcrypt.hash(newPassword, SALT_ROUNDS);
+
+  user.password = hashedPassword;
+  user.resetPasswordOtp = undefined;
+  user.resetPasswordOtpExpires = undefined;
+  user.resetPasswordToken = undefined;
+  user.resetPasswordTokenExpires = undefined;
+  await user.save();
+
+  return true;
 };
 
 

@@ -91,9 +91,11 @@ export const AssignmentComments = ({
     }
   }, [lastCommentEvent, assignmentId]);
 
-  // Listen for real-time answer verification event
+  // Listen for real-time answer verification event and join assignment room
   useEffect(() => {
-    if (!socket) return;
+    if (!socket || !assignmentId) return;
+
+    socket.emit("join:assignment", assignmentId);
 
     const handleVerified = (payload: {
       commentId: string;
@@ -124,6 +126,7 @@ export const AssignmentComments = ({
 
     socket.on("comment:verified", handleVerified);
     return () => {
+      socket.emit("leave:assignment", assignmentId);
       socket.off("comment:verified", handleVerified);
     };
   }, [socket, assignmentId]);

@@ -2,7 +2,7 @@
 
 import { Router } from "express";
 import { requireAuth } from "../../middleware/requireAuth";
-import { adminGuard } from "../../middleware/adminGuard";
+import { requireAdmin } from "../../middleware/requireAdmin";
 
 import {
   getSubscribers,
@@ -12,7 +12,7 @@ import {
 const router = Router();
 
 router.use(requireAuth);
-router.use(adminGuard);
+router.use(requireAdmin);
 
 router.get("/subscribers", getSubscribers);
 router.post("/send", sendCampaign);

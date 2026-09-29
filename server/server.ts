@@ -24,8 +24,6 @@ import gradeRoutes from "./modules/grades/grade.routes";
 import { registerRepeatableJobs } from "./queues/scheduler";  // import the scheduler
 
 import adminRoutes from "./modules/admin/admin.routes"; // import admin routes
-
-import { adminGuard } from "./middleware/adminGuard";
 import { bullmqAuth } from "./middleware/bullmqAuth";
 
 import adminAnalyticsRoutes from "./modules/admin/admin.analytics.routes";

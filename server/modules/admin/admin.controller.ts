@@ -6,9 +6,8 @@ export const getAuditLogs = async (
   req: AuthenticatedRequest,
   res: Response
 ) => {
-  // TEMP: allow TEACHER for now, later restrict to ADMIN
-  if (req.user?.role !== "ADMIN" && req.user?.role !== "TEACHER") {
-    return res.status(403).json({ message: "Access denied" });
+  if (req.user?.role !== "ADMIN") {
+    return res.status(403).json({ message: "Admin access only" });
   }
 
   const logs = await AuditLog.find()

@@ -197,12 +197,14 @@ const VerifyOtp = () => {
       setLoading(true);
       setError("");
 
-      await axios.post(`${API_BASE_URL}/api/auth/verify-reset-otp`, {
+      const res = await axios.post(`${API_BASE_URL}/api/auth/verify-reset-otp`, {
         email,
         otp: otpString,
       });
 
-      navigate("/reset-password", { state: { email } });
+      navigate("/reset-password", {
+        state: { email, resetToken: res.data?.resetToken },
+      });
     } catch (err: any) {
       setError(err?.response?.data?.message || "Invalid OTP. Please try again.");
     } finally {

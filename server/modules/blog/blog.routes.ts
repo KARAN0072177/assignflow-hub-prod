@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { requireAuth } from "../../middleware/requireAuth";
-import { adminGuard } from "../../middleware/adminGuard";
+import { requireAdmin } from "../../middleware/requireAdmin";
 
 import {
   createBlogController,
@@ -18,7 +18,7 @@ router.get("/", getPublishedBlogsController);
 router.get("/:slug", getBlogBySlugController);
 
 // -------- ADMIN --------
-router.use(requireAuth, adminGuard);
+router.use(requireAuth, requireAdmin);
 
 router.post("/", createBlogController);
 router.put("/:id", updateBlogController);

@@ -6,11 +6,8 @@ export const adminGuard = (
   res: Response,
   next: NextFunction
 ) => {
-  if (
-    req.user?.role !== "ADMIN" &&
-    req.user?.role !== "TEACHER"
-  ) {
-    return res.status(403).json({ message: "Access denied" });
+  if (req.user?.role !== "ADMIN") {
+    return res.status(403).json({ message: "Admin access only" });
   }
 
   next();

@@ -29,6 +29,8 @@ export interface IUser extends Document {
   // 🔐 Password reset fields
   resetPasswordOtp?: string;
   resetPasswordOtpExpires?: Date;
+  resetPasswordToken?: string;
+  resetPasswordTokenExpires?: Date;
 
   // For OTP rate limiting (advanced feature) and resend cooldown
   resetOtpLastSentAt?: Date;
@@ -117,6 +119,12 @@ const UserSchema: Schema<IUser> = new Schema(
     },
     resetPasswordOtpExpires: {
       type: Date
+    },
+    resetPasswordToken: {
+      type: String,
+    },
+    resetPasswordTokenExpires: {
+      type: Date,
     },
 
     // ============================

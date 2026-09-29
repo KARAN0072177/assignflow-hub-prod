@@ -1,32 +1,20 @@
 import { Router } from "express";
 import { requireAuth } from "../../middleware/requireAuth";
-import { adminGuard } from "../../middleware/adminGuard";
+import { requireAdmin } from "../../middleware/requireAdmin";
 import { getAdminContacts, markMessageAsRead, markMessagesAsReadBulk } from "./admin.contact.controller";
 
 const router = Router();
 
+router.use(requireAuth);
+router.use(requireAdmin);
+
 // Admin inbox (read-only)
-router.get(
-  "/contacts",
-  requireAuth,
-  adminGuard,
-  getAdminContacts
-);
+router.get("/contacts", getAdminContacts);
 
 // Mark single message as read
-router.patch(
-  "/contacts/:id/read",
-  requireAuth,
-  adminGuard,
-  markMessageAsRead
-);
+router.patch("/contacts/:id/read", markMessageAsRead);
 
 // Mark multiple messages as read
-router.post(
-  "/contacts/bulk-read",
-  requireAuth,
-  adminGuard,
-  markMessagesAsReadBulk
-);
+router.post("/contacts/bulk-read", markMessagesAsReadBulk);
 
 export default router;

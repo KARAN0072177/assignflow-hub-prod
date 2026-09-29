@@ -31,7 +31,7 @@ export const handleContactSubmission = async ({
   try {
     const io = getIO();
     if (io) {
-      io.emit("contact:new", {
+      io.to("role:ADMIN").emit("contact:new", {
         id: record._id,
         createdAt: record.createdAt,
       });
