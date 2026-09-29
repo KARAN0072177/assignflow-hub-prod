@@ -12,6 +12,10 @@ import {
   getStudentUnreadAssignmentsCount,
   markClassroomAssignmentsRead as apiMarkClassroomAssignmentsRead,
 } from "../services/classroom.api";
+import {
+  getMyNotifications,
+  type AppNotification,
+} from "../services/notification.api";
 
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
@@ -42,6 +46,11 @@ interface SocketContextType {
     type: string;
     createdAt?: string;
   };
+  // 🔔 Live Notifications (4h Deadline, Lock Alerts, @Mentions)
+  unreadNotificationsCount: number;
+  setUnreadNotificationsCount: React.Dispatch<React.SetStateAction<number>>;
+  refreshNotificationsCount: () => Promise<void>;
+  lastNotificationEvent?: AppNotification;
 }
 
 const SocketContext = createContext<SocketContextType | undefined>(undefined);
@@ -59,11 +68,23 @@ export const SocketProvider = ({ children }: { children: ReactNode }) => {
   >({});
   const [lastAssignmentEvent, setLastAssignmentEvent] = useState<any>(undefined);
 
+  // Live Notification states (4h Deadline, Lock Warning, @Mentions)
+  const [unreadNotificationsCount, setUnreadNotificationsCount] = useState<number>(0);
+  const [lastNotificationEvent, setLastNotificationEvent] = useState<AppNotification | undefined>(undefined);
+
   const fetchInitialUnread = async () => {
     const role = localStorage.getItem("userRole");
     const token = localStorage.getItem("authToken");
 
     if (!token) return;
+
+    // Fetch live notifications unread count for any user
+    try {
+      const notifData = await getMyNotifications(1);
+      setUnreadNotificationsCount(notifData.unreadCount || 0);
+    } catch {
+      // Fallback
+    }
 
     if (role === "TEACHER") {
       try {
@@ -177,6 +198,18 @@ export const SocketProvider = ({ children }: { children: ReactNode }) => {
       }
     });
 
+    // 🔔 Real-time notification event (4h Deadline, Lock Alert, @Mentions)
+    socket.on("notification:new", (payload: AppNotification) => {
+      setLastNotificationEvent(payload);
+      setUnreadNotificationsCount((prev) => prev + 1);
+    });
+
+    socket.on("notification:count", (payload: { unreadCount: number }) => {
+      if (typeof payload?.unreadCount === "number") {
+        setUnreadNotificationsCount(payload.unreadCount);
+      }
+    });
+
     return () => {
       socket.disconnect();
       socketRef.current = null;
@@ -197,6 +230,15 @@ export const SocketProvider = ({ children }: { children: ReactNode }) => {
         markClassroomAssignmentsAsRead,
         refreshStudentUnreadAssignments: fetchInitialUnread,
         lastAssignmentEvent,
+        unreadNotificationsCount,
+        setUnreadNotificationsCount,
+        refreshNotificationsCount: async () => {
+          try {
+            const data = await getMyNotifications(1);
+            setUnreadNotificationsCount(data.unreadCount || 0);
+          } catch {}
+        },
+        lastNotificationEvent,
       }}
     >
       {children}

@@ -7,6 +7,8 @@ import { User, UserRole } from "../../models/user.model";
 import { getIO } from "../../socket";
 import sanitizeHtml from "sanitize-html";
 import { generateDownloadUrl } from "../../utils/s3-download";
+import { NotificationService } from "../notifications/notification.service";
+
 
 interface CreateCommentParams {
   assignmentId: Types.ObjectId;
@@ -148,6 +150,17 @@ export const createComment = async ({
     // Non-blocking socket notification error
     console.error("Socket emit error:", socketErr);
   }
+
+  // 8. 🔔 Trigger @mention notifications asynchronously (like Instagram/Slack)
+  NotificationService.handleCommentMentions({
+    commentId: comment._id,
+    author,
+    content: cleanContent,
+    assignmentId,
+    classroomId,
+  }).catch((mentionErr) => {
+    console.error("[CommentService] Mention processing error:", mentionErr);
+  });
 
   return comment;
 };

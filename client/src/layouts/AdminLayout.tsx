@@ -16,14 +16,19 @@ const AdminLayout = () => {
       const token = localStorage.getItem("authToken");
       const role = localStorage.getItem("userRole");
 
-      if (!token || role !== "ADMIN") {
-        navigate("/login");
+      if (!token) {
+        navigate("/login", { replace: true, state: { from: location } });
+        return;
+      }
+
+      if (role !== "ADMIN") {
+        navigate("/dashboard", { replace: true });
         return;
       }
 
       setIsAdmin(true);
       // Small delay for smoother transition
-      setTimeout(() => setIsLoading(false), 300);
+      setTimeout(() => setIsLoading(false), 200);
     };
 
     checkAuth();

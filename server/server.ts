@@ -58,6 +58,8 @@ import { initSocket } from "./socket";
 import blogRoutes from "./modules/blog/blog.routes";
 import commentRoutes from "./modules/comments/comment.routes";
 import aiRoutes from "./modules/ai/ai.routes";
+import notificationRoutes from "./modules/notifications/notification.routes";
+import { NotificationService } from "./modules/notifications/notification.service";
 
 const app = express();
 
@@ -181,6 +183,9 @@ app.use("/api/submissions", submissionRoutes);
 // 💬 Assignment Discussions & Comments (protected by commentLimiter internally)
 app.use("/api/comments", commentRoutes);
 
+// 🔔 Live Notifications (Deadlines, Mentions, Teacher Lock Alerts)
+app.use("/api/notifications", notificationRoutes);
+
 // ✨ AI Assistant Features (protected by aiEnhancerLimiter for teachers)
 app.use("/api/ai", aiRoutes);
 
@@ -259,6 +264,16 @@ const startServer = async () => {
         `🚀 AssignFlow Hub API + WebSocket running on port ${PORT} (${config.env})`
       );
       console.log(`🧵 Node Libuv Threadpool Size: ${process.env.UV_THREADPOOL_SIZE || 4}`);
+
+      // 🔔 Initial check & periodic 4-hour deadline sweep (every 5 minutes)
+      NotificationService.checkUpcomingDeadlines().catch((err) =>
+        console.error("[NotificationService] Initial deadline check error:", err)
+      );
+      deadlineSweepInterval = setInterval(() => {
+        NotificationService.checkUpcomingDeadlines().catch((err) =>
+          console.error("[NotificationService] Scheduled deadline check error:", err)
+        );
+      }, 5 * 60 * 1000);
     });
   } catch (error) {
     console.error("❌ Failed to start server:", error);
@@ -266,11 +281,16 @@ const startServer = async () => {
   }
 };
 
+let deadlineSweepInterval: NodeJS.Timeout | null = null;
+
 /**
  * Graceful shutdown
  */
 const shutdown = async () => {
   console.log("🛑 Shutting down server...");
+  if (deadlineSweepInterval) {
+    clearInterval(deadlineSweepInterval);
+  }
   await disconnectDB();
   process.exit(0);
 };

@@ -3,8 +3,10 @@ import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Sidebar from "../components/Sidebar";
 import Breadcrumbs from "../components/Breadcrumbs";
-import { Menu, X, Bell, User } from "lucide-react";
+import { Menu, X, User } from "lucide-react";
 import { getMe } from "../services/auth.api";
+import { NotificationDropdown } from "../components/notifications/NotificationDropdown";
+
 
 const DashboardLayout = () => {
   const navigate = useNavigate();
@@ -27,47 +29,62 @@ const DashboardLayout = () => {
   }, []);
 
   useEffect(() => {
+    let isMounted = true;
+
     const checkAuth = async () => {
       const token = localStorage.getItem("authToken");
       const role = localStorage.getItem("userRole");
 
       if (!token || !role) {
-        navigate("/login");
+        navigate("/login", { replace: true, state: { from: location } });
         return;
       }
 
       setUserRole(role);
 
-      // Check username & avatar status from storage
+      // Pre-fill state from storage for responsive visuals
       const storedUsername = localStorage.getItem("username");
       const storedAvatar = localStorage.getItem("userAvatar");
-      if (storedUsername) {
+      if (storedUsername && isMounted) {
         setUsername(storedUsername);
         setAvatarUrl(storedAvatar || null);
-        setIsLoading(false);
       }
 
       try {
         const user = await getMe();
+        if (!isMounted) return;
+
         if (!user.username) {
           // No username set! Redirect to onboarding /username page
-          navigate("/username");
+          navigate("/username", { replace: true });
           return;
         }
         setUsername(user.username);
         setAvatarUrl(user.avatarUrl || null);
+        setIsLoading(false);
       } catch (err: any) {
+        if (!isMounted) return;
+
         if (err?.response?.status === 401) {
-          navigate("/login");
+          // Token is invalid/expired -> clear state and redirect cleanly
+          localStorage.removeItem("authToken");
+          localStorage.removeItem("refreshToken");
+          localStorage.removeItem("userRole");
+          localStorage.removeItem("username");
+          navigate("/login?expired=1", { replace: true, state: { from: location } });
           return;
         }
-      } finally {
+        // Other errors (e.g. temporary network offline): allow cached view if available
         setIsLoading(false);
       }
     };
 
     checkAuth();
-  }, [navigate]);
+
+    return () => {
+      isMounted = false;
+    };
+  }, [location, navigate]);
 
   // Reset scroll on route change
   useEffect(() => {
@@ -138,11 +155,8 @@ const DashboardLayout = () => {
                 {userRole === 'TEACHER' ? 'Teacher' : 'Student'}
               </div>
               
-              {/* Notification Bell */}
-              <button className="p-2 rounded-lg text-slate-600 hover:bg-slate-100 transition-colors duration-200 relative">
-                <Bell className="w-5 h-5" />
-                <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
-              </button>
+              {/* Live Notification Bell & Dropdown */}
+              <NotificationDropdown />
               
               {/* User Profile Trigger -> Navigates to /profile */}
               <button

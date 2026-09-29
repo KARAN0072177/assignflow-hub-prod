@@ -16,6 +16,7 @@ import Dashboard from "./pages/Dashboard";
 import DashboardLayout from "./layouts/DashboardLayout";
 
 import Navbar from "./components/Navbar";
+import ProtectedRoute from "./components/ProtectedRoute";
 import AdminAuditLogs from "./pages/AdminAuditLogs";
 
 import AdminLayout from "./layouts/AdminLayout";
@@ -76,7 +77,15 @@ function AppRoutes() {
         <Route path="/" element={<Navigate to="/home" />} />
         <Route path="/register" element={<Register />} />
         <Route path="/login" element={<Login />} />
-        <Route path="/username" element={<ChooseUsername />} />
+        {/* Protected Username onboarding */}
+        <Route
+          path="/username"
+          element={
+            <ProtectedRoute>
+              <ChooseUsername />
+            </ProtectedRoute>
+          }
+        />
         <Route path="/verify-email" element={<VerifyEmail />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/verify-otp" element={<VerifyOtp />} />
@@ -94,13 +103,34 @@ function AppRoutes() {
         <Route path="/accessibility" element={<AccessibilityPage />} />
         <Route path="/blog/:slug" element={<BlogDetailPage />} />
 
+        {/* Top-level shortcut aliases (redirect to protected dashboard hierarchy) */}
+        <Route path="/classrooms" element={<Navigate to="/dashboard/classrooms/my" replace />} />
+        <Route path="/classrooms/my" element={<Navigate to="/dashboard/classrooms/my" replace />} />
+        <Route path="/grades" element={<Navigate to="/dashboard/grades" replace />} />
+        <Route path="/students" element={<Navigate to="/dashboard/students" replace />} />
+        <Route path="/discussions" element={<Navigate to="/dashboard/discussions" replace />} />
+
         {/* Profile standalone route */}
-        <Route path="/profile" element={<DashboardLayout />}>
+        <Route
+          path="/profile"
+          element={
+            <ProtectedRoute>
+              <DashboardLayout />
+            </ProtectedRoute>
+          }
+        >
           <Route index element={<Profile />} />
         </Route>
 
-        {/* Dashboard layout */}
-        <Route path="/dashboard" element={<DashboardLayout />}>
+        {/* Protected Dashboard layout */}
+        <Route
+          path="/dashboard"
+          element={
+            <ProtectedRoute>
+              <DashboardLayout />
+            </ProtectedRoute>
+          }
+        >
           <Route index element={<Dashboard />} />
           <Route path="profile" element={<Profile />} />
           <Route path="classrooms/my" element={<MyClassrooms />} />
@@ -112,8 +142,15 @@ function AppRoutes() {
           <Route path="discussions" element={<TeacherCommentsHub />} />
         </Route>
 
-        {/* Admin routes */}
-        <Route path="/admin" element={<AdminLayout />}>
+        {/* Protected Admin routes */}
+        <Route
+          path="/admin"
+          element={
+            <ProtectedRoute requiredRole="ADMIN">
+              <AdminLayout />
+            </ProtectedRoute>
+          }
+        >
           <Route path="dashboard" element={<AdminDashboard />} />
           <Route path="audit-logs" element={<AdminAuditLogs />} />
           <Route path="system" element={<AdminSystem />} />

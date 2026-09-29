@@ -134,24 +134,32 @@ apiClient.interceptors.response.use(
 );
 
 /**
- * Clears local state and redirects cleanly to login when session expires (after 7 days)
+ * Clears local state and redirects cleanly to login when session expires or token is invalid
  */
 const handleForcedLogout = () => {
   localStorage.removeItem("authToken");
   localStorage.removeItem("refreshToken");
   localStorage.removeItem("userRole");
+  localStorage.removeItem("username");
+  localStorage.removeItem("userEmail");
+  localStorage.removeItem("userAvatar");
 
   // Trigger storage event so all tabs react synchronously
   window.dispatchEvent(new Event("storage"));
 
   // Only redirect if not already on login or public pages
-  if (
-    !window.location.pathname.startsWith("/login") &&
-    !window.location.pathname.startsWith("/register") &&
-    !window.location.pathname.startsWith("/verify-email") &&
-    window.location.pathname !== "/"
-  ) {
-    window.location.href = "/login?expired=1";
+  const currentPath = window.location.pathname;
+  const isPublicPage =
+    currentPath === "/" ||
+    currentPath === "/home" ||
+    currentPath.startsWith("/login") ||
+    currentPath.startsWith("/register") ||
+    currentPath.startsWith("/verify-email") ||
+    currentPath.startsWith("/forgot-password") ||
+    currentPath.startsWith("/reset-password");
+
+  if (!isPublicPage) {
+    window.location.href = `/login?expired=1&redirect=${encodeURIComponent(currentPath)}`;
   }
 };
 

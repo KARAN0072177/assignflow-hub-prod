@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { loginUser } from "../services/auth.api";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, Link, useLocation } from "react-router-dom";
 import { motion, AnimatePresence, useMotionValue, useSpring, useTransform } from "framer-motion";
 import {
   Lock,
@@ -29,6 +29,15 @@ const Login = () => {
   const [focusedField, setFocusedField] = useState<string | null>(null);
 
   const navigate = useNavigate();
+  const location = useLocation();
+  const searchParams = new URLSearchParams(location.search);
+  const isExpired = searchParams.get("expired") === "1";
+  const redirectParam = searchParams.get("redirect");
+  const authMessage = (location.state as any)?.message;
+
+  const infoNotice = isExpired
+    ? "Your session has expired. Please sign in again."
+    : authMessage || null;
 
   // Mouse movement for 3D effects
   const mouseX = useMotionValue(0);
@@ -79,11 +88,14 @@ const Login = () => {
 
       window.dispatchEvent(new Event("storage"));
 
-      // role-based redirect
-      if (data.user.role === "ADMIN") {
-        navigate("/admin/dashboard");
+      // Redirect back to intended protected destination if available, else role-based default
+      const from = (location.state as any)?.from?.pathname || redirectParam;
+      if (from && from !== "/login" && from !== "/register") {
+        navigate(from, { replace: true });
+      } else if (data.user.role === "ADMIN") {
+        navigate("/admin/dashboard", { replace: true });
       } else {
-        navigate("/dashboard");
+        navigate("/dashboard", { replace: true });
       }
 
     } catch (err: any) {
@@ -93,14 +105,25 @@ const Login = () => {
     }
   };
 
-  // Load remembered email on component mount
+  // Check if already authenticated on component mount
   useEffect(() => {
+    const token = localStorage.getItem("authToken");
+    const role = localStorage.getItem("userRole");
+    if (token && role) {
+      if (role === "ADMIN") {
+        navigate("/admin/dashboard", { replace: true });
+      } else {
+        navigate("/dashboard", { replace: true });
+      }
+      return;
+    }
+
     const rememberedEmail = localStorage.getItem("rememberedEmail");
     if (rememberedEmail) {
       setEmail(rememberedEmail);
       setRememberMe(true);
     }
-  }, []);
+  }, [navigate]);
 
   // Floating elements for background
   const floatingElements = [
@@ -336,6 +359,21 @@ const Login = () => {
                   <ArrowRight className="w-3 h-3 transition-transform duration-200 group-hover:translate-x-1" />
                 </Link>
               </div>
+
+              {/* Info / Session Expired Notice */}
+              <AnimatePresence mode="wait">
+                {infoNotice && !error && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -10, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: -10, scale: 0.95 }}
+                    className="flex items-start gap-3 p-4 bg-gradient-to-r from-amber-50 to-amber-100/60 border border-amber-300/80 rounded-xl shadow-xs"
+                  >
+                    <AlertCircle className="w-5 h-5 text-amber-600 mt-0.5 flex-shrink-0" />
+                    <p className="text-sm font-medium text-amber-900">{infoNotice}</p>
+                  </motion.div>
+                )}
+              </AnimatePresence>
 
               {/* Error Message */}
               <AnimatePresence mode="wait">

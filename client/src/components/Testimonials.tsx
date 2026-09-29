@@ -111,11 +111,10 @@ const Testimonials = () => {
                     {Array.from({ length: 5 }).map((_, i) => (
                       <Star
                         key={i}
-                        className={`w-3.5 h-3.5 ${
-                          i < feedback.rating
+                        className={`w-3.5 h-3.5 ${i < feedback.rating
                             ? "text-amber-400 fill-amber-400"
                             : "text-slate-300"
-                        }`}
+                          }`}
                       />
                     ))}
                   </div>
@@ -135,11 +134,11 @@ const Testimonials = () => {
                   >
                     {feedback.name
                       ? feedback.name
-                          .split(" ")
-                          .map((n: string) => n[0])
-                          .join("")
-                          .slice(0, 2)
-                          .toUpperCase()
+                        .split(" ")
+                        .map((n: string) => n[0])
+                        .join("")
+                        .slice(0, 2)
+                        .toUpperCase()
                       : roleLabel(feedback.role).slice(0, 2)}
                   </div>
                   <div>
