@@ -6,6 +6,7 @@ import {
   getMyClassroomsHandler,
   getClassroomByIdHandler,
   getTeacherClassroomStudentsHandler,
+  getClassroomMembersHandler,
 } from "./classroom.controller";
 import { listAssignmentsForClassroomHandler } from "../assignments/assignment.controller";
 
@@ -25,6 +26,7 @@ router.get(
   requireAuth,
   listAssignmentsForClassroomHandler
 );
+router.get("/:id/members", requireAuth, getClassroomMembersHandler); // Get classroom members
 router.get("/:id", requireAuth, getClassroomByIdHandler); // Get classroom by ID route
 
 export default router;

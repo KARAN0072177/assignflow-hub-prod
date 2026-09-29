@@ -281,7 +281,7 @@ export const getAssignmentsForClassroom = async (
         const submission = await Submission.findOne({
           assignmentId: assignment._id,
           studentId: userId,
-        }).select("_id state");
+        }).select("_id state createdAt updatedAt");
 
         return {
           assignment,
@@ -289,6 +289,7 @@ export const getAssignmentsForClassroom = async (
             ? {
               id: submission._id,
               state: submission.state,
+              submittedAt: submission.updatedAt || submission.createdAt,
             }
             : null,
         };

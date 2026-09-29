@@ -122,3 +122,13 @@ export const getTeacherClassroomStudents = async (): Promise<
   const response = await apiClient.get("/api/classrooms/teacher/students");
   return response.data;
 };
+
+/**
+ * Fetch all members of a classroom (Teacher + Enrolled Students)
+ */
+export const getClassroomMembers = async (
+  classroomId: string
+): Promise<any[]> => {
+  const response = await apiClient.get(`/api/classrooms/${classroomId}/members`);
+  return response.data;
+};

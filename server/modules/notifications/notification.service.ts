@@ -138,14 +138,23 @@ export class NotificationService {
       content.length > 80 ? `${content.slice(0, 80)}...` : content;
 
     for (const username of uniqueUsernames) {
-      // Don't notify oneself if author tagged their own username
-      if (author.username?.toLowerCase() === username) continue;
+      // Don't notify oneself if author tagged their own username or email prefix
+      if (
+        author.username?.toLowerCase() === username ||
+        author.email.split("@")[0].toLowerCase() === username
+      ) {
+        continue;
+      }
 
       const mentionedUser = await User.findOne({
-        username: { $regex: new RegExp(`^${username}$`, "i") },
+        $or: [
+          { username: { $regex: new RegExp(`^${username}$`, "i") } },
+          { email: { $regex: new RegExp(`^${username}@`, "i") } },
+        ],
       });
 
       if (!mentionedUser) continue;
+      if (mentionedUser._id.toString() === author._id.toString()) continue;
 
       // Verify mentioned user is part of the classroom or is the teacher
       const classroom = await Classroom.findById(classroomId);

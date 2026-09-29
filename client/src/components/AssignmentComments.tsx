@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   MessageSquare,
@@ -11,6 +11,7 @@ import {
   User,
   X,
   CheckCircle2,
+  AtSign,
 } from "lucide-react";
 import {
   getAssignmentComments,
@@ -18,6 +19,7 @@ import {
   deleteComment,
   toggleVerifiedAnswer,
   type AssignmentCommentItem,
+  type ClassroomMemberItem,
 } from "../services/comment.api";
 import { useAppSocket } from "../context/SocketContext";
 import { UserProfileHoverCard } from "./UserProfileHoverCard";
@@ -33,6 +35,7 @@ export const AssignmentComments = ({
   onCommentCountChange,
 }: Props) => {
   const [comments, setComments] = useState<AssignmentCommentItem[]>([]);
+  const [classroomMembers, setClassroomMembers] = useState<ClassroomMemberItem[]>([]);
   const [totalCount, setTotalCount] = useState<number>(0);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -42,6 +45,15 @@ export const AssignmentComments = ({
   const [commentToDelete, setCommentToDelete] = useState<AssignmentCommentItem | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [verifyingId, setVerifyingId] = useState<string | null>(null);
+
+  // @mention state
+  const [showMentionDialog, setShowMentionDialog] = useState(false);
+  const [mentionQuery, setMentionQuery] = useState("");
+  const [mentionStartIndex, setMentionStartIndex] = useState<number>(-1);
+  const [selectedMemberIndex, setSelectedMemberIndex] = useState<number>(0);
+
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const mentionDialogRef = useRef<HTMLDivElement>(null);
 
   const currentUserRole = localStorage.getItem("userRole") || "STUDENT";
   const currentUserEmail = localStorage.getItem("userEmail") || "";
@@ -53,6 +65,9 @@ export const AssignmentComments = ({
       const data = await getAssignmentComments(assignmentId);
       setComments(data.comments || []);
       setTotalCount(data.totalCount || 0);
+      if (data.members) {
+        setClassroomMembers(data.members);
+      }
       if (onCommentCountChange) {
         onCommentCountChange(data.totalCount || 0);
       }
@@ -244,6 +259,129 @@ export const AssignmentComments = ({
     return authorEmail.toLowerCase() === currentUserEmail.toLowerCase();
   };
 
+  // Filter classroom members based on query
+  const filteredMembers = useMemo(() => {
+    if (!mentionQuery.trim()) return classroomMembers;
+    const q = mentionQuery.toLowerCase();
+    return classroomMembers.filter(
+      (m) =>
+        m.username.toLowerCase().includes(q) ||
+        m.displayName.toLowerCase().includes(q) ||
+        m.email.toLowerCase().includes(q) ||
+        m.role.toLowerCase().includes(q)
+    );
+  }, [classroomMembers, mentionQuery]);
+
+  // Handle textarea text changes and track @ mentions
+  const handleContentChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const val = e.target.value;
+    const pos = e.target.selectionStart ?? val.length;
+    setContent(val);
+
+    const textBeforeCursor = val.slice(0, pos);
+    const lastAtIndex = textBeforeCursor.lastIndexOf("@");
+
+    if (lastAtIndex !== -1) {
+      const charBeforeAt = lastAtIndex === 0 ? " " : textBeforeCursor[lastAtIndex - 1];
+      if (/\s/.test(charBeforeAt)) {
+        const query = textBeforeCursor.slice(lastAtIndex + 1);
+        if (!/\s/.test(query) && query.length <= 30) {
+          setShowMentionDialog(true);
+          setMentionQuery(query);
+          setMentionStartIndex(lastAtIndex);
+          setSelectedMemberIndex(0);
+          return;
+        }
+      }
+    }
+
+    setShowMentionDialog(false);
+  };
+
+  // Select a member from the mention dialog and insert @username
+  const handleSelectMember = (member: ClassroomMemberItem) => {
+    const textarea = textareaRef.current;
+    const atIndex = mentionStartIndex;
+    if (atIndex < 0) return;
+
+    const before = content.slice(0, atIndex);
+    const after = content.slice(atIndex + 1 + mentionQuery.length);
+    const tag = `@${member.username} `;
+    const updatedContent = before + tag + after;
+
+    setContent(updatedContent);
+    setShowMentionDialog(false);
+    setMentionQuery("");
+    setMentionStartIndex(-1);
+
+    setTimeout(() => {
+      if (textarea) {
+        textarea.focus();
+        const cursorPosition = before.length + tag.length;
+        textarea.setSelectionRange(cursorPosition, cursorPosition);
+      }
+    }, 0);
+  };
+
+  // Quick button in toolbar to trigger @ mention dialog
+  const handleAtButtonClick = () => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+    const pos = textarea.selectionStart ?? content.length;
+    const charBefore = pos > 0 ? content[pos - 1] : " ";
+    const prefix = /\s/.test(charBefore) || pos === 0 ? "@" : " @";
+    const newContent = content.slice(0, pos) + prefix + content.slice(pos);
+    setContent(newContent);
+    const newPos = pos + prefix.length;
+
+    setShowMentionDialog(true);
+    setMentionQuery("");
+    setMentionStartIndex(newPos - 1);
+    setSelectedMemberIndex(0);
+
+    setTimeout(() => {
+      textarea.focus();
+      textarea.setSelectionRange(newPos, newPos);
+    }, 0);
+  };
+
+  // Keyboard navigation for mention dialog
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (showMentionDialog && filteredMembers.length > 0) {
+      if (e.key === "ArrowDown") {
+        e.preventDefault();
+        setSelectedMemberIndex((prev) => (prev + 1) % filteredMembers.length);
+      } else if (e.key === "ArrowUp") {
+        e.preventDefault();
+        setSelectedMemberIndex((prev) =>
+          prev === 0 ? filteredMembers.length - 1 : prev - 1
+        );
+      } else if (e.key === "Enter" || e.key === "Tab") {
+        e.preventDefault();
+        handleSelectMember(filteredMembers[selectedMemberIndex]);
+      } else if (e.key === "Escape") {
+        e.preventDefault();
+        setShowMentionDialog(false);
+      }
+    }
+  };
+
+  // Click outside listener to dismiss mention dialog
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (
+        mentionDialogRef.current &&
+        !mentionDialogRef.current.contains(e.target as Node) &&
+        textareaRef.current &&
+        !textareaRef.current.contains(e.target as Node)
+      ) {
+        setShowMentionDialog(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
   return (
     <div className="space-y-6">
       {/* Header Banner */}
@@ -434,21 +572,20 @@ export const AssignmentComments = ({
                       </button>
                     )}
 
-                    {/* Reply button (Blocked if own comment) */}
-                    {!isOwnComment(comment.authorEmail) && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setReplyingTo(comment);
-                          setError(null);
-                        }}
-                        className="inline-flex items-center gap-1 px-2.5 py-1 text-xs text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors cursor-pointer"
-                        title="Reply to this comment"
-                      >
-                        <Reply className="w-3.5 h-3.5" />
-                        <span>Reply</span>
-                      </button>
-                    )}
+                    {/* Reply button (Allows replying to any comment, including own) */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setReplyingTo(comment);
+                        setError(null);
+                        setTimeout(() => textareaRef.current?.focus(), 50);
+                      }}
+                      className="inline-flex items-center gap-1 px-2.5 py-1 text-xs text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors cursor-pointer"
+                      title={isOwnComment(comment.authorEmail) ? "Reply to your comment" : "Reply to this comment"}
+                    >
+                      <Reply className="w-3.5 h-3.5" />
+                      <span>Reply</span>
+                    </button>
 
                     {/* Delete button (Opens sleek modal) */}
                     {(currentUserRole === "TEACHER" ||
@@ -596,21 +733,20 @@ export const AssignmentComments = ({
                             </button>
                           )}
 
-                          {/* Allow replying to a nested reply */}
-                          {!isOwnComment(reply.authorEmail) && (
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setReplyingTo(comment);
-                                setError(null);
-                              }}
-                              className="inline-flex items-center gap-1 px-2 py-0.5 text-[11px] text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-md transition-colors cursor-pointer"
-                              title="Reply in this thread"
-                            >
-                              <Reply className="w-3 h-3" />
-                              <span>Reply</span>
-                            </button>
-                          )}
+                          {/* Allow replying to a nested reply (including own) */}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setReplyingTo(comment);
+                              setError(null);
+                              setTimeout(() => textareaRef.current?.focus(), 50);
+                            }}
+                            className="inline-flex items-center gap-1 px-2 py-0.5 text-[11px] text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-md transition-colors cursor-pointer"
+                            title={isOwnComment(reply.authorEmail) ? "Reply to your comment" : "Reply in this thread"}
+                          >
+                            <Reply className="w-3 h-3" />
+                            <span>Reply</span>
+                          </button>
 
                           {/* Delete reply */}
                           {(currentUserRole === "TEACHER" ||
@@ -635,11 +771,112 @@ export const AssignmentComments = ({
         </div>
       )}
 
-      {/* Comment Input Box */}
+      {/* Comment Input Box with Dynamic @Mention Dialog */}
       <form
         onSubmit={handleSubmit}
-        className="bg-white border border-slate-200 rounded-2xl p-3.5 shadow-xs space-y-2.5"
+        className="relative bg-white border border-slate-200 rounded-2xl p-3.5 shadow-xs space-y-2.5"
       >
+        {/* Dynamic @Mention Classroom Members Dialog */}
+        <AnimatePresence>
+          {showMentionDialog && (
+            <motion.div
+              ref={mentionDialogRef}
+              initial={{ opacity: 0, y: 8, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 6, scale: 0.98 }}
+              transition={{ duration: 0.15 }}
+              className="absolute bottom-full left-0 right-0 mb-2 max-h-64 bg-white border border-slate-200/90 rounded-2xl shadow-xl overflow-hidden z-40 flex flex-col"
+            >
+              {/* Header */}
+              <div className="px-3.5 py-2 bg-slate-50/90 border-b border-slate-200/80 flex items-center justify-between text-[11px]">
+                <div className="flex items-center gap-1.5 font-semibold text-slate-700">
+                  <AtSign className="w-3.5 h-3.5 text-blue-600" />
+                  <span>Mention Classroom Member</span>
+                  {mentionQuery && (
+                    <span className="text-slate-400 font-normal">
+                      matching "@{mentionQuery}"
+                    </span>
+                  )}
+                </div>
+                <span className="text-[10px] text-slate-400 hidden sm:inline">
+                  ↑↓ to navigate • Enter to select • Esc to exit
+                </span>
+              </div>
+
+              {/* Member List */}
+              <div className="overflow-y-auto max-h-48 divide-y divide-slate-100/80 p-1">
+                {filteredMembers.length === 0 ? (
+                  <div className="p-4 text-center text-xs text-slate-400">
+                    No classroom members found matching "@{mentionQuery}"
+                  </div>
+                ) : (
+                  filteredMembers.map((member, idx) => {
+                    const isSelected = idx === selectedMemberIndex;
+                    const isTeacher = member.role === "TEACHER";
+                    const isSelf = member.email.toLowerCase() === currentUserEmail.toLowerCase();
+
+                    return (
+                      <button
+                        key={member.id}
+                        type="button"
+                        onMouseEnter={() => setSelectedMemberIndex(idx)}
+                        onClick={() => handleSelectMember(member)}
+                        className={`w-full flex items-center justify-between p-2 rounded-xl text-left transition-colors cursor-pointer ${
+                          isSelected
+                            ? "bg-blue-50 text-blue-900"
+                            : "hover:bg-slate-50 text-slate-700"
+                        }`}
+                      >
+                        <div className="flex items-center gap-2.5 truncate">
+                          {/* Avatar */}
+                          <div className="w-7 h-7 rounded-full aspect-square flex items-center justify-center text-xs font-bold text-white shrink-0 overflow-hidden ring-1 ring-slate-200 bg-gradient-to-br from-blue-600 to-indigo-600">
+                            {member.avatarUrl ? (
+                              <img
+                                src={member.avatarUrl}
+                                alt={member.displayName}
+                                className="w-full h-full object-cover"
+                              />
+                            ) : (
+                              (member.displayName[0] || "U").toUpperCase()
+                            )}
+                          </div>
+
+                          <div className="truncate">
+                            <div className="flex items-center gap-1.5">
+                              <span className="font-bold text-xs text-slate-900 truncate">
+                                @{member.username}
+                              </span>
+                              {isSelf && (
+                                <span className="text-[10px] text-slate-400 font-normal">
+                                  (You)
+                                </span>
+                              )}
+                            </div>
+                            <span className="text-[11px] text-slate-500 font-mono block truncate">
+                              {member.email}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Role Badge */}
+                        <span
+                          className={`text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 ${
+                            isTeacher
+                              ? "bg-blue-100 text-blue-800 border border-blue-200"
+                              : "bg-slate-100 text-slate-600 border border-slate-200"
+                          }`}
+                        >
+                          {isTeacher ? "Instructor" : "Student"}
+                        </span>
+                      </button>
+                    );
+                  })
+                )}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
         {/* Reply Context Banner */}
         <AnimatePresence>
           {replyingTo && (
@@ -655,6 +892,7 @@ export const AssignmentComments = ({
                   Replying to{" "}
                   <strong className="font-semibold">
                     @{replyingTo.authorName || replyingTo.authorEmail.split("@")[0]}
+                    {isOwnComment(replyingTo.authorEmail) ? " (You)" : ""}
                   </strong>
                 </span>
               </div>
@@ -671,15 +909,15 @@ export const AssignmentComments = ({
 
         {/* Textarea */}
         <textarea
+          ref={textareaRef}
           rows={replyingTo ? 2 : 3}
           value={content}
-          onChange={(e) => setContent(e.target.value)}
+          onChange={handleContentChange}
+          onKeyDown={handleKeyDown}
           placeholder={
             replyingTo
-              ? `Write your reply to @${
-                  replyingTo.authorName || replyingTo.authorEmail.split("@")[0]
-                }...`
-              : "Ask a question, share feedback, or leave a note on this assignment..."
+              ? `Write your reply (type @ to mention a member)...`
+              : "Ask a question, share feedback, or leave a note (type @ to mention)..."
           }
           maxLength={1000}
           disabled={submitting}
@@ -688,7 +926,24 @@ export const AssignmentComments = ({
 
         {/* Footer controls */}
         <div className="flex items-center justify-between border-t border-slate-100 pt-2 text-[11px] text-slate-400">
-          <span>{content.length} / 1000</span>
+          <div className="flex items-center gap-3">
+            <span>{content.length} / 1000</span>
+
+            {/* Quick @ Mention Button */}
+            <button
+              type="button"
+              onClick={handleAtButtonClick}
+              className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-xs font-medium border transition-colors cursor-pointer ${
+                showMentionDialog
+                  ? "bg-blue-100 text-blue-700 border-blue-300 shadow-2xs"
+                  : "bg-slate-50 hover:bg-slate-100 text-slate-600 border-slate-200"
+              }`}
+              title="Mention a teacher or student in this classroom (@)"
+            >
+              <AtSign className="w-3 h-3 text-blue-600" />
+              <span>Mention</span>
+            </button>
+          </div>
 
           <div className="flex items-center gap-2">
             {replyingTo && (

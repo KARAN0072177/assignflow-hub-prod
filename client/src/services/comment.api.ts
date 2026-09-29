@@ -26,6 +26,15 @@ export interface AssignmentCommentItem {
   replies?: AssignmentCommentItem[];
 }
 
+export interface ClassroomMemberItem {
+  id: string;
+  email: string;
+  username: string;
+  displayName: string;
+  role: "STUDENT" | "TEACHER" | "ADMIN";
+  avatarUrl?: string | null;
+}
+
 export interface AssignmentCommentsResponse {
   assignment: {
     id: string;
@@ -34,6 +43,7 @@ export interface AssignmentCommentsResponse {
   };
   comments: AssignmentCommentItem[];
   totalCount: number;
+  members?: ClassroomMemberItem[];
 }
 
 export interface TeacherDiscussionsHubData {

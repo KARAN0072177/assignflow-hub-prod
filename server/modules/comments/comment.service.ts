@@ -96,11 +96,7 @@ export const createComment = async ({
       throw new Error("Parent comment belongs to a different assignment");
     }
 
-    // 🚫 RULE: User cannot reply to their own comment
-    if (parentComment.authorId.toString() === userId.toString()) {
-      throw new Error("Self-reply is not allowed. You cannot reply to your own comment.");
-    }
-
+    // Note: Users can reply to any comment in the thread, including their own comments
     replyToUserData = {
       id: parentComment.authorId,
       email: parentComment.authorEmail,
@@ -263,6 +259,83 @@ export const getCommentsForAssignment = async (
     replies: repliesMap.get(root._id.toString()) || [],
   }));
 
+  // 4. Fetch classroom members (Teacher + Enrolled Students) for @mentions
+  let classroomMembers: any[] = [];
+  try {
+    const classroom = await Classroom.findById(assignment.classroomId);
+    if (classroom) {
+      // Teacher details
+      const teacher = await User.findById(classroom.teacherId)
+        .select("_id email username avatarKey role")
+        .lean();
+
+      let teacherAvatarUrl: string | null = null;
+      if (teacher?.avatarKey) {
+        try {
+          teacherAvatarUrl = await generateDownloadUrl(teacher.avatarKey);
+        } catch {}
+      }
+
+      const teacherMember = teacher
+        ? {
+            id: teacher._id.toString(),
+            email: teacher.email,
+            username:
+              teacher.username ||
+              teacher.email.split("@")[0].replace(/[^a-zA-Z0-9_]/g, "_"),
+            displayName: teacher.username ? `@${teacher.username}` : teacher.email.split("@")[0],
+            role: "TEACHER",
+            avatarUrl: teacherAvatarUrl,
+          }
+        : null;
+
+      // Student details from memberships
+      const memberships = await Membership.find({
+        classroomId: assignment.classroomId,
+      })
+        .populate<{
+          studentId: {
+            _id: Types.ObjectId;
+            email: string;
+            username?: string;
+            avatarKey?: string;
+            role: UserRole;
+          };
+        }>("studentId", "_id email username avatarKey role")
+        .lean();
+
+      const studentMembers = await Promise.all(
+        memberships
+          .filter((m) => m.studentId)
+          .map(async (m) => {
+            const s = m.studentId;
+            let avatarUrl: string | null = null;
+            if (s.avatarKey) {
+              try {
+                avatarUrl = await generateDownloadUrl(s.avatarKey);
+              } catch {}
+            }
+            return {
+              id: s._id.toString(),
+              email: s.email,
+              username:
+                s.username ||
+                s.email.split("@")[0].replace(/[^a-zA-Z0-9_]/g, "_"),
+              displayName: s.username ? `@${s.username}` : s.email.split("@")[0],
+              role: "STUDENT",
+              avatarUrl,
+            };
+          })
+      );
+
+      classroomMembers = teacherMember
+        ? [teacherMember, ...studentMembers]
+        : studentMembers;
+    }
+  } catch (membersErr) {
+    console.warn("Failed to load classroom members for assignment comments:", membersErr);
+  }
+
   return {
     assignment: {
       id: assignment._id,
@@ -271,6 +344,7 @@ export const getCommentsForAssignment = async (
     },
     comments: structuredComments,
     totalCount: allComments.length,
+    members: classroomMembers,
   };
 };
 

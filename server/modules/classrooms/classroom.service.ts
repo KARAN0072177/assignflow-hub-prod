@@ -2,6 +2,7 @@ import { Classroom, ClassroomStatus } from "../../models/classroom.model";
 import { Types } from "mongoose";
 import { Membership } from "../../models/membership.model";
 import { Assignment, AssignmentState } from "../../models/assignment.model";
+import { User, UserRole } from "../../models/user.model";
 import sanitizeHtml from "sanitize-html";
 import { generateDownloadUrl } from "../../utils/s3-download";
 
@@ -293,4 +294,93 @@ export const getTeacherClassroomsWithStudents = async (
   );
 
   return result;
+};
+
+/**
+ * Get all members of a specific classroom (Teacher + Enrolled Students)
+ */
+export const getClassroomMembers = async (
+  classroomId: Types.ObjectId,
+  userId: Types.ObjectId,
+  role: "STUDENT" | "TEACHER"
+) => {
+  const classroom = await Classroom.findById(classroomId);
+  if (!classroom || classroom.status !== ClassroomStatus.ACTIVE) {
+    throw new Error("Classroom not found");
+  }
+
+  // Access check
+  if (role === "TEACHER") {
+    if (!classroom.teacherId.equals(userId)) {
+      const isMember = await Membership.findOne({ classroomId, studentId: userId });
+      if (!isMember) throw new Error("Access denied");
+    }
+  } else {
+    const isMember = await Membership.findOne({ classroomId, studentId: userId });
+    if (!isMember) throw new Error("Access denied");
+  }
+
+  // Fetch teacher details
+  const teacher = await User.findById(classroom.teacherId)
+    .select("_id email username avatarKey role")
+    .lean();
+
+  let teacherAvatarUrl: string | null = null;
+  if (teacher?.avatarKey) {
+    try {
+      teacherAvatarUrl = await generateDownloadUrl(teacher.avatarKey);
+    } catch {}
+  }
+
+  const teacherMember = teacher
+    ? {
+        id: teacher._id.toString(),
+        email: teacher.email,
+        username:
+          teacher.username ||
+          teacher.email.split("@")[0].replace(/[^a-zA-Z0-9_]/g, "_"),
+        displayName: teacher.username ? `@${teacher.username}` : teacher.email.split("@")[0],
+        role: "TEACHER" as const,
+        avatarUrl: teacherAvatarUrl,
+      }
+    : null;
+
+  // Fetch enrolled students
+  const memberships = await Membership.find({ classroomId })
+    .populate<{
+      studentId: {
+        _id: Types.ObjectId;
+        email: string;
+        username?: string;
+        avatarKey?: string;
+        role: UserRole;
+      };
+    }>("studentId", "_id email username avatarKey role")
+    .lean();
+
+  const studentMembers = await Promise.all(
+    memberships
+      .filter((m) => m.studentId)
+      .map(async (m) => {
+        const s = m.studentId;
+        let avatarUrl: string | null = null;
+        if (s.avatarKey) {
+          try {
+            avatarUrl = await generateDownloadUrl(s.avatarKey);
+          } catch {}
+        }
+        return {
+          id: s._id.toString(),
+          email: s.email,
+          username:
+            s.username ||
+            s.email.split("@")[0].replace(/[^a-zA-Z0-9_]/g, "_"),
+          displayName: s.username ? `@${s.username}` : s.email.split("@")[0],
+          role: "STUDENT" as const,
+          avatarUrl,
+        };
+      })
+  );
+
+  return teacherMember ? [teacherMember, ...studentMembers] : studentMembers;
 };

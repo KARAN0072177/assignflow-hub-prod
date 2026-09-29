@@ -9,6 +9,7 @@ import {
   getTeacherClassrooms,
   getClassroomByIdWithAccessCheck,
   getTeacherClassroomsWithStudents,
+  getClassroomMembers,
 } from "./classroom.service";
 
 const createClassroomSchema = z.object({
@@ -197,5 +198,33 @@ export const getTeacherClassroomStudentsHandler = async (
     return res
       .status(500)
       .json({ message: "Failed to fetch student rosters" });
+  }
+};
+
+/**
+ * Fetch all members of a classroom (Teacher + Students)
+ */
+export const getClassroomMembersHandler = async (
+  req: AuthenticatedRequest,
+  res: Response
+) => {
+  try {
+    const { id } = req.params;
+    if (!id || !Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ message: "Invalid classroom ID" });
+    }
+
+    const members = await getClassroomMembers(
+      new Types.ObjectId(id),
+      new Types.ObjectId(req.user!.userId),
+      req.user!.role as "STUDENT" | "TEACHER"
+    );
+
+    return res.status(200).json(members);
+  } catch (error: any) {
+    console.error("❌ Failed to fetch classroom members:", error);
+    return res
+      .status(error.message === "Access denied" ? 403 : 500)
+      .json({ message: error.message || "Failed to fetch classroom members" });
   }
 };

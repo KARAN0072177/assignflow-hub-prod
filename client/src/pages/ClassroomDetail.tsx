@@ -14,12 +14,12 @@ import {
   Users,
   AlertCircle,
   Lock,
-  CheckCircle,
+  CheckCircle2,
+  Clock,
   Edit2,
   Award,
   FolderOpen,
   ArrowLeft,
-  CalendarX,
   Calendar,
   Copy,
   Check,
@@ -48,6 +48,7 @@ interface Assignment {
   submission: {
     id: string;
     state: "DRAFT" | "SUBMITTED" | "LOCKED";
+    submittedAt?: string;
   } | null;
 }
 
@@ -162,51 +163,80 @@ const ClassroomDetail = () => {
     return new Date(dueDate) < new Date();
   };
 
+  const getTeacherAssignmentStatus = (assignment: Assignment) => {
+    if (assignment.type !== "GRADED") return null;
+    const duePassed = isDueDatePassed(assignment.dueDate);
+
+    if (duePassed) {
+      return (
+        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-red-100 text-red-700 border border-red-200 shadow-2xs">
+          <Lock className="w-3.5 h-3.5 text-red-600" /> Due Date Passed • Closed
+        </span>
+      );
+    }
+
+    return (
+      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-200">
+        <Clock className="w-3.5 h-3.5 text-blue-600" /> Intake Open
+      </span>
+    );
+  };
+
   const getSubmissionStatus = (submission: any, dueDate?: string) => {
     const duePassed = isDueDatePassed(dueDate);
 
     if (!submission) {
       if (duePassed) {
         return (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-red-50 text-red-700 border border-red-200">
-            <CalendarX className="w-3.5 h-3.5" /> Due Date Passed
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-red-100 text-red-700 border border-red-200 shadow-2xs">
+            <Lock className="w-3.5 h-3.5 text-red-600" /> Due Date Passed • Closed
           </span>
         );
       }
-      return null;
+      return (
+        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-200">
+          <Clock className="w-3.5 h-3.5 text-blue-600" /> Pending Submission
+        </span>
+      );
     }
 
     switch (submission.state) {
       case "DRAFT":
         if (duePassed) {
           return (
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-red-50 text-red-700 border border-red-200">
-              <CalendarX className="w-3.5 h-3.5" /> Overdue - Draft
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-red-100 text-red-700 border border-red-200 shadow-2xs">
+              <Lock className="w-3.5 h-3.5 text-red-600" /> Due Date Passed • Draft Closed
             </span>
           );
         }
         return (
           <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-50 text-amber-800 border border-amber-200">
-            <Edit2 className="w-3.5 h-3.5" /> Draft In Progress
+            <Edit2 className="w-3.5 h-3.5 text-amber-600" /> Draft In Progress
           </span>
         );
-      case "SUBMITTED":
-        if (duePassed) {
+      case "SUBMITTED": {
+        const submittedOnTime =
+          !dueDate ||
+          !submission.submittedAt ||
+          new Date(submission.submittedAt) <= new Date(dueDate);
+
+        if (submittedOnTime) {
           return (
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-50 text-amber-800 border border-amber-200">
-              <CheckCircle className="w-3.5 h-3.5" /> Submitted (Late)
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-200 shadow-2xs">
+              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" /> Submitted on time
             </span>
           );
         }
         return (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200">
-            <CheckCircle className="w-3.5 h-3.5" /> Submitted
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-800 border border-amber-200 shadow-2xs">
+            <CheckCircle2 className="w-3.5 h-3.5 text-amber-600" /> Submitted (Late intake)
           </span>
         );
+      }
       case "LOCKED":
         return (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-red-50 text-red-800 border border-red-200">
-            <Lock className="w-3.5 h-3.5" /> Submission Locked
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-700 border border-slate-200">
+            <Lock className="w-3.5 h-3.5 text-slate-600" /> Submission Locked
           </span>
         );
       default:
@@ -424,6 +454,13 @@ const ClassroomDetail = () => {
             <div className="space-y-5">
               {assignments.map((assignment, index) => {
                 const duePassed = isDueDatePassed(assignment.dueDate);
+                const isStudentUnsubmittedPastDue =
+                  duePassed &&
+                  !isTeacher &&
+                  (!assignment.submission || assignment.submission.state === "DRAFT");
+                const isTeacherPastDue =
+                  duePassed && isTeacher && assignment.type === "GRADED";
+                const isPastDueAlert = isStudentUnsubmittedPastDue || isTeacherPastDue;
 
                 return (
                   <motion.div
@@ -431,7 +468,11 @@ const ClassroomDetail = () => {
                     initial={{ opacity: 0, y: 15 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.25, delay: index * 0.05 }}
-                    className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm hover:shadow-md transition-shadow"
+                    className={`bg-white rounded-2xl p-6 shadow-sm hover:shadow-md transition-shadow border ${
+                      isPastDueAlert
+                        ? "border-red-200 border-l-4 border-l-red-500 bg-gradient-to-r from-red-50/20 via-white to-white"
+                        : "border-slate-200"
+                    }`}
                   >
                     {/* Assignment Top Row */}
                     <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 mb-3">
@@ -480,12 +521,12 @@ const ClassroomDetail = () => {
                         </div>
                       </div>
 
-                      {/* Student Submission Status Badge (Right aligned) */}
-                      {!isTeacher && (
-                        <div className="shrink-0">
-                          {getSubmissionStatus(assignment.submission, assignment.dueDate)}
-                        </div>
-                      )}
+                      {/* Top Right Status Badge */}
+                      <div className="shrink-0">
+                        {isTeacher
+                          ? getTeacherAssignmentStatus(assignment)
+                          : getSubmissionStatus(assignment.submission, assignment.dueDate)}
+                      </div>
                     </div>
 
                     {/* Assignment Description */}
@@ -495,27 +536,97 @@ const ClassroomDetail = () => {
                       </div>
                     )}
 
+                    {/* Teacher Explanation Notice */}
+                    {isTeacher && duePassed && assignment.type === "GRADED" && (
+                      <div className="mb-4 ml-11 p-3.5 bg-red-50/90 border border-red-200 rounded-xl flex items-start gap-3 text-xs text-red-950 shadow-2xs">
+                        <div className="w-6 h-6 rounded-lg bg-red-100 text-red-700 flex items-center justify-center shrink-0 mt-0.5 border border-red-200">
+                          <Lock className="w-3.5 h-3.5 text-red-600" />
+                        </div>
+                        <div className="leading-relaxed">
+                          <span className="font-extrabold text-red-950">
+                            Due date has passed — student intake is closed.
+                          </span>{" "}
+                          <span className="text-red-800">
+                            Students can no longer submit or edit files for this assignment. Review student submissions and grade any pending coursework below.
+                          </span>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Student Explanation Notice */}
+                    {!isTeacher && assignment.type === "GRADED" && (
+                      <>
+                        {/* Case 1: Student already submitted */}
+                        {(assignment.submission?.state === "SUBMITTED" || assignment.submission?.state === "LOCKED") && (
+                          <div className="mb-4 ml-11 p-3.5 bg-emerald-50/80 border border-emerald-200 rounded-xl flex items-start gap-3 text-xs text-emerald-950 shadow-2xs">
+                            <div className="w-6 h-6 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0 mt-0.5 border border-emerald-200">
+                              <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                            </div>
+                            <div className="leading-relaxed">
+                              <span className="font-extrabold text-emerald-950">
+                                {!assignment.dueDate || !assignment.submission.submittedAt || new Date(assignment.submission.submittedAt) <= new Date(assignment.dueDate)
+                                  ? "Submitted on time."
+                                  : "Submitted (Late intake)."}
+                              </span>{" "}
+                              <span className="text-emerald-800">
+                                {assignment.submission.submittedAt
+                                  ? `Your coursework was received on ${formatDate(assignment.submission.submittedAt)}. `
+                                  : "Your coursework was received successfully. "}
+                                Your submission is recorded. You will see your grade and teacher feedback here once evaluation is complete.
+                              </span>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Case 2: Due date passed and student has NOT submitted */}
+                        {duePassed && (!assignment.submission || assignment.submission.state === "DRAFT") && (
+                          <div className="mb-4 ml-11 p-3.5 bg-red-50/90 border border-red-200 rounded-xl flex items-start gap-3 text-xs text-red-950 shadow-2xs">
+                            <div className="w-6 h-6 rounded-lg bg-red-100 text-red-700 flex items-center justify-center shrink-0 mt-0.5 border border-red-200">
+                              <Lock className="w-3.5 h-3.5 text-red-600" />
+                            </div>
+                            <div className="leading-relaxed">
+                              <span className="font-extrabold text-red-950">
+                                Due date passed — you cannot submit now.
+                              </span>{" "}
+                              <span className="text-red-800">
+                                The deadline for this assignment was {formatDate(assignment.dueDate!)}. The submission window is closed and new coursework can no longer be uploaded. Please contact your teacher if you require an extension.
+                              </span>
+                            </div>
+                          </div>
+                        )}
+                      </>
+                    )}
+
                     {/* Footer Row: Due Date & Action */}
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-4 border-t border-slate-100">
-                      {/* Due Date Indicator */}
+                      {/* Due Date Indicator with Red Attention Alert when Past Due */}
                       <div className="flex items-center gap-2 text-xs">
                         {assignment.dueDate ? (
                           <div
-                            className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-lg ${
+                            className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border font-medium ${
                               duePassed
-                                ? "bg-red-50 text-red-700 font-semibold border border-red-200/60"
-                                : "bg-slate-50 text-slate-600 border border-slate-200/60"
+                                ? "bg-red-50 text-red-700 border-red-300 shadow-2xs"
+                                : "bg-slate-50 text-slate-700 border-slate-200"
                             }`}
                           >
-                            {duePassed ? (
-                              <CalendarX className="w-3.5 h-3.5 text-red-600" />
-                            ) : (
-                              <Calendar className="w-3.5 h-3.5 text-slate-500" />
-                            )}
+                            <Calendar
+                              className={`w-3.5 h-3.5 ${
+                                duePassed ? "text-red-600" : "text-blue-600"
+                              }`}
+                            />
                             <span>
-                              Due: {formatDate(assignment.dueDate)}
-                              {duePassed && " (Past due)"}
+                              <span className={`font-semibold ${duePassed ? "text-red-700" : "text-slate-500"}`}>
+                                {duePassed ? "Due Date Passed:" : "Due:"}
+                              </span>{" "}
+                              <span className={`font-bold ${duePassed ? "text-red-950" : "text-slate-800"}`}>
+                                {formatDate(assignment.dueDate)}
+                              </span>
                             </span>
+                            {duePassed && (
+                              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-extrabold uppercase tracking-wider bg-red-600 text-white shadow-2xs ml-1">
+                                Past Due
+                              </span>
+                            )}
                           </div>
                         ) : (
                           <span className="text-slate-400">No deadline set</span>
@@ -543,32 +654,38 @@ const ClassroomDetail = () => {
                         </button>
 
                         {/* Student Action: Upload / Submit */}
-                        {!isTeacher &&
-                          assignment.type === "GRADED" &&
-                          assignment.state === "PUBLISHED" &&
-                          !duePassed && (
-                            <div className="flex items-center gap-2">
-                              {(!assignment.submission || assignment.submission.state === "DRAFT") && (
-                                <SubmissionBox
-                                  assignmentId={assignment.id}
-                                  initialSubmission={assignment.submission}
-                                  onSubmitted={fetchData}
-                                />
-                              )}
-                              {assignment.submission?.state === "SUBMITTED" && (
-                                <div className="flex items-center gap-1.5 text-emerald-700 text-xs font-semibold bg-emerald-50 px-3 py-1.5 rounded-xl border border-emerald-200 shadow-2xs">
-                                  <CheckCircle className="w-3.5 h-3.5 text-emerald-600" />
-                                  <span>Submitted</span>
-                                </div>
-                              )}
-                              {assignment.submission?.state === "LOCKED" && (
-                                <div className="flex items-center gap-1.5 text-red-700 text-xs font-semibold bg-red-50 px-3 py-1.5 rounded-xl border border-red-200">
-                                  <Lock className="w-3.5 h-3.5 text-red-600" />
-                                  <span>Submission Locked</span>
-                                </div>
-                              )}
-                            </div>
-                          )}
+                        {!isTeacher && assignment.type === "GRADED" && assignment.state === "PUBLISHED" && (
+                          <div className="flex items-center gap-2">
+                            {/* Intake still open and not submitted */}
+                            {!duePassed && (!assignment.submission || assignment.submission.state === "DRAFT") && (
+                              <SubmissionBox
+                                assignmentId={assignment.id}
+                                initialSubmission={assignment.submission}
+                                onSubmitted={fetchData}
+                              />
+                            )}
+
+                            {/* Already submitted */}
+                            {(assignment.submission?.state === "SUBMITTED" || assignment.submission?.state === "LOCKED") && (
+                              <div className="flex items-center gap-1.5 text-emerald-800 text-xs font-semibold bg-emerald-50 px-3 py-1.5 rounded-xl border border-emerald-200 shadow-2xs">
+                                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                                <span>
+                                  {!assignment.dueDate || !assignment.submission.submittedAt || new Date(assignment.submission.submittedAt) <= new Date(assignment.dueDate)
+                                    ? "Submitted on time"
+                                    : "Submitted (Late)"}
+                                </span>
+                              </div>
+                            )}
+
+                            {/* Due date passed and not submitted */}
+                            {duePassed && (!assignment.submission || assignment.submission.state === "DRAFT") && (
+                              <div className="flex items-center gap-1.5 text-red-700 text-xs font-bold bg-red-100 px-3.5 py-1.5 rounded-xl border border-red-200 shadow-2xs">
+                                <Lock className="w-3.5 h-3.5 text-red-600" />
+                                <span>Submissions closed</span>
+                              </div>
+                            )}
+                          </div>
+                        )}
                       </div>
                     </div>
 
