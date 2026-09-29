@@ -170,8 +170,15 @@ function AppRoutes() {
 
 import { SocketProvider } from "./context/SocketContext";
 import { Toaster } from "react-hot-toast";
+import { useEffect } from "react";
+import { initInactivityTracker } from "./services/inactivityTracker";
 
 export default function App() {
+  useEffect(() => {
+    const cleanup = initInactivityTracker();
+    return cleanup;
+  }, []);
+
   return (
     <BrowserRouter>
       <SocketProvider>

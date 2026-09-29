@@ -40,6 +40,9 @@ export const loginUser = async (
     localStorage.removeItem("username");
   }
 
+  // Record initial activity timestamp
+  localStorage.setItem("lastActivityTimestamp", Date.now().toString());
+
   // Trigger storage sync
   window.dispatchEvent(new Event("storage"));
 
@@ -190,6 +193,7 @@ export const logoutUser = async () => {
     localStorage.removeItem("userEmail");
     localStorage.removeItem("username");
     localStorage.removeItem("userAvatar");
+    localStorage.removeItem("lastActivityTimestamp");
     window.dispatchEvent(new Event("storage"));
   }
 };

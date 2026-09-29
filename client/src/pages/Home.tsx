@@ -1,26 +1,18 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { motion, AnimatePresence } from "framer-motion";
-import Typewriter from "typewriter-effect";
 import {
   ArrowRight,
   ArrowUp,
-  Sparkles,
   BookOpen,
-  Users,
-  Shield,
-  Zap,
-  CheckCircle,
   Check,
   Copy,
   FileText,
-  Clock,
-  Award,
-  GraduationCap,
   ChevronDown,
-  Layers,
-  HelpCircle,
-  Star,
+  GraduationCap,
+  Download,
+  UploadCloud,
+  CheckCircle2,
+  Clock,
 } from "lucide-react";
 import Testimonials from "../components/Testimonials";
 import Features from "../components/Features";
@@ -29,132 +21,56 @@ import { Helmet } from "react-helmet-async";
 import { getPublicUptime, type UptimeData } from "../services/uptime.api";
 import { getFeedbackStats, type FeedbackStats } from "../services/feedback.api";
 
-const SAMPLE_CLASSES = [
-  {
-    id: "phy",
-    name: "Physics 101: Mechanics",
-    code: "PHY101",
-    students: 38,
-    avg: "88.5%",
-    tasks: [
-      {
-        title: "Lab 4: Wave Mechanics & Optics",
-        status: "Needs Grading",
-        statusColor: "bg-amber-50 text-amber-700 border-amber-200",
-        due: "Submitted by 36/38",
-        badge: "4 Pending",
-      },
-      {
-        title: "Midterm Research Essay",
-        status: "Due in 2 days",
-        statusColor: "bg-blue-50 text-blue-700 border-blue-200",
-        due: "Due Fri, 11:59 PM",
-        badge: "Active",
-      },
-      {
-        title: "Thermodynamics Problem Set",
-        status: "Graded",
-        statusColor: "bg-emerald-50 text-emerald-700 border-emerald-200",
-        due: "Class Avg: 94.2%",
-        badge: "Published",
-      },
-    ],
-  },
-  {
-    id: "cs",
-    name: "CS 102: Data Structures",
-    code: "CS102",
-    students: 45,
-    avg: "91.0%",
-    tasks: [
-      {
-        title: "Assignment 3: Binary Search Trees",
-        status: "Graded",
-        statusColor: "bg-emerald-50 text-emerald-700 border-emerald-200",
-        due: "Class Avg: 92.5%",
-        badge: "Published",
-      },
-      {
-        title: "Graph Algorithms Lab Report",
-        status: "Needs Grading",
-        statusColor: "bg-amber-50 text-amber-700 border-amber-200",
-        due: "Submitted by 42/45",
-        badge: "6 Pending",
-      },
-      {
-        title: "Final Capstone Proposal",
-        status: "Due in 4 days",
-        statusColor: "bg-blue-50 text-blue-700 border-blue-200",
-        due: "Due Next Mon",
-        badge: "Active",
-      },
-    ],
-  },
-  {
-    id: "math",
-    name: "MATH 201: Linear Algebra",
-    code: "MTH201",
-    students: 32,
-    avg: "86.4%",
-    tasks: [
-      {
-        title: "Matrix Decomposition Quiz",
-        status: "Graded",
-        statusColor: "bg-emerald-50 text-emerald-700 border-emerald-200",
-        due: "Class Avg: 89.0%",
-        badge: "Published",
-      },
-      {
-        title: "Vector Spaces Proof Set",
-        status: "Due Tomorrow",
-        statusColor: "bg-rose-50 text-rose-700 border-rose-200",
-        due: "Due at 11:59 PM",
-        badge: "Urgent",
-      },
-      {
-        title: "Eigenvalues & Eigenvectors",
-        status: "Published",
-        statusColor: "bg-slate-100 text-slate-700 border-slate-200",
-        due: "Reading Resource",
-        badge: "Material",
-      },
-    ],
-  },
+type DemoMode = "grading" | "student" | "gradebook";
+
+const SAMPLE_ROSTER = [
+  { name: "Aria Chen", id: "PHY-001", task: "Wave Mechanics & Optics", file: "chen_lab4_final.pdf", size: "2.4 MB", status: "Needs Grading", time: "Turned in 42m before cutoff", score: null },
+  { name: "Marcus Vance", id: "PHY-002", task: "Wave Mechanics & Optics", file: "vance_optics_v2.pdf", size: "3.1 MB", status: "Graded", time: "Turned in 2h before cutoff", score: 95 },
+  { name: "Elena Rostova", id: "PHY-003", task: "Wave Mechanics & Optics", file: "elena_wave_optics.docx", size: "1.8 MB", status: "Graded", time: "Turned in 1d before cutoff", score: 92 },
+  { name: "David Kim", id: "PHY-004", task: "Wave Mechanics & Optics", file: "kim_lab4_report.pdf", size: "4.0 MB", status: "Graded", time: "Turned in 15m before cutoff", score: 88 },
 ];
 
 const FAQS = [
   {
+    category: "Enrollment & Codes",
     q: "How do students join a classroom in AssignFlow Hub?",
-    a: "Every classroom created by a teacher is automatically assigned a unique 6-character access code (e.g. PHY101). Students simply log into their account, click 'Join Classroom', and enter the code to gain instant access to all assignments and resources.",
+    a: "When a teacher creates a classroom, AssignFlow Hub generates a unique 6-character access code (such as PHY101). Students simply log in, click 'Join Classroom', and enter the code to immediately access coursework and materials.",
   },
   {
-    q: "What file formats and file sizes are supported for assignment submissions?",
-    a: "AssignFlow Hub supports standard academic document formats including PDF (.pdf) and Microsoft Word documents (.docx) up to 10MB per submission. Both teachers and students can drag and drop files directly onto the upload zone.",
+    category: "Submissions & Files",
+    q: "What file formats and file size limits are supported?",
+    a: "AssignFlow Hub supports standard educational documents including PDF (.pdf) and Microsoft Word documents (.docx) up to 10MB per submission. Both teachers and students can drag and drop documents directly onto the upload zone.",
   },
   {
+    category: "Deadlines & Cutoffs",
     q: "What happens when an assignment deadline passes?",
-    a: "AssignFlow Hub features automated background deadline monitoring. Once the scheduled due date and time pass, the assignment submission window locks automatically to maintain fairness and academic integrity across the classroom.",
+    a: "AssignFlow Hub features automated deadline monitoring. The moment the scheduled due date and time arrives, the submission window locks automatically to maintain fairness and academic integrity across the classroom.",
   },
   {
+    category: "Grading & Feedback",
     q: "Can teachers save grading feedback as a draft before publishing?",
-    a: "Yes! Teachers can review submissions, assign scores, and write constructive comments as drafts. When ready, teachers can publish grades atomically with 1-click so students receive their evaluations simultaneously.",
+    a: "Yes. Teachers can review submissions, assign scores, and draft comments privately. When ready, teachers can publish evaluations with 1-click so all students receive their scores simultaneously.",
   },
   {
+    category: "Gradebook & Exports",
     q: "Can teachers export student grade reports for school administration?",
-    a: "Absolutely. The Teacher Performance Analytics dashboard includes a 1-Click CSV export tool that compiles student names, emails, completed assignments, average percentages, and performance tiers into a clean spreadsheet.",
+    a: "Yes! The Teacher Gradebook includes a 1-Click CSV export tool that compiles student names, assignment completion, percentage averages, and grade tiers into a clean spreadsheet ready for school records.",
   },
   {
+    category: "Access & Pricing",
     q: "Is AssignFlow Hub free for teachers and students?",
-    a: "Yes. AssignFlow Hub is free for teachers and students to create classrooms, publish coursework, turn in assignments, and track academic growth.",
+    a: "Yes. AssignFlow Hub is 100% free for teachers and students to create classrooms, publish assignments, submit homework, and track academic growth.",
   },
 ];
 
 const Home = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [selectedClassIndex, setSelectedClassIndex] = useState(0);
-  const [copiedCode, setCopiedCode] = useState<string | null>(null);
+  const [demoMode, setDemoMode] = useState<DemoMode>("grading");
+  const [copiedCode, setCopiedCode] = useState(false);
   const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(0);
   const [showBackToTop, setShowBackToTop] = useState(false);
+  const [activeScoreInput, setActiveScoreInput] = useState<number>(95);
+
   const [uptimeData, setUptimeData] = useState<UptimeData>({
     uptimeRatio: "99.95",
     status: "operational",
@@ -169,14 +85,8 @@ const Home = () => {
     totalAssignments: 25,
     totalSubmissions: 25,
   });
-  const navigate = useNavigate();
 
-  const scrollToTestimonials = () => {
-    const el = document.getElementById("testimonials");
-    if (el) {
-      el.scrollIntoView({ behavior: "smooth" });
-    }
-  };
+  const navigate = useNavigate();
 
   useEffect(() => {
     let isMounted = true;
@@ -207,13 +117,12 @@ const Home = () => {
 
   useEffect(() => {
     const handleScroll = () => {
-      if (window.scrollY > 350) {
+      if (window.scrollY > 400) {
         setShowBackToTop(true);
       } else {
         setShowBackToTop(false);
       }
     };
-
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
@@ -226,10 +135,17 @@ const Home = () => {
     }
   };
 
-  const handleCopyCode = (code: string) => {
-    navigator.clipboard.writeText(code);
-    setCopiedCode(code);
-    setTimeout(() => setCopiedCode(null), 2000);
+  const handleCopyCode = () => {
+    navigator.clipboard.writeText("PHY101");
+    setCopiedCode(true);
+    setTimeout(() => setCopiedCode(false), 2000);
+  };
+
+  const scrollToTestimonials = () => {
+    const el = document.getElementById("testimonials");
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth" });
+    }
   };
 
   const scrollToTop = () => {
@@ -239,779 +155,866 @@ const Home = () => {
     });
   };
 
-  const activeClass = SAMPLE_CLASSES[selectedClassIndex];
-
-  const fadeInUp = {
-    initial: { opacity: 0, y: 20 },
-    animate: { opacity: 1, y: 0 },
-    transition: { duration: 0.5, ease: [0.22, 1, 0.36, 1] },
-  };
-
-  const staggerContainer = {
-    animate: {
-      transition: {
-        staggerChildren: 0.08,
-      },
-    },
-  };
-
   return (
     <>
       <Helmet>
-        <title>AssignFlow Hub — Modern Assignment &amp; Classroom Management Platform</title>
+        <title>AssignFlow Hub — Academic Classroom &amp; Assignment Platform</title>
         <meta
           name="description"
-          content="AssignFlow Hub helps educators and students manage virtual classrooms, assignment publishing, drag-and-drop submissions, and real-time grading analytics effortlessly."
+          content="AssignFlow Hub helps educators and students manage virtual classrooms, drag-and-drop coursework publishing, draft-safe homework submissions, and real-time grading analytics."
         />
         <link rel="canonical" href="https://assignflowhub.karanart.com/" />
-        <meta property="og:title" content="AssignFlow Hub" />
+        <meta property="og:title" content="AssignFlow Hub — Classroom &amp; Assignment Management" />
         <meta
           property="og:description"
           content="Streamlined virtual classrooms, drag-and-drop coursework submissions, and transparent gradebook analytics."
         />
         <meta property="og:url" content="https://assignflowhub.karanart.com/" />
         <meta property="og:type" content="website" />
-        <meta name="twitter:card" content="summary_large_image" />
       </Helmet>
 
-      <div className="min-h-screen bg-slate-50 text-slate-900 antialiased selection:bg-blue-100 selection:text-blue-900 relative">
-        {/* Subtle grid background pattern */}
-        <div
-          className="fixed inset-0 pointer-events-none opacity-[0.02]"
-          style={{
-            backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23000000' fill-opacity='1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
-          }}
-        />
+      <div className="min-h-screen bg-white text-slate-900 antialiased selection:bg-blue-100 selection:text-blue-900">
 
-        {/* 1. HERO SECTION */}
-        <section className="relative max-w-7xl mx-auto px-6 lg:px-8 pt-10 sm:pt-16 pb-20 lg:pb-28">
-          <motion.div
-            variants={staggerContainer}
-            initial="initial"
-            animate="animate"
-            className="grid lg:grid-cols-12 gap-12 lg:gap-8 items-center"
-          >
-            {/* Left Column: Heading & Value Proposition */}
-            <div className="lg:col-span-7 xl:col-span-6 space-y-6">
-              {/* Product Badge */}
-              <motion.div variants={fadeInUp} className="inline-flex items-center gap-2 px-3.5 py-1.5 bg-blue-50 border border-blue-200 rounded-full text-xs font-semibold text-blue-800 shadow-2xs">
-                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                <Sparkles className="w-3.5 h-3.5 text-blue-600" />
-                <span>Purpose-Built for Modern Higher Ed &amp; K-12</span>
-              </motion.div>
-
-              {/* Main Headline with Typewriter */}
-              <motion.h1
-                variants={fadeInUp}
-                className="text-4xl sm:text-5xl lg:text-[3.25rem] font-extrabold tracking-tight text-slate-900 leading-[1.12]"
-              >
-                Classroom management designed for{" "}
-                <span className="text-blue-600 block sm:inline">
-                  <Typewriter
-                    options={{
-                      strings: [
-                        "Modern Educators.",
-                        "Ambitious Students.",
-                        "Faster Grading.",
-                        "Engaging Classes.",
-                        "Zero Paperwork.",
-                      ],
-                      autoStart: true,
-                      loop: true,
-                      delay: 50,
-                      deleteSpeed: 30,
-                    }}
-                  />
-                </span>
-              </motion.h1>
-
-              {/* Value Subheading */}
-              <motion.p
-                variants={fadeInUp}
-                className="text-base sm:text-lg text-slate-600 leading-relaxed max-w-xl"
-              >
-                AssignFlow Hub brings virtual classroom workspaces, drag-and-drop coursework publishing, stress-free student submissions, and instant grading analytics together in one distraction-free platform.
-              </motion.p>
-
-              {/* 3 Core Value Bullet Points */}
-              <motion.div variants={fadeInUp} className="space-y-2.5 pt-1">
-                <div className="flex items-center gap-2.5 text-xs sm:text-sm text-slate-700 font-medium">
-                  <div className="w-5 h-5 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
-                    <Check className="w-3 h-3 stroke-[3]" />
-                  </div>
-                  <span><strong>Instant 6-Character Join Codes</strong> for effortless student enrollment</span>
-                </div>
-
-                <div className="flex items-center gap-2.5 text-xs sm:text-sm text-slate-700 font-medium">
-                  <div className="w-5 h-5 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center shrink-0">
-                    <Check className="w-3 h-3 stroke-[3]" />
-                  </div>
-                  <span><strong>Drag-and-Drop Submissions</strong> with auto-saved draft states</span>
-                </div>
-
-                <div className="flex items-center gap-2.5 text-xs sm:text-sm text-slate-700 font-medium">
-                  <div className="w-5 h-5 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center shrink-0">
-                    <Check className="w-3 h-3 stroke-[3]" />
-                  </div>
-                  <span><strong>Real-Time Gradebook &amp; Analytics</strong> for transparent student growth</span>
-                </div>
-              </motion.div>
-
-              {/* CTA Action Buttons */}
-              <motion.div variants={fadeInUp} className="flex flex-col sm:flex-row gap-3.5 items-stretch sm:items-center pt-2">
-                <button
-                  onClick={handleGetStarted}
-                  className="inline-flex items-center justify-center gap-2 px-7 py-3.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl shadow-md shadow-blue-500/20 hover:shadow-blue-500/30 transition-all active:scale-95 text-sm cursor-pointer"
-                >
-                  <span>{isLoggedIn ? "Open Dashboard" : "Get Started Free"}</span>
-                  <ArrowRight className="w-4 h-4" />
-                </button>
-
-                {!isLoggedIn && (
-                  <Link
-                    to="/login"
-                    className="inline-flex items-center justify-center gap-2 px-6 py-3.5 bg-white border border-slate-300 hover:border-slate-400 text-slate-700 hover:text-slate-900 font-semibold rounded-xl text-sm transition-colors shadow-2xs"
-                  >
-                    <span>Sign In to Classroom</span>
-                  </Link>
-                )}
-              </motion.div>
-
-              {/* Trust Indicators */}
-              <motion.div variants={fadeInUp} className="pt-4 flex flex-wrap items-center gap-x-6 gap-y-2 text-xs text-slate-500">
-                <div className="flex items-center gap-1.5">
-                  <CheckCircle className="w-4 h-4 text-emerald-600" />
-                  <span>Free for teachers &amp; students</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <Shield className="w-4 h-4 text-blue-600" />
-                  <span>Data privacy compliant</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <Zap className="w-4 h-4 text-amber-500" />
-                  <span>Setup in &lt; 60 seconds</span>
-                </div>
-              </motion.div>
+        {/* ─── 1. HERO PRODUCT STUDIO ─── */}
+        <section className="max-w-6xl mx-auto px-6 lg:px-8 pt-12 sm:pt-16 pb-16 lg:pb-24">
+          {/* Header Copy with Academic Focus */}
+          <div className="max-w-3xl space-y-5">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 border border-blue-200 text-xs font-semibold text-blue-900 uppercase tracking-wider">
+              <span className="w-2 h-2 rounded-full bg-emerald-500" />
+              <span>Modern Classroom Platform</span>
+              <span className="text-blue-300">•</span>
+              <span>Free for Educators &amp; Students</span>
             </div>
 
-            {/* Right Column: Interactive Classroom Command Center Mockup */}
-            <div className="lg:col-span-5 xl:col-span-6 lg:pl-4">
-              <motion.div
-                variants={fadeInUp}
-                className="bg-white rounded-3xl border border-slate-200 shadow-xl shadow-slate-200/60 p-6 sm:p-7 space-y-5"
-              >
-                {/* Top Interactive Tabs: Switch Demo Class */}
-                <div className="flex items-center justify-between border-b border-slate-100 pb-4">
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-xs font-bold text-slate-400 uppercase tracking-wider mr-1">
-                      Class:
-                    </span>
-                    {SAMPLE_CLASSES.map((cls, idx) => (
-                      <button
-                        key={cls.id}
-                        onClick={() => setSelectedClassIndex(idx)}
-                        className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-                          selectedClassIndex === idx
-                            ? "bg-slate-900 text-white shadow-2xs"
-                            : "bg-slate-100 text-slate-600 hover:bg-slate-200"
-                        }`}
-                      >
-                        {cls.name.split(":")[0]}
-                      </button>
-                    ))}
-                  </div>
+            <h1 className="text-4xl sm:text-5xl lg:text-[3.4rem] font-extrabold tracking-tight text-slate-900 leading-[1.12]">
+              The classroom platform built for clear deadlines, effortless submissions, and faster grading.
+            </h1>
 
-                  <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                    Live Class
-                  </span>
-                </div>
-
-                {/* Selected Classroom Banner Card */}
-                <div className="p-4 bg-gradient-to-br from-blue-50/80 via-slate-50 to-indigo-50/40 border border-blue-200/80 rounded-2xl flex items-center justify-between gap-3">
-                  <div className="flex items-center gap-3">
-                    <div className="w-11 h-11 rounded-xl bg-blue-600 text-white font-black text-sm flex items-center justify-center shadow-xs shrink-0">
-                      <BookOpen className="w-5 h-5" />
-                    </div>
-                    <div>
-                      <h3 className="font-bold text-sm text-slate-900">
-                        {activeClass.name}
-                      </h3>
-                      <div className="flex items-center gap-2 text-xs text-slate-500 mt-0.5">
-                        <Users className="w-3.5 h-3.5 text-blue-600" />
-                        <span>{activeClass.students} Enrolled</span>
-                        <span>•</span>
-                        <span className="font-semibold text-emerald-700">
-                          {activeClass.avg} Class Avg
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Join Code with Copy Button */}
-                  <div className="flex items-center gap-1.5 bg-white border border-slate-200 rounded-xl px-2.5 py-1.5 shadow-2xs shrink-0">
-                    <span className="text-[10px] text-slate-400 font-bold uppercase">Code:</span>
-                    <span className="font-mono font-bold text-xs text-blue-700">
-                      {activeClass.code}
-                    </span>
-                    <button
-                      onClick={() => handleCopyCode(activeClass.code)}
-                      className="p-1 text-slate-400 hover:text-blue-600 cursor-pointer"
-                      title="Copy join code"
-                    >
-                      {copiedCode === activeClass.code ? (
-                        <Check className="w-3 h-3 text-emerald-600" />
-                      ) : (
-                        <Copy className="w-3 h-3" />
-                      )}
-                    </button>
-                  </div>
-                </div>
-
-                {/* Coursework & Grading Queue */}
-                <div className="space-y-2.5">
-                  <div className="flex items-center justify-between text-xs text-slate-500 font-bold uppercase tracking-wider px-1">
-                    <span>Active Coursework &amp; Submissions</span>
-                    <span>Status</span>
-                  </div>
-
-                  {activeClass.tasks.map((task, tIdx) => (
-                    <div
-                      key={tIdx}
-                      className="p-3.5 bg-slate-50 hover:bg-blue-50/40 border border-slate-200 rounded-xl flex items-center justify-between gap-3 transition-colors group cursor-default"
-                    >
-                      <div className="space-y-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <FileText className="w-4 h-4 text-blue-600 shrink-0" />
-                          <h4 className="font-semibold text-xs text-slate-900 truncate">
-                            {task.title}
-                          </h4>
-                        </div>
-                        <p className="text-[11px] text-slate-500 pl-6">
-                          {task.due}
-                        </p>
-                      </div>
-
-                      <span
-                        className={`text-[11px] font-bold px-2 py-1 rounded-lg border shrink-0 ${task.statusColor}`}
-                      >
-                        {task.badge}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-
-                {/* Live Synchronized Activity Footer */}
-                <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
-                  <div className="flex items-center gap-1.5">
-                    <Clock className="w-3.5 h-3.5 text-blue-600" />
-                    <span>Real-time WebSocket Sync Active</span>
-                  </div>
-                  <span className="font-semibold text-blue-600 hover:text-blue-700">
-                    Full Roster →
-                  </span>
-                </div>
-              </motion.div>
-            </div>
-          </motion.div>
-        </section>
-
-        {/* 2. ACADEMIC METRIC PROOF STRIP */}
-        <section className="border-y border-slate-200 bg-white">
-          <div className="max-w-7xl mx-auto px-6 lg:px-8">
-            <div className="grid grid-cols-2 lg:grid-cols-4 divide-x divide-slate-100">
-              {[
-                {
-                  value: `${feedbackStats.totalAssignments}+`,
-                  label: "Coursework Published",
-                  sub: "Active assignments created by educators",
-                  isAssignments: true,
-                },
-                {
-                  value: `${feedbackStats.totalSubmissions}+`,
-                  label: "Student Submissions",
-                  sub: "Delivered & uploaded across classrooms",
-                  isSubmissions: true,
-                },
-                {
-                  value: `${uptimeData.uptimeRatio}%`,
-                  label: "Platform Uptime",
-                  sub: uptimeData.isLive
-                    ? "Live monitored via UptimeRobot"
-                    : "Always accessible at deadline hour",
-                  isUptime: true,
-                },
-                {
-                  value: `${feedbackStats.averageRating} / 5.0`,
-                  label: "Educator & Student Rating",
-                  sub: `Across ${feedbackStats.totalReviews} verified reviews & ${feedbackStats.totalClassrooms} classrooms`,
-                  isRating: true,
-                  onClick: scrollToTestimonials,
-                },
-              ].map((stat, i) => (
-                <motion.div
-                  key={i}
-                  initial={{ opacity: 0, y: 16 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: false, amount: 0.2 }}
-                  transition={{ delay: i * 0.08, duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
-                  onClick={stat.onClick}
-                  className={`py-8 px-6 lg:px-8 first:pl-0 transition-all ${
-                    stat.isRating
-                      ? "cursor-pointer group hover:bg-slate-100/70 rounded-2xl"
-                      : ""
-                  }`}
-                  title={stat.isRating ? "Click to view student and educator testimonials" : undefined}
-                >
-                  <div className="flex items-center gap-2 mb-1 flex-wrap">
-                    <span
-                      className={`text-2xl sm:text-3xl lg:text-4xl font-extrabold text-slate-900 tracking-tight ${
-                        stat.isRating ? "group-hover:text-blue-600 transition-colors" : ""
-                      }`}
-                    >
-                      {stat.value}
-                    </span>
-                    {stat.isAssignments && (
-                      <span
-                        className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wide uppercase shadow-2xs bg-blue-50 text-blue-700 border border-blue-200"
-                        title={`${feedbackStats.totalAssignments} total coursework assignments published across all classrooms`}
-                      >
-                        <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
-                        <span>Teacher</span>
-                      </span>
-                    )}
-                    {stat.isSubmissions && (
-                      <span
-                        className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wide uppercase shadow-2xs bg-indigo-50 text-indigo-700 border border-indigo-200"
-                        title={`${feedbackStats.totalSubmissions} total coursework assignments uploaded by students`}
-                      >
-                        <span className="w-1.5 h-1.5 rounded-full bg-indigo-500" />
-                        <span>Student</span>
-                      </span>
-                    )}
-                    {stat.isUptime && (
-                      <span
-                        className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wide uppercase shadow-2xs ${
-                          uptimeData.status === "operational"
-                            ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
-                            : uptimeData.status === "degraded"
-                            ? "bg-amber-50 text-amber-700 border border-amber-200"
-                            : "bg-rose-50 text-rose-700 border border-rose-200"
-                        }`}
-                        title={
-                          uptimeData.isLive
-                            ? `Live monitored via UptimeRobot (${uptimeData.monitoredPeriod})`
-                            : "Platform SLA Target"
-                        }
-                      >
-                        <span
-                          className={`w-1.5 h-1.5 rounded-full ${
-                            uptimeData.status === "operational"
-                              ? "bg-emerald-500 animate-pulse"
-                              : uptimeData.status === "degraded"
-                              ? "bg-amber-500 animate-pulse"
-                              : "bg-rose-500 animate-pulse"
-                          }`}
-                        />
-                        {uptimeData.isLive ? "Live SLA" : "Target"}
-                      </span>
-                    )}
-                    {stat.isRating && (
-                      <span
-                        className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wide uppercase shadow-2xs bg-amber-50 text-amber-700 border border-amber-200 group-hover:bg-amber-100 transition-colors"
-                        title={`Verified aggregate rating from ${feedbackStats.totalReviews} reviews across active classrooms`}
-                      >
-                        <Star className="w-3 h-3 fill-amber-400 text-amber-500" />
-                        <span>Verified ↗</span>
-                      </span>
-                    )}
-                  </div>
-                  <div className="text-sm font-semibold text-slate-800 mb-0.5">{stat.label}</div>
-                  <div className="text-xs text-slate-400 flex items-center justify-between">
-                    <span>{stat.sub}</span>
-                    {stat.isRating && (
-                      <span className="text-[11px] font-medium text-blue-600 opacity-0 group-hover:opacity-100 transition-opacity ml-1">
-                        Read reviews ↓
-                      </span>
-                    )}
-                  </div>
-                </motion.div>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        {/* 3. HOW IT WORKS 3-STEP ACADEMIC WORKFLOW */}
-        <section className="py-20 lg:py-28 bg-slate-50 border-b border-slate-200">
-          <div className="max-w-7xl mx-auto px-6 lg:px-8">
-            <motion.div
-              initial={{ opacity: 0, y: 24 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: false, amount: 0.2 }}
-              transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-              className="text-center max-w-3xl mx-auto mb-16 space-y-3"
-            >
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-blue-50 border border-blue-200 rounded-full text-xs font-semibold text-blue-700 uppercase tracking-wider">
-                <Layers className="w-3.5 h-3.5" />
-                Simple 3-Step Lifecycle
-              </span>
-              <h2 className="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight">
-                How AssignFlow Hub streamlines education
-              </h2>
-              <p className="text-base text-slate-600 leading-relaxed">
-                From creating a classroom to final gradebook analytics, the platform removes friction so teachers and students can focus on learning.
-              </p>
-            </motion.div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-              {/* Step 1 */}
-              <motion.div
-                initial={{ opacity: 0, y: 24 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: false, amount: 0.2 }}
-                whileHover={{ y: -4 }}
-                transition={{ duration: 0.45, delay: 0.1, ease: [0.22, 1, 0.36, 1] }}
-                className="bg-white border border-slate-200 rounded-3xl p-7 shadow-xs hover:shadow-md transition-shadow relative flex flex-col justify-between"
-              >
-                <div>
-                  <div className="w-12 h-12 rounded-2xl bg-blue-100 text-blue-700 font-extrabold text-lg flex items-center justify-center mb-6 shadow-2xs">
-                    01
-                  </div>
-                  <h3 className="text-lg font-bold text-slate-900 mb-2">
-                    Create or Join in Seconds
-                  </h3>
-                  <p className="text-sm text-slate-600 leading-relaxed mb-6">
-                    Teachers generate instant 6-character access codes. Students enter the code to join the class roster immediately with zero tedious configuration.
-                  </p>
-                </div>
-                <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono text-blue-700 font-bold flex items-center justify-between">
-                  <span>Invite: PHY101</span>
-                  <span className="text-[11px] text-slate-500 font-sans font-medium">Instant Enrollment</span>
-                </div>
-              </motion.div>
-
-              {/* Step 2 */}
-              <motion.div
-                initial={{ opacity: 0, y: 24 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: false, amount: 0.2 }}
-                whileHover={{ y: -4 }}
-                transition={{ duration: 0.45, delay: 0.2, ease: [0.22, 1, 0.36, 1] }}
-                className="bg-white border border-slate-200 rounded-3xl p-7 shadow-xs hover:shadow-md transition-shadow relative flex flex-col justify-between"
-              >
-                <div>
-                  <div className="w-12 h-12 rounded-2xl bg-indigo-100 text-indigo-700 font-extrabold text-lg flex items-center justify-center mb-6 shadow-2xs">
-                    02
-                  </div>
-                  <h3 className="text-lg font-bold text-slate-900 mb-2">
-                    Drag, Drop &amp; Submit
-                  </h3>
-                  <p className="text-sm text-slate-600 leading-relaxed mb-6">
-                    Teachers publish rich coursework prompts with PDF attachments. Students drag and drop submissions with draft auto-saving before final turn-in.
-                  </p>
-                </div>
-                <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono text-indigo-700 font-bold flex items-center justify-between">
-                  <span>Upload: lab4_report.pdf</span>
-                  <span className="text-[11px] text-emerald-600 font-sans font-semibold">Auto-Saved</span>
-                </div>
-              </motion.div>
-
-              {/* Step 3 */}
-              <motion.div
-                initial={{ opacity: 0, y: 24 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: false, amount: 0.2 }}
-                whileHover={{ y: -4 }}
-                transition={{ duration: 0.45, delay: 0.3, ease: [0.22, 1, 0.36, 1] }}
-                className="bg-white border border-slate-200 rounded-3xl p-7 shadow-xs hover:shadow-md transition-shadow relative flex flex-col justify-between"
-              >
-                <div>
-                  <div className="w-12 h-12 rounded-2xl bg-emerald-100 text-emerald-700 font-extrabold text-lg flex items-center justify-center mb-6 shadow-2xs">
-                    03
-                  </div>
-                  <h3 className="text-lg font-bold text-slate-900 mb-2">
-                    Evaluate &amp; Track Growth
-                  </h3>
-                  <p className="text-sm text-slate-600 leading-relaxed mb-6">
-                    Teachers grade rapidly with 1-click score presets and constructive feedback chips. Students receive transparent scores with deep grade analytics.
-                  </p>
-                </div>
-                <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono text-emerald-700 font-bold flex items-center justify-between">
-                  <span>Score: 95 / 100</span>
-                  <span className="text-[11px] text-blue-600 font-sans font-semibold">1-Click Published</span>
-                </div>
-              </motion.div>
-            </div>
-          </div>
-        </section>
-
-        {/* 4. PRODUCT FEATURES SHOWCASE */}
-        <Features />
-
-        {/* 5. DUAL EXPERIENCE: TEACHERS VS STUDENTS */}
-        <section className="py-20 lg:py-28 bg-white border-b border-slate-200">
-          <div className="max-w-7xl mx-auto px-6 lg:px-8">
-            <motion.div
-              initial={{ opacity: 0, y: 24 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: false, amount: 0.2 }}
-              transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-              className="text-center max-w-3xl mx-auto mb-16 space-y-3"
-            >
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-indigo-50 border border-indigo-200 rounded-full text-xs font-semibold text-indigo-700 uppercase tracking-wider">
-                <Users className="w-3.5 h-3.5" />
-                Tailored Perspectives
-              </span>
-              <h2 className="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight">
-                Designed for both sides of the classroom
-              </h2>
-              <p className="text-base text-slate-600 leading-relaxed">
-                Whether you are managing multiple courses or submitting weekly coursework, AssignFlow Hub adapts to your exact academic role.
-              </p>
-            </motion.div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              {/* Teacher Experience Box */}
-              <motion.div
-                initial={{ opacity: 0, x: -25 }}
-                whileInView={{ opacity: 1, x: 0 }}
-                viewport={{ once: false, amount: 0.2 }}
-                transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-                className="bg-gradient-to-br from-blue-50/70 via-white to-slate-50 border border-blue-200/80 rounded-3xl p-8 shadow-xs space-y-6"
-              >
-                <div className="flex items-center gap-3.5">
-                  <div className="w-12 h-12 rounded-2xl bg-blue-600 text-white flex items-center justify-center font-bold shadow-sm">
-                    <BookOpen className="w-6 h-6" />
-                  </div>
-                  <div>
-                    <span className="text-xs font-bold uppercase tracking-wider text-blue-700 bg-blue-100 px-2 py-0.5 rounded">
-                      Teacher Dashboard
-                    </span>
-                    <h3 className="text-xl font-extrabold text-slate-900 mt-1">
-                      Effortless Class &amp; Grading Control
-                    </h3>
-                  </div>
-                </div>
-
-                <div className="space-y-3">
-                  {[
-                    "Create unlimited classrooms with shareable 6-digit access codes",
-                    "Drag-and-drop coursework publishing with PDF attachments and due dates",
-                    "Centralized grading queue with 1-click score presets (100%, 95%, 90%)",
-                    "Atomic grade publishing with constructive feedback commentary",
-                    "Global student performance analytics with grade distribution charts & CSV export",
-                  ].map((item, idx) => (
-                    <div key={idx} className="flex items-start gap-2.5 text-sm text-slate-700">
-                      <CheckCircle className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
-                      <span>{item}</span>
-                    </div>
-                  ))}
-                </div>
-
-                <div className="pt-2">
-                  <Link
-                    to="/register"
-                    className="inline-flex items-center gap-2 text-sm font-bold text-blue-700 hover:text-blue-800"
-                  >
-                    <span>Explore Teacher Tools</span>
-                    <ArrowRight className="w-4 h-4" />
-                  </Link>
-                </div>
-              </motion.div>
-
-              {/* Student Experience Box */}
-              <motion.div
-                initial={{ opacity: 0, x: 25 }}
-                whileInView={{ opacity: 1, x: 0 }}
-                viewport={{ once: false, amount: 0.2 }}
-                transition={{ duration: 0.5, delay: 0.1, ease: [0.22, 1, 0.36, 1] }}
-                className="bg-gradient-to-br from-emerald-50/70 via-white to-slate-50 border border-emerald-200/80 rounded-3xl p-8 shadow-xs space-y-6"
-              >
-                <div className="flex items-center gap-3.5">
-                  <div className="w-12 h-12 rounded-2xl bg-emerald-600 text-white flex items-center justify-center font-bold shadow-sm">
-                    <GraduationCap className="w-6 h-6" />
-                  </div>
-                  <div>
-                    <span className="text-xs font-bold uppercase tracking-wider text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded">
-                      Student Experience
-                    </span>
-                    <h3 className="text-xl font-extrabold text-slate-900 mt-1">
-                      Clear Deadlines &amp; Transparent Growth
-                    </h3>
-                  </div>
-                </div>
-
-                <div className="space-y-3">
-                  {[
-                    "Join any class instantly with a 6-character code from your teacher",
-                    "Drag-and-drop homework submissions with support for PDF and DOCX files",
-                    "Save draft submissions before final turn-in to avoid accidental uploads",
-                    "Access transparent gradebook showing percentage scores & teacher feedback",
-                    "Download your original submitted documents at any time for your records",
-                  ].map((item, idx) => (
-                    <div key={idx} className="flex items-start gap-2.5 text-sm text-slate-700">
-                      <CheckCircle className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
-                      <span>{item}</span>
-                    </div>
-                  ))}
-                </div>
-
-                <div className="pt-2">
-                  <Link
-                    to="/register"
-                    className="inline-flex items-center gap-2 text-sm font-bold text-emerald-700 hover:text-emerald-800"
-                  >
-                    <span>Explore Student Portal</span>
-                    <ArrowRight className="w-4 h-4" />
-                  </Link>
-                </div>
-              </motion.div>
-            </div>
-          </div>
-        </section>
-
-        {/* 6. COMMUNITY TESTIMONIALS */}
-        <div id="testimonials" className="scroll-mt-8">
-          <Testimonials />
-        </div>
-
-        {/* 7. FREQUENTLY ASKED QUESTIONS (FAQ) */}
-        <section className="py-20 lg:py-28 bg-slate-50 border-y border-slate-200">
-          <div className="max-w-4xl mx-auto px-6 lg:px-8">
-            <motion.div
-              initial={{ opacity: 0, y: 24 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: false, amount: 0.2 }}
-              transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-              className="text-center max-w-2xl mx-auto mb-16 space-y-3"
-            >
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-blue-50 border border-blue-200 rounded-full text-xs font-semibold text-blue-700 uppercase tracking-wider">
-                <HelpCircle className="w-3.5 h-3.5" />
-                Answers to Common Inquiries
-              </span>
-              <h2 className="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight">
-                Frequently Asked Questions
-              </h2>
-              <p className="text-base text-slate-600 leading-relaxed">
-                Everything you need to know about joining classrooms, submitting work, and grading.
-              </p>
-            </motion.div>
-
-            <div className="space-y-3.5">
-              {FAQS.map((faq, fIdx) => {
-                const isOpen = openFaqIndex === fIdx;
-
-                return (
-                  <motion.div
-                    key={fIdx}
-                    initial={{ opacity: 0, y: 16 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    viewport={{ once: false, amount: 0.2 }}
-                    transition={{ delay: fIdx * 0.05, duration: 0.4 }}
-                    className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-2xs transition-all"
-                  >
-                    <button
-                      onClick={() => setOpenFaqIndex(isOpen ? null : fIdx)}
-                      className="w-full p-5 text-left flex items-center justify-between gap-4 font-semibold text-slate-900 hover:text-blue-600 transition-colors cursor-pointer"
-                    >
-                      <span className="text-sm sm:text-base">{faq.q}</span>
-                      <ChevronDown
-                        className={`w-5 h-5 text-slate-400 transition-transform duration-200 shrink-0 ${
-                          isOpen ? "rotate-180 text-blue-600" : ""
-                        }`}
-                      />
-                    </button>
-
-                    <AnimatePresence>
-                      {isOpen && (
-                        <motion.div
-                          initial={{ opacity: 0, height: 0 }}
-                          animate={{ opacity: 1, height: "auto" }}
-                          exit={{ opacity: 0, height: 0 }}
-                          transition={{ duration: 0.2 }}
-                          className="px-5 pb-5 text-sm text-slate-600 leading-relaxed border-t border-slate-100 pt-3"
-                        >
-                          {faq.a}
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
-                  </motion.div>
-                );
-              })}
-            </div>
-          </div>
-        </section>
-
-        {/* 8. NEWSLETTER SUBSCRIPTION */}
-        <NewsletterSubscribe />
-
-        {/* 9. FINAL HIGH-IMPACT EDUCATOR CALL TO ACTION */}
-        <section className="py-20 lg:py-24 bg-slate-900 text-white">
-          <motion.div
-            initial={{ opacity: 0, y: 24, scale: 0.98 }}
-            whileInView={{ opacity: 1, y: 0, scale: 1 }}
-            viewport={{ once: false, amount: 0.2 }}
-            transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-            className="max-w-4xl mx-auto px-6 lg:px-8 text-center space-y-6"
-          >
-            <div className="inline-flex items-center gap-2 px-3.5 py-1 bg-white/10 border border-white/20 rounded-full text-xs font-semibold text-blue-300">
-              <Award className="w-3.5 h-3.5" />
-              <span>Join 2,400+ Educators &amp; Students Worldwide</span>
-            </div>
-
-            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight leading-tight">
-              Ready to streamline your classroom workflow?
-            </h2>
-
-            <p className="text-base sm:text-lg text-slate-300 max-w-2xl mx-auto leading-relaxed">
-              Create your first virtual classroom in under 60 seconds, share your 6-character access code with students, and start publishing assignments today.
+            <p className="text-base sm:text-lg text-slate-600 leading-relaxed max-w-2xl">
+              AssignFlow Hub brings virtual classrooms, drag-and-drop coursework publishing, draft-safe student submissions, and 1-click grading together in one clean, distraction-free platform.
             </p>
 
-            <div className="pt-4 flex flex-col sm:flex-row items-center justify-center gap-3.5">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3.5 pt-2">
               <button
                 onClick={handleGetStarted}
-                className="w-full sm:w-auto inline-flex items-center justify-center gap-2.5 px-8 py-4 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl shadow-lg shadow-blue-600/30 transition-all text-sm cursor-pointer"
+                className="inline-flex items-center justify-center gap-2 px-6 py-3.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl transition-all text-sm cursor-pointer shadow-sm hover:shadow active:scale-98"
               >
-                <span>{isLoggedIn ? "Open Dashboard" : "Create Free Account"}</span>
+                <span>{isLoggedIn ? "Open Dashboard" : "Create Free Classroom"}</span>
                 <ArrowRight className="w-4 h-4" />
               </button>
 
               {!isLoggedIn && (
                 <Link
                   to="/login"
-                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-7 py-4 bg-white/10 hover:bg-white/20 border border-white/20 text-white font-semibold rounded-xl text-sm transition-colors"
+                  className="inline-flex items-center justify-center gap-2 px-6 py-3.5 bg-white border border-slate-300 hover:border-slate-400 text-slate-700 font-semibold rounded-xl text-sm transition-colors shadow-2xs"
                 >
-                  Sign In
+                  Sign In to Classroom
+                </Link>
+              )}
+
+              <div className="text-xs text-slate-500 font-medium sm:pl-2 flex items-center gap-1.5">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                <span>Instant 6-character class code • No credit card</span>
+              </div>
+            </div>
+          </div>
+
+          {/* ─── LIVE PRODUCT SHOWCASE WORKBENCH ─── */}
+          <div className="mt-12 border border-slate-200 rounded-2xl overflow-hidden shadow-md bg-white">
+            {/* App Window Chrome Header */}
+            <div className="bg-slate-50 border-b border-slate-200 px-4 sm:px-6 py-3 flex flex-wrap items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-1.5">
+                  <div className="w-3 h-3 rounded-full bg-slate-300" />
+                  <div className="w-3 h-3 rounded-full bg-slate-300" />
+                  <div className="w-3 h-3 rounded-full bg-slate-300" />
+                </div>
+                <div className="text-xs font-semibold text-slate-700 pl-3 border-l border-slate-200 flex items-center gap-1.5">
+                  <BookOpen className="w-3.5 h-3.5 text-blue-600" />
+                  <span>Physics 101: Mechanics &amp; Wave Optics</span>
+                </div>
+              </div>
+
+              {/* View Switcher Tabs */}
+              <div className="flex items-center p-1 bg-slate-200/70 rounded-xl">
+                {[
+                  { id: "grading", label: "Teacher Grading Queue" },
+                  { id: "student", label: "Student Submission Portal" },
+                  { id: "gradebook", label: "Classroom Gradebook" },
+                ].map((tab) => (
+                  <button
+                    key={tab.id}
+                    onClick={() => setDemoMode(tab.id as DemoMode)}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                      demoMode === tab.id
+                        ? "bg-white text-slate-900 shadow-2xs"
+                        : "text-slate-600 hover:text-slate-900"
+                    }`}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* View 1: TEACHER GRADING QUEUE */}
+            {demoMode === "grading" && (
+              <div className="p-5 sm:p-7 grid grid-cols-1 lg:grid-cols-12 gap-6 bg-white">
+                {/* Left: Queue Table (7 cols) */}
+                <div className="lg:col-span-7 space-y-3">
+                  <div className="flex items-center justify-between text-xs pb-2 border-b border-slate-100">
+                    <span className="font-bold text-slate-600 uppercase tracking-wider text-[11px]">
+                      Student Submissions (4 Received)
+                    </span>
+                    <span className="font-semibold text-emerald-800 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-md text-[11px]">
+                      3 Graded • 1 Awaiting Review
+                    </span>
+                  </div>
+
+                  <div className="space-y-2.5">
+                    {SAMPLE_ROSTER.map((row, idx) => (
+                      <div
+                        key={idx}
+                        className={`p-3.5 rounded-xl border text-xs transition-colors flex items-center justify-between gap-3 ${
+                          row.status === "Needs Grading"
+                            ? "bg-blue-50/60 border-blue-200 shadow-2xs"
+                            : "bg-slate-50/70 border-slate-200/80"
+                        }`}
+                      >
+                        <div className="space-y-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className="font-bold text-slate-900 text-sm truncate">
+                              {row.name}
+                            </span>
+                            <span className="text-[11px] font-mono text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded">
+                              {row.id}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2 text-xs text-slate-500">
+                            <FileText className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+                            <span className="truncate font-medium">{row.file}</span>
+                            <span className="text-slate-300">•</span>
+                            <span>{row.size}</span>
+                          </div>
+                        </div>
+
+                        <div className="text-right shrink-0">
+                          {row.score !== null ? (
+                            <span className="font-bold text-slate-900 bg-white border border-slate-200 px-2.5 py-1 rounded-lg shadow-2xs">
+                              {row.score} / 100
+                            </span>
+                          ) : (
+                            <span className="font-bold text-amber-800 bg-amber-50 border border-amber-200 px-2.5 py-1 rounded-lg">
+                              Needs Score
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Right: Active Evaluation Deck (5 cols) */}
+                <div className="lg:col-span-5 bg-slate-50 border border-slate-200 rounded-xl p-5 space-y-4">
+                  <div className="flex items-center justify-between border-b border-slate-200 pb-3">
+                    <div>
+                      <div className="text-sm font-bold text-slate-900">Aria Chen</div>
+                      <div className="text-xs text-slate-500">Lab 4: Wave Mechanics &amp; Optics</div>
+                    </div>
+                    <span className="text-[11px] font-semibold text-blue-700 bg-blue-100/70 px-2 py-0.5 rounded-md">
+                      Draft Review
+                    </span>
+                  </div>
+
+                  {/* 1-Click Score Presets */}
+                  <div className="space-y-2">
+                    <div className="text-xs font-bold text-slate-600 uppercase tracking-wider">
+                      1-Click Score Presets:
+                    </div>
+                    <div className="grid grid-cols-4 gap-2 text-xs font-bold">
+                      {[100, 95, 90, 85].map((s) => (
+                        <button
+                          key={s}
+                          onClick={() => setActiveScoreInput(s)}
+                          className={`py-2 rounded-lg border transition-colors cursor-pointer text-center ${
+                            activeScoreInput === s
+                              ? "bg-blue-600 text-white border-blue-600 shadow-2xs"
+                              : "bg-white text-slate-700 border-slate-300 hover:bg-slate-100"
+                          }`}
+                        >
+                          {s}%
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Comments Box */}
+                  <div className="space-y-1.5">
+                    <div className="text-xs font-bold text-slate-600 uppercase tracking-wider">
+                      Teacher Comments:
+                    </div>
+                    <div className="p-3 bg-white border border-slate-200 rounded-lg text-xs text-slate-700 italic">
+                      "Exemplary derivation of the wave equation. Clear error analysis in section 3."
+                    </div>
+                  </div>
+
+                  {/* Action Bar */}
+                  <div className="pt-2 flex items-center gap-2">
+                    <button className="flex-1 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-lg text-xs font-semibold cursor-pointer transition-colors text-center shadow-2xs">
+                      Publish Score ({activeScoreInput}%)
+                    </button>
+                    <button className="px-3 py-2 bg-white border border-slate-300 hover:bg-slate-100 text-slate-700 rounded-lg text-xs font-medium cursor-pointer">
+                      Next →
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* View 2: STUDENT SUBMISSION PORTAL */}
+            {demoMode === "student" && (
+              <div className="p-5 sm:p-7 grid grid-cols-1 lg:grid-cols-12 gap-6 bg-white">
+                <div className="lg:col-span-7 space-y-4">
+                  <div className="space-y-1.5">
+                    <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                      Assignment Guidelines
+                    </span>
+                    <h3 className="text-lg font-bold text-slate-900">
+                      Lab 4: Wave Mechanics &amp; Optics Interferometry
+                    </h3>
+                    <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
+                      Submit your completed laboratory report documenting fringe pattern shifts and slit displacement measurements. Ensure all uncertainty calculations are included.
+                    </p>
+                  </div>
+
+                  <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between text-xs">
+                    <div className="flex items-center gap-2.5 font-medium text-slate-800">
+                      <FileText className="w-4 h-4 text-blue-600" />
+                      <span>Lab4_Instructions_Optics.pdf</span>
+                    </div>
+                    <span className="text-xs text-slate-400 font-medium">1.4 MB</span>
+                  </div>
+
+                  {/* Submission Status */}
+                  <div className="p-3.5 bg-emerald-50/70 border border-emerald-200 rounded-xl space-y-1">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="font-bold text-emerald-900 flex items-center gap-1.5">
+                        <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                        Submission Uploaded &amp; Graded
+                      </span>
+                      <span className="font-bold text-emerald-800 bg-white px-2 py-0.5 rounded border border-emerald-200">
+                        Score: 95% (A)
+                      </span>
+                    </div>
+                    <div className="text-xs text-slate-600 font-medium pl-5">
+                      vance_optics_v2.pdf (3.1 MB) • Feedback: "Outstanding mathematical derivation"
+                    </div>
+                  </div>
+                </div>
+
+                <div className="lg:col-span-5 bg-slate-50 border border-slate-200 rounded-xl p-5 space-y-4">
+                  <div className="text-xs font-bold text-slate-700 pb-2 border-b border-slate-200 uppercase tracking-wider">
+                    Student Submission Box
+                  </div>
+
+                  <div className="border-2 border-dashed border-slate-300 rounded-xl p-6 text-center space-y-2 bg-white">
+                    <UploadCloud className="w-8 h-8 text-blue-600 mx-auto" />
+                    <div className="text-xs sm:text-sm font-semibold text-slate-800">
+                      Drag &amp; drop your coursework file
+                    </div>
+                    <div className="text-xs text-slate-400">
+                      Supports PDF, DOCX up to 10MB
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between text-xs text-slate-600 font-medium pt-1">
+                    <span className="flex items-center gap-1">
+                      <Clock className="w-3.5 h-3.5 text-slate-400" />
+                      Due Friday at 11:59 PM
+                    </span>
+                    <span className="text-amber-800 bg-amber-50 px-2 py-0.5 rounded font-semibold border border-amber-200">
+                      Auto-locks at cutoff
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* View 3: CLASS GRADEBOOK */}
+            {demoMode === "gradebook" && (
+              <div className="p-5 sm:p-7 bg-white space-y-4">
+                <div className="flex items-center justify-between pb-3 border-b border-slate-200 text-xs">
+                  <div>
+                    <span className="text-sm font-bold text-slate-900">Physics 101 Gradebook</span>
+                    <span className="text-slate-500 ml-2 font-medium">(38 Enrolled Students)</span>
+                  </div>
+
+                  <button className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-slate-900 hover:bg-slate-800 text-white rounded-lg text-xs font-semibold transition-colors cursor-pointer">
+                    <Download className="w-3.5 h-3.5" />
+                    <span>Export CSV</span>
+                  </button>
+                </div>
+
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs font-mono">
+                    <thead>
+                      <tr className="border-b border-slate-200 text-slate-500 text-[11px] uppercase tracking-wider font-sans font-bold">
+                        <th className="pb-2.5">Student Name</th>
+                        <th className="pb-2.5">Student ID</th>
+                        <th className="pb-2.5">Lab 1 (25%)</th>
+                        <th className="pb-2.5">Lab 2 (25%)</th>
+                        <th className="pb-2.5">Lab 3 (25%)</th>
+                        <th className="pb-2.5">Lab 4 (25%)</th>
+                        <th className="pb-2.5 text-right">Class Standing</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 text-slate-700">
+                      <tr>
+                        <td className="py-3 font-sans font-bold text-slate-900">Aria Chen</td>
+                        <td className="py-3 text-slate-400">PHY-001</td>
+                        <td className="py-3">98%</td>
+                        <td className="py-3">96%</td>
+                        <td className="py-3">94%</td>
+                        <td className="py-3 text-blue-700 font-semibold">95% (Pending)</td>
+                        <td className="py-3 text-right font-bold text-emerald-700">95.8% (A)</td>
+                      </tr>
+                      <tr>
+                        <td className="py-3 font-sans font-bold text-slate-900">Marcus Vance</td>
+                        <td className="py-3 text-slate-400">PHY-002</td>
+                        <td className="py-3">88%</td>
+                        <td className="py-3">90%</td>
+                        <td className="py-3">84%</td>
+                        <td className="py-3">95%</td>
+                        <td className="py-3 text-right font-bold text-slate-900">89.2% (B+)</td>
+                      </tr>
+                      <tr>
+                        <td className="py-3 font-sans font-bold text-slate-900">Elena Rostova</td>
+                        <td className="py-3 text-slate-400">PHY-003</td>
+                        <td className="py-3">92%</td>
+                        <td className="py-3">94%</td>
+                        <td className="py-3">90%</td>
+                        <td className="py-3">92%</td>
+                        <td className="py-3 text-right font-bold text-emerald-700">92.0% (A-)</td>
+                      </tr>
+                      <tr>
+                        <td className="py-3 font-sans font-bold text-slate-900">David Kim</td>
+                        <td className="py-3 text-slate-400">PHY-004</td>
+                        <td className="py-3">85%</td>
+                        <td className="py-3">82%</td>
+                        <td className="py-3">88%</td>
+                        <td className="py-3">88%</td>
+                        <td className="py-3 text-right font-bold text-slate-900">85.7% (B)</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            {/* Bottom Status Ticker */}
+            <div className="bg-slate-50 border-t border-slate-200 px-5 py-3 flex items-center justify-between text-xs text-slate-600 font-medium">
+              <div className="flex items-center gap-2">
+                <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+                <span>Real-time Classroom Sync Active</span>
+              </div>
+              <div className="flex items-center gap-3">
+                <span>Class Join Code:</span>
+                <button
+                  onClick={handleCopyCode}
+                  className="font-bold font-mono text-blue-700 hover:text-blue-800 flex items-center gap-1.5 cursor-pointer bg-white px-2.5 py-1 rounded-md border border-slate-200 shadow-2xs"
+                  title="Copy class code"
+                >
+                  <span>PHY101</span>
+                  {copiedCode ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5 text-slate-400" />}
+                </button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* ─── 2. SYSTEM TELEMETRY & OPERATIONS BAR ─── */}
+        <section className="border-y border-slate-200 bg-slate-50/70">
+          <div className="max-w-6xl mx-auto px-6 lg:px-8">
+            <div className="grid grid-cols-2 lg:grid-cols-4 divide-y lg:divide-y-0 lg:divide-x divide-slate-200">
+              {/* Stat 1 */}
+              <div className="py-6 px-4 first:pl-0">
+                <div className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
+                  {feedbackStats.totalAssignments}+
+                </div>
+                <div className="text-xs font-bold text-slate-700 mt-1 uppercase tracking-wider">
+                  Assignments Published
+                </div>
+                <div className="text-xs text-slate-500 mt-0.5">
+                  Across active courses
+                </div>
+              </div>
+
+              {/* Stat 2 */}
+              <div className="py-6 px-4">
+                <div className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
+                  {feedbackStats.totalSubmissions}+
+                </div>
+                <div className="text-xs font-bold text-slate-700 mt-1 uppercase tracking-wider">
+                  Student Submissions
+                </div>
+                <div className="text-xs text-slate-500 mt-0.5">
+                  Delivered on time
+                </div>
+              </div>
+
+              {/* Stat 3 */}
+              <div className="py-6 px-4">
+                <div className="flex items-center gap-2">
+                  <span className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
+                    {uptimeData.uptimeRatio}%
+                  </span>
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
+                    Always Online
+                  </span>
+                </div>
+                <div className="text-xs font-bold text-slate-700 mt-1 uppercase tracking-wider">
+                  Platform Reliability
+                </div>
+                <div className="text-xs text-slate-500 mt-0.5">
+                  Accessible 24/7 at deadline hour
+                </div>
+              </div>
+
+              {/* Stat 4 */}
+              <div
+                onClick={scrollToTestimonials}
+                className="py-6 px-4 cursor-pointer hover:bg-slate-100/70 transition-colors"
+                title="View user reviews"
+              >
+                <div className="flex items-center gap-1.5">
+                  <span className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
+                    {feedbackStats.averageRating}
+                  </span>
+                  <span className="text-xs font-bold text-slate-400">/ 5.0</span>
+                </div>
+                <div className="text-xs font-bold text-slate-700 mt-1 uppercase tracking-wider flex items-center justify-between">
+                  <span>Verified Rating</span>
+                  <span className="text-xs text-blue-600 font-semibold">Reviews ↓</span>
+                </div>
+                <div className="text-xs text-slate-500 mt-0.5">
+                  From {feedbackStats.totalReviews} teacher &amp; student reviews
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* ─── 3. HOW COURSEWORK FLOWS (HIGH-READABILITY REDESIGN OF IMAGE 1) ─── */}
+        <section className="py-20 lg:py-28 bg-white">
+          <div className="max-w-6xl mx-auto px-6 lg:px-8">
+            <div className="max-w-2xl mb-16">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-100 border border-slate-200 text-xs font-semibold text-slate-700 uppercase tracking-wider mb-4">
+                Coursework Lifecycle
+              </div>
+              <h2 className="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight leading-tight">
+                How coursework flows through AssignFlow Hub
+              </h2>
+              <p className="text-base sm:text-lg text-slate-600 mt-3 leading-relaxed">
+                A simple, structured process designed to save educators time and keep students on track from day one.
+              </p>
+            </div>
+
+            {/* 3 Visually Distinct, High-Readability Step Cards */}
+            <div className="grid md:grid-cols-3 gap-8">
+              
+              {/* Step 1: Course Setup */}
+              <div className="border border-slate-200 rounded-2xl p-7 bg-white shadow-2xs hover:shadow-xs transition-shadow flex flex-col justify-between space-y-6 relative overflow-hidden">
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <span className="w-9 h-9 rounded-xl bg-blue-600 text-white font-black text-sm flex items-center justify-center shadow-xs">
+                      01
+                    </span>
+                    <span className="text-xs font-bold text-blue-700 bg-blue-50 px-2.5 py-1 rounded-lg border border-blue-200">
+                      Step 1: Enrollment
+                    </span>
+                  </div>
+
+                  <h3 className="text-xl font-bold text-slate-900">
+                    Course Setup &amp; Class Codes
+                  </h3>
+
+                  <p className="text-sm text-slate-600 leading-relaxed">
+                    Teachers create a classroom in seconds and receive an instant 6-character code (e.g. <strong className="text-slate-900">PHY101</strong>). Students enter this code to join the roster immediately without waiting for invites.
+                  </p>
+                </div>
+
+                <div className="p-3 bg-blue-50/70 border border-blue-200/80 rounded-xl text-xs font-medium text-blue-900 flex items-center justify-between">
+                  <span>Class Code: <strong>PHY101</strong></span>
+                  <span className="text-blue-700 font-semibold">Instant Join →</span>
+                </div>
+              </div>
+
+              {/* Step 2: Intake & Cutoff */}
+              <div className="border border-slate-200 rounded-2xl p-7 bg-white shadow-2xs hover:shadow-xs transition-shadow flex flex-col justify-between space-y-6 relative overflow-hidden">
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <span className="w-9 h-9 rounded-xl bg-indigo-600 text-white font-black text-sm flex items-center justify-center shadow-xs">
+                      02
+                    </span>
+                    <span className="text-xs font-bold text-indigo-700 bg-indigo-50 px-2.5 py-1 rounded-lg border border-indigo-200">
+                      Step 2: Submissions
+                    </span>
+                  </div>
+
+                  <h3 className="text-xl font-bold text-slate-900">
+                    Assignment Intake &amp; Deadlines
+                  </h3>
+
+                  <p className="text-sm text-slate-600 leading-relaxed">
+                    Teachers publish coursework prompts with PDF attachments. Students drag and drop submissions with draft auto-saving. At the scheduled cutoff, the window locks automatically.
+                  </p>
+                </div>
+
+                <div className="p-3 bg-indigo-50/70 border border-indigo-200/80 rounded-xl text-xs font-medium text-indigo-900 flex items-center justify-between">
+                  <span>Deadline: <strong>11:59 PM</strong></span>
+                  <span className="text-indigo-700 font-semibold">Auto-Locks at Cutoff</span>
+                </div>
+              </div>
+
+              {/* Step 3: Evaluation */}
+              <div className="border border-slate-200 rounded-2xl p-7 bg-white shadow-2xs hover:shadow-xs transition-shadow flex flex-col justify-between space-y-6 relative overflow-hidden">
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <span className="w-9 h-9 rounded-xl bg-emerald-600 text-white font-black text-sm flex items-center justify-center shadow-xs">
+                      03
+                    </span>
+                    <span className="text-xs font-bold text-emerald-800 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200">
+                      Step 3: Evaluation
+                    </span>
+                  </div>
+
+                  <h3 className="text-xl font-bold text-slate-900">
+                    Fast Grading &amp; Feedback
+                  </h3>
+
+                  <p className="text-sm text-slate-600 leading-relaxed">
+                    Teachers grade using 1-click score presets (100%, 95%, 90%) and reusable comment chips. Grades publish atomically so students receive transparent scores and feedback instantly.
+                  </p>
+                </div>
+
+                <div className="p-3 bg-emerald-50/70 border border-emerald-200/80 rounded-xl text-xs font-medium text-emerald-900 flex items-center justify-between">
+                  <span>Release: <strong>1-Click Publish</strong></span>
+                  <span className="text-emerald-700 font-semibold">Instant Student Sync</span>
+                </div>
+              </div>
+
+            </div>
+          </div>
+        </section>
+
+        {/* ─── 4. CORE FEATURES (Bento Grid) ─── */}
+        <Features />
+
+        {/* ─── 5. HIGH-READABILITY ROLE WORKSPACES (OVERHAUL OF IMAGE 3) ─── */}
+        <section className="py-20 lg:py-28 border-t border-slate-200 bg-slate-50/50">
+          <div className="max-w-6xl mx-auto px-6 lg:px-8">
+            <div className="max-w-2xl mb-16">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-100 border border-slate-200 text-xs font-semibold text-slate-700 uppercase tracking-wider mb-4">
+                Tailored Experiences
+              </div>
+              <h2 className="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight leading-tight">
+                Designed for both educators and students
+              </h2>
+              <p className="text-base sm:text-lg text-slate-600 mt-3 leading-relaxed">
+                Dedicated interfaces organized around the specific responsibilities of managing courses and completing coursework.
+              </p>
+            </div>
+
+            <div className="grid lg:grid-cols-2 gap-8">
+              
+              {/* Teacher Spec Card */}
+              <div className="border border-slate-200 rounded-3xl p-8 bg-white shadow-2xs space-y-6">
+                <div className="flex items-center justify-between border-b border-slate-100 pb-5">
+                  <div className="flex items-center gap-3.5">
+                    <div className="w-12 h-12 rounded-2xl bg-blue-600 text-white flex items-center justify-center font-bold shadow-xs">
+                      <BookOpen className="w-6 h-6" />
+                    </div>
+                    <div>
+                      <h3 className="text-xl font-extrabold text-slate-900">
+                        For Teachers &amp; Instructors
+                      </h3>
+                      <p className="text-xs text-slate-500 font-medium mt-0.5">
+                        Course management, publishing, and grading suite
+                      </p>
+                    </div>
+                  </div>
+                  <span className="text-xs font-bold text-blue-800 bg-blue-50 border border-blue-200 px-2.5 py-1 rounded-lg">
+                    Teacher View
+                  </span>
+                </div>
+
+                {/* Scannable High-Contrast Capability Rows */}
+                <div className="space-y-4">
+                  <div className="flex items-start gap-3">
+                    <div className="w-5 h-5 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center shrink-0 mt-0.5">
+                      <Check className="w-3 h-3 stroke-[3]" />
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-bold text-slate-900">Instant Classroom Join Codes</h4>
+                      <p className="text-xs text-slate-600 leading-relaxed mt-0.5">
+                        Create unlimited classrooms and share a simple 6-character code with students for immediate onboarding.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-start gap-3">
+                    <div className="w-5 h-5 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center shrink-0 mt-0.5">
+                      <Check className="w-3 h-3 stroke-[3]" />
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-bold text-slate-900">Coursework Builder &amp; PDF Guidelines</h4>
+                      <p className="text-xs text-slate-600 leading-relaxed mt-0.5">
+                        Publish rich assignment briefs with due dates, point values, and downloadable PDF reference rubrics.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-start gap-3">
+                    <div className="w-5 h-5 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center shrink-0 mt-0.5">
+                      <Check className="w-3 h-3 stroke-[3]" />
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-bold text-slate-900">1-Click Fast Grading &amp; Feedback Chips</h4>
+                      <p className="text-xs text-slate-600 leading-relaxed mt-0.5">
+                        Grade submissions quickly with preset score buttons (100%, 95%, 90%) and reusable comment chips.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-start gap-3">
+                    <div className="w-5 h-5 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center shrink-0 mt-0.5">
+                      <Check className="w-3 h-3 stroke-[3]" />
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-bold text-slate-900">Gradebook Analytics &amp; CSV Reports</h4>
+                      <p className="text-xs text-slate-600 leading-relaxed mt-0.5">
+                        Monitor class performance averages, view letter grade distributions, and export clean spreadsheets for school records.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="pt-4 border-t border-slate-100">
+                  <Link
+                    to="/register"
+                    className="inline-flex items-center gap-2 text-sm font-bold text-blue-700 hover:text-blue-800 transition-colors"
+                  >
+                    <span>Create a Teacher Account</span>
+                    <ArrowRight className="w-4 h-4" />
+                  </Link>
+                </div>
+              </div>
+
+              {/* Student Spec Card */}
+              <div className="border border-slate-200 rounded-3xl p-8 bg-white shadow-2xs space-y-6">
+                <div className="flex items-center justify-between border-b border-slate-100 pb-5">
+                  <div className="flex items-center gap-3.5">
+                    <div className="w-12 h-12 rounded-2xl bg-emerald-600 text-white flex items-center justify-center font-bold shadow-xs">
+                      <GraduationCap className="w-6 h-6" />
+                    </div>
+                    <div>
+                      <h3 className="text-xl font-extrabold text-slate-900">
+                        For Enrolled Students
+                      </h3>
+                      <p className="text-xs text-slate-500 font-medium mt-0.5">
+                        Homework submissions, deadlines, and grade transparency
+                      </p>
+                    </div>
+                  </div>
+                  <span className="text-xs font-bold text-emerald-800 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-lg">
+                    Student View
+                  </span>
+                </div>
+
+                {/* Scannable High-Contrast Capability Rows */}
+                <div className="space-y-4">
+                  <div className="flex items-start gap-3">
+                    <div className="w-5 h-5 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0 mt-0.5">
+                      <Check className="w-3 h-3 stroke-[3]" />
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-bold text-slate-900">Quick Classroom Enrollment</h4>
+                      <p className="text-xs text-slate-600 leading-relaxed mt-0.5">
+                        Join any class roster in seconds using the 6-character code provided by your teacher.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-start gap-3">
+                    <div className="w-5 h-5 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0 mt-0.5">
+                      <Check className="w-3 h-3 stroke-[3]" />
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-bold text-slate-900">Draft-Safe Homework Submissions</h4>
+                      <p className="text-xs text-slate-600 leading-relaxed mt-0.5">
+                        Upload PDF and Word documents with automatic draft saving so your work is never lost before final turn-in.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-start gap-3">
+                    <div className="w-5 h-5 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0 mt-0.5">
+                      <Check className="w-3 h-3 stroke-[3]" />
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-bold text-slate-900">Clear Deadlines &amp; Countdown Timers</h4>
+                      <p className="text-xs text-slate-600 leading-relaxed mt-0.5">
+                        Stay organized with clear cutoff indicators and status badges so you always know what is due next.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-start gap-3">
+                    <div className="w-5 h-5 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0 mt-0.5">
+                      <Check className="w-3 h-3 stroke-[3]" />
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-bold text-slate-900">Transparent Grades &amp; Teacher Feedback</h4>
+                      <p className="text-xs text-slate-600 leading-relaxed mt-0.5">
+                        View evaluations, percentage scores, and teacher comments the moment grades are published.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="pt-4 border-t border-slate-100">
+                  <Link
+                    to="/register"
+                    className="inline-flex items-center gap-2 text-sm font-bold text-emerald-700 hover:text-emerald-800 transition-colors"
+                  >
+                    <span>Join as a Student</span>
+                    <ArrowRight className="w-4 h-4" />
+                  </Link>
+                </div>
+              </div>
+
+            </div>
+          </div>
+        </section>
+
+        {/* ─── 6. VERIFIED TESTIMONIALS ─── */}
+        <div id="testimonials" className="scroll-mt-8">
+          <Testimonials />
+        </div>
+
+        {/* ─── 7. FREQUENTLY ASKED QUESTIONS ─── */}
+        <section className="py-20 lg:py-28 border-t border-slate-200 bg-white">
+          <div className="max-w-4xl mx-auto px-6 lg:px-8">
+            <div className="max-w-xl mb-12">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-100 border border-slate-200 text-xs font-semibold text-slate-700 uppercase tracking-wider mb-4">
+                Common Questions
+              </div>
+              <h2 className="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight leading-tight">
+                Frequently asked questions
+              </h2>
+              <p className="text-base text-slate-600 mt-2.5 leading-relaxed">
+                Clear answers regarding classroom setup, document submissions, and gradebook management.
+              </p>
+            </div>
+
+            <div className="divide-y divide-slate-200 border-y border-slate-200">
+              {FAQS.map((faq, fIdx) => {
+                const isOpen = openFaqIndex === fIdx;
+
+                return (
+                  <div key={fIdx} className="py-4">
+                    <button
+                      onClick={() => setOpenFaqIndex(isOpen ? null : fIdx)}
+                      className="w-full text-left flex items-start justify-between gap-4 cursor-pointer group py-1"
+                    >
+                      <div className="space-y-1">
+                        <span className="text-xs font-bold text-blue-700 uppercase tracking-wider">
+                          {faq.category}
+                        </span>
+                        <div className="text-sm sm:text-base font-bold text-slate-900 group-hover:text-blue-700 transition-colors">
+                          {faq.q}
+                        </div>
+                      </div>
+                      <ChevronDown
+                        className={`w-5 h-5 text-slate-400 transition-transform duration-200 shrink-0 mt-1.5 ${
+                          isOpen ? "rotate-180 text-blue-600" : ""
+                        }`}
+                      />
+                    </button>
+
+                    {isOpen && (
+                      <div className="pt-3 pb-2 text-sm text-slate-600 leading-relaxed max-w-3xl">
+                        {faq.a}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </section>
+
+        {/* ─── 8. NEWSLETTER DISPATCH ─── */}
+        <NewsletterSubscribe />
+
+        {/* ─── 9. NATURAL ACADEMIC FINAL CALL TO ACTION (REDESIGN OF IMAGE 5) ─── */}
+        <section className="py-20 lg:py-24 border-t border-slate-200 bg-slate-50">
+          <div className="max-w-4xl mx-auto px-6 lg:px-8 text-center space-y-6">
+            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-slate-900 tracking-tight leading-tight">
+              Bring simplicity and clarity to your classroom.
+            </h2>
+
+            <p className="text-base sm:text-lg text-slate-600 max-w-xl mx-auto leading-relaxed">
+              Create your virtual classroom in under a minute, share your 6-character access code with students, and start publishing coursework today.
+            </p>
+
+            <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3.5">
+              <button
+                onClick={handleGetStarted}
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-7 py-3.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl transition-all text-sm cursor-pointer shadow-md hover:shadow-lg active:scale-98"
+              >
+                <span>{isLoggedIn ? "Open Dashboard" : "Create Free Classroom"}</span>
+                <ArrowRight className="w-4 h-4" />
+              </button>
+
+              {!isLoggedIn && (
+                <Link
+                  to="/login"
+                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-7 py-3.5 bg-white border border-slate-300 hover:border-slate-400 text-slate-800 font-semibold rounded-xl text-sm transition-colors shadow-2xs"
+                >
+                  Sign In to Classroom
                 </Link>
               )}
             </div>
 
-            <div className="flex flex-wrap items-center justify-center gap-6 pt-4 text-xs text-slate-400">
-              <span>✓ Free for educational use</span>
-              <span>✓ No credit card required</span>
-              <span>✓ Instant setup</span>
+            <div className="flex flex-wrap items-center justify-center gap-6 pt-2 text-xs font-medium text-slate-500">
+              <span className="flex items-center gap-1.5">
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                Free for educational use
+              </span>
+              <span className="flex items-center gap-1.5">
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                No credit card required
+              </span>
+              <span className="flex items-center gap-1.5">
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                Setup in under 60 seconds
+              </span>
             </div>
-          </motion.div>
+          </div>
         </section>
 
-        {/* FLOATING BACK TO TOP BUTTON */}
-        <AnimatePresence>
-          {showBackToTop && (
-            <motion.button
-              initial={{ opacity: 0, scale: 0.8, y: 16 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.8, y: 16 }}
-              whileHover={{ scale: 1.1, y: -2 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={scrollToTop}
-              className="fixed bottom-6 right-6 z-40 p-3 rounded-full bg-slate-900 text-white shadow-xl shadow-slate-900/20 hover:bg-blue-600 transition-colors border border-slate-700/50 flex items-center justify-center cursor-pointer group"
-              aria-label="Back to top"
-              title="Back to top"
-            >
-              <ArrowUp className="w-5 h-5 group-hover:-translate-y-0.5 transition-transform" />
-            </motion.button>
-          )}
-        </AnimatePresence>
+        {/* ─── BACK TO TOP ─── */}
+        {showBackToTop && (
+          <button
+            onClick={scrollToTop}
+            className="fixed bottom-6 right-6 z-40 p-3 rounded-full bg-slate-900 text-white shadow-xl hover:bg-blue-600 transition-colors cursor-pointer border border-slate-700/50"
+            aria-label="Back to top"
+            title="Back to top"
+          >
+            <ArrowUp className="w-4 h-4" />
+          </button>
+        )}
       </div>
     </>
   );

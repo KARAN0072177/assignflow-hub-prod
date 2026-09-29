@@ -71,6 +71,7 @@ const DashboardLayout = () => {
           localStorage.removeItem("refreshToken");
           localStorage.removeItem("userRole");
           localStorage.removeItem("username");
+          localStorage.removeItem("lastActivityTimestamp");
           navigate("/login?expired=1", { replace: true, state: { from: location } });
           return;
         }

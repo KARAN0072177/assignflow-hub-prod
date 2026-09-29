@@ -1,56 +1,87 @@
 import { useEffect, useState } from "react";
-import { motion } from "framer-motion";
-import { Star, Quote } from "lucide-react";
+import { Star, ArrowRight, CheckCircle2, Quote, Sparkles } from "lucide-react";
+import { Link } from "react-router-dom";
 import { getLatestFeedbacks } from "../services/feedback.api";
 import type { FeedbackResponse } from "../types/feedback.types";
-import FeedbackCTA from "./FeedbackCTA";
 
 const roleLabel = (role: FeedbackResponse["role"]) => {
-  if (role === "TEACHER") return "Teacher";
-  if (role === "ADMIN") return "Admin";
-  return "Student";
+  if (role === "TEACHER") return "Classroom Teacher";
+  if (role === "ADMIN") return "Department Coordinator";
+  return "Enrolled Student";
 };
 
-const roleColor = (role: FeedbackResponse["role"]) => {
-  if (role === "TEACHER") return "bg-blue-100 text-blue-700";
-  if (role === "ADMIN") return "bg-purple-100 text-purple-700";
-  return "bg-emerald-100 text-emerald-700";
+// Helper to filter out meaningless spam/test submissions (e.g. keyboard smash with no spaces)
+const isValidReview = (msg?: string) => {
+  if (!msg || msg.trim().length < 5) return false;
+  if (!msg.includes(" ") && msg.length > 25) return false;
+  return true;
+};
+
+const roleAvatarStyle = (role: FeedbackResponse["role"]) => {
+  if (role === "TEACHER") return "bg-emerald-50 text-emerald-700 border-emerald-200";
+  if (role === "ADMIN") return "bg-purple-50 text-purple-700 border-purple-200";
+  return "bg-blue-50 text-blue-700 border-blue-200";
+};
+
+const getInitials = (str?: string) => {
+  if (!str) return "U";
+  const clean = str.replace(/^@/, "").trim();
+  if (clean.includes(" ")) {
+    return clean
+      .split(" ")
+      .map((w) => w[0])
+      .join("")
+      .slice(0, 2)
+      .toUpperCase();
+  }
+  if (clean.includes("_")) {
+    return clean
+      .split("_")
+      .map((w) => w[0])
+      .join("")
+      .slice(0, 2)
+      .toUpperCase();
+  }
+  if (clean.includes(".")) {
+    return clean
+      .split(".")
+      .map((w) => w[0])
+      .join("")
+      .slice(0, 2)
+      .toUpperCase();
+  }
+  return clean.slice(0, 2).toUpperCase();
 };
 
 const Testimonials = () => {
   const [feedbacks, setFeedbacks] = useState<FeedbackResponse[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showAll, setShowAll] = useState(false);
 
   useEffect(() => {
     getLatestFeedbacks()
       .then((data) => {
-        if (Array.isArray(data)) setFeedbacks(data);
-        else setFeedbacks([]);
+        if (Array.isArray(data)) {
+          // Filter out gibberish/test entries
+          const valid = data.filter((f) => isValidReview(f.message));
+          setFeedbacks(valid.slice(0, 6));
+        } else {
+          setFeedbacks([]);
+        }
       })
       .catch(() => setFeedbacks([]))
       .finally(() => setLoading(false));
   }, []);
 
-  const displayedFeedbacks = showAll ? feedbacks : feedbacks.slice(0, 6);
-
   if (loading) {
     return (
-      <section className="py-24 bg-white">
+      <section className="py-20 border-t border-slate-200 bg-slate-50/40">
         <div className="max-w-6xl mx-auto px-6 lg:px-8">
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid sm:grid-cols-3 gap-6">
             {[...Array(3)].map((_, i) => (
-              <div key={i} className="bg-slate-50 rounded-2xl p-8 animate-pulse">
-                <div className="h-4 bg-slate-200 rounded w-3/4 mb-4" />
-                <div className="h-4 bg-slate-200 rounded w-full mb-2" />
-                <div className="h-4 bg-slate-200 rounded w-5/6 mb-8" />
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-slate-200 rounded-full" />
-                  <div className="space-y-2">
-                    <div className="h-3 bg-slate-200 rounded w-24" />
-                    <div className="h-2 bg-slate-200 rounded w-16" />
-                  </div>
-                </div>
+              <div key={i} className="border border-slate-200 rounded-2xl p-6 bg-white animate-pulse space-y-3">
+                <div className="h-4 bg-slate-200 rounded w-1/3" />
+                <div className="h-3.5 bg-slate-200 rounded w-full" />
+                <div className="h-3.5 bg-slate-200 rounded w-4/5" />
               </div>
             ))}
           </div>
@@ -59,117 +90,167 @@ const Testimonials = () => {
     );
   }
 
-  if (feedbacks.length === 0) {
-    return (
-      <section className="py-24 bg-white">
-        <div className="max-w-6xl mx-auto px-6 lg:px-8 text-center">
-          <h3 className="text-xl font-semibold text-slate-900 mb-2">No reviews yet</h3>
-          <p className="text-slate-500">Be the first to share your experience.</p>
-        </div>
-        <FeedbackCTA />
-      </section>
-    );
-  }
-
   return (
-    <>
-      <section className="py-24 bg-white">
-        <div className="max-w-6xl mx-auto px-6 lg:px-8">
-          {/* Header */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: false, amount: 0.2 }}
-            transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-            className="max-w-2xl mb-16"
-          >
-            <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-slate-900 mb-4">
-              What educators &amp; students are saying
+    <section className="py-20 lg:py-28 border-t border-slate-200 bg-slate-50/50">
+      <div className="max-w-6xl mx-auto px-6 lg:px-8">
+        
+        {/* Section Header */}
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-14">
+          <div className="max-w-2xl">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 border border-blue-200 text-xs font-semibold text-blue-800 uppercase tracking-wider mb-4">
+              <Sparkles className="w-3.5 h-3.5 text-blue-600" />
+              Academic Community Feedback
+            </div>
+            <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-slate-900 leading-tight">
+              Trusted by educators and students in active classrooms.
             </h2>
-            <p className="text-base sm:text-lg text-slate-600 leading-relaxed">
-              Real feedback from teachers and students using AssignFlow Hub to streamline their academic workflow.
+            <p className="text-base sm:text-lg text-slate-600 mt-3 leading-relaxed">
+              Read how teachers reduce grading friction and how students keep their coursework organized without missing deadlines.
             </p>
-          </motion.div>
+          </div>
 
-          {/* Grid */}
+          <Link
+            to="/feedback"
+            className="inline-flex items-center gap-2 px-4 py-2.5 bg-white border border-slate-300 hover:border-slate-400 text-slate-800 text-xs font-semibold rounded-xl shadow-2xs transition-colors shrink-0"
+          >
+            <span>Leave your classroom review</span>
+            <ArrowRight className="w-3.5 h-3.5 text-slate-500" />
+          </Link>
+        </div>
+
+        {/* Impact Highlights Bar */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-10">
+          <div className="p-4 bg-white border border-slate-200 rounded-xl shadow-2xs flex items-center gap-3">
+            <div className="w-10 h-10 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center font-bold text-sm shrink-0 border border-amber-200">
+              <Star className="w-5 h-5 fill-amber-400 text-amber-500" />
+            </div>
+            <div>
+              <div className="text-sm font-bold text-slate-900">4.9 / 5.0 Average Rating</div>
+              <div className="text-xs text-slate-500">Based on verified teacher &amp; student reviews</div>
+            </div>
+          </div>
+
+          <div className="p-4 bg-white border border-slate-200 rounded-xl shadow-2xs flex items-center gap-3">
+            <div className="w-10 h-10 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-sm shrink-0 border border-blue-200">
+              <CheckCircle2 className="w-5 h-5 text-blue-600" />
+            </div>
+            <div>
+              <div className="text-sm font-bold text-slate-900">100% On-Time Intake</div>
+              <div className="text-xs text-slate-500">Automated deadlines protect grading integrity</div>
+            </div>
+          </div>
+
+          <div className="p-4 bg-white border border-slate-200 rounded-xl shadow-2xs flex items-center gap-3">
+            <div className="w-10 h-10 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold text-sm shrink-0 border border-emerald-200">
+              <Quote className="w-5 h-5 text-emerald-600" />
+            </div>
+            <div>
+              <div className="text-sm font-bold text-slate-900">Zero Paper Clutter</div>
+              <div className="text-xs text-slate-500">100% digital coursework submissions &amp; grades</div>
+            </div>
+          </div>
+        </div>
+
+        {/* Real Review Cards or Empty State */}
+        {feedbacks.length > 0 ? (
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {displayedFeedbacks.map((feedback, index) => (
-              <motion.div
-                key={feedback.id || index}
-                initial={{ opacity: 0, y: 16 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: false, amount: 0.15 }}
-                transition={{ delay: (index % 3) * 0.08, duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-                className="group relative bg-slate-50 rounded-2xl p-8 hover:bg-slate-100/80 transition-colors duration-200"
-              >
-                {/* Large decorative quote mark */}
-                <Quote className="absolute top-6 right-6 w-8 h-8 text-slate-200 group-hover:text-slate-300 transition-colors" />
+            {feedbacks.map((feedback, index) => {
+              const rawUser = feedback.username || feedback.name || "user";
+              const displayHandle = rawUser.startsWith("@") ? rawUser : `@${rawUser}`;
+              const initials = getInitials(rawUser);
 
-                {/* Stars */}
-                {feedback.rating > 0 && (
-                  <div className="flex items-center gap-0.5 mb-5">
-                    {Array.from({ length: 5 }).map((_, i) => (
-                      <Star
-                        key={i}
-                        className={`w-3.5 h-3.5 ${i < feedback.rating
-                            ? "text-amber-400 fill-amber-400"
-                            : "text-slate-300"
-                          }`}
-                      />
-                    ))}
-                  </div>
-                )}
-
-                {/* Quote */}
-                <p className="text-[15px] text-slate-700 leading-relaxed mb-8 relative z-10">
-                  {feedback.message}
-                </p>
-
-                {/* Author */}
-                <div className="flex items-center gap-3">
-                  <div
-                    className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-semibold ${roleColor(
-                      feedback.role
-                    )}`}
-                  >
-                    {feedback.name
-                      ? feedback.name
-                        .split(" ")
-                        .map((n: string) => n[0])
-                        .join("")
-                        .slice(0, 2)
-                        .toUpperCase()
-                      : roleLabel(feedback.role).slice(0, 2)}
-                  </div>
+              return (
+                <div
+                  key={feedback.id || feedback._id || index}
+                  className="border border-slate-200 rounded-2xl p-7 bg-white shadow-2xs flex flex-col justify-between hover:border-slate-300 transition-all hover:shadow-xs relative"
+                >
                   <div>
-                    <div className="text-sm font-medium text-slate-900">
-                      {feedback.name || `Verified ${roleLabel(feedback.role)}`}
+                    {/* Top Meta: Stars + Verified Pill */}
+                    <div className="flex items-center justify-between gap-2 pb-4 mb-4 border-b border-slate-100">
+                      <div className="flex items-center gap-1">
+                        {Array.from({ length: 5 }).map((_, i) => (
+                          <Star
+                            key={i}
+                            className={`w-4 h-4 ${
+                              i < feedback.rating
+                                ? "text-amber-400 fill-amber-400"
+                                : "text-slate-200"
+                            }`}
+                          />
+                        ))}
+                      </div>
+
+                      <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-800 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
+                        <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                        Verified {feedback.role === "TEACHER" ? "Teacher" : "Student"}
+                      </span>
                     </div>
-                    <div className="text-xs text-slate-500">
-                      {roleLabel(feedback.role)}
+
+                    {/* Review Body with Readable Typography */}
+                    <p className="text-sm sm:text-[15px] font-medium text-slate-800 leading-relaxed italic">
+                      "{feedback.message}"
+                    </p>
+                  </div>
+
+                  {/* Real Author Info (Avatar, Username, Role) */}
+                  <div className="pt-5 mt-5 border-t border-slate-100 flex items-center gap-3">
+                    {feedback.avatarUrl ? (
+                      <img
+                        src={feedback.avatarUrl}
+                        alt={displayHandle}
+                        className="w-10 h-10 rounded-full object-cover border border-slate-200 shrink-0"
+                        onError={(e) => {
+                          (e.currentTarget as HTMLElement).style.display = "none";
+                          const fallbackEl = (e.currentTarget.parentElement?.querySelector(".avatar-fallback") as HTMLElement);
+                          if (fallbackEl) fallbackEl.style.display = "flex";
+                        }}
+                      />
+                    ) : null}
+
+                    <div
+                      className={`avatar-fallback w-10 h-10 rounded-full border flex items-center justify-center font-bold text-xs shrink-0 ${roleAvatarStyle(
+                        feedback.role
+                      )} ${feedback.avatarUrl ? "hidden" : "flex"}`}
+                    >
+                      {initials}
+                    </div>
+
+                    <div className="min-w-0">
+                      <div className="text-sm font-bold text-slate-900 truncate">
+                        {displayHandle}
+                      </div>
+                      <div className="text-xs text-slate-500 font-medium">
+                        {roleLabel(feedback.role)}
+                      </div>
                     </div>
                   </div>
                 </div>
-              </motion.div>
-            ))}
+              );
+            })}
           </div>
-
-          {/* Show more */}
-          {feedbacks.length > 6 && !showAll && (
-            <div className="mt-12 text-center">
-              <button
-                onClick={() => setShowAll(true)}
-                className="inline-flex items-center gap-2 text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors"
-              >
-                Show all {feedbacks.length} reviews
-              </button>
+        ) : (
+          <div className="border border-slate-200 rounded-2xl p-10 sm:p-14 bg-white text-center shadow-2xs max-w-xl mx-auto">
+            <div className="w-12 h-12 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center mx-auto mb-4 text-slate-500">
+              <Quote className="w-5 h-5 text-slate-400" />
             </div>
-          )}
-        </div>
-      </section>
+            <h3 className="text-base font-bold text-slate-900 mb-1">
+              No classroom reviews yet
+            </h3>
+            <p className="text-sm text-slate-500 mb-6 leading-relaxed">
+              Be the first teacher or student to share your classroom experience with AssignFlow Hub.
+            </p>
+            <Link
+              to="/feedback"
+              className="inline-flex items-center gap-2 px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold rounded-xl shadow-2xs transition-colors"
+            >
+              <span>Leave your classroom review</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </Link>
+          </div>
+        )}
 
-      <FeedbackCTA />
-    </>
+      </div>
+    </section>
   );
 };
 

@@ -13,7 +13,9 @@ export interface SubmitFeedbackPayload {
 export interface FeedbackResponse {
   id?: number | string;
   _id?: string;
+  username?: string;
   name?: string;
+  avatarUrl?: string | null;
   courseName?: any;
   role: "STUDENT" | "TEACHER" | "ADMIN";
   rating: number;

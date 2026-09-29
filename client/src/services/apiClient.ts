@@ -31,13 +31,15 @@ const processQueue = (error: Error | null, token: string | null = null) => {
 };
 
 /**
- * Request Interceptor: Automatically injects Authorization header
+ * Request Interceptor: Automatically injects Authorization header & records active presence
  */
 apiClient.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
     const token = localStorage.getItem("authToken");
     if (token && config.headers) {
       config.headers.Authorization = `Bearer ${token}`;
+      // Update last active timestamp
+      localStorage.setItem("lastActivityTimestamp", Date.now().toString());
     }
     return config;
   },
@@ -143,6 +145,7 @@ const handleForcedLogout = () => {
   localStorage.removeItem("username");
   localStorage.removeItem("userEmail");
   localStorage.removeItem("userAvatar");
+  localStorage.removeItem("lastActivityTimestamp");
 
   // Trigger storage event so all tabs react synchronously
   window.dispatchEvent(new Event("storage"));

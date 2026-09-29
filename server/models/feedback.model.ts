@@ -8,6 +8,7 @@ export interface IFeedback extends Document {
   role: "STUDENT" | "TEACHER" | "ADMIN";
   rating: number;       // 1–5
   message: string;
+  username?: string;
   createdAt: Date;
 }
 
@@ -21,6 +22,11 @@ const FeedbackSchema: Schema<IFeedback> = new Schema(
       ref: "User",
       required: true,
       index: true,
+    },
+
+    username: {
+      type: String,
+      trim: true,
     },
 
     role: {

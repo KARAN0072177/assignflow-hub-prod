@@ -3,9 +3,11 @@ import { AuthenticatedRequest } from "../../middleware/requireAuth";
 import { z } from "zod";
 import sanitizeHtml from "sanitize-html";
 import { Feedback } from "../../models/feedback.model";
+import { User } from "../../models/user.model";
 import { Classroom } from "../../models/classroom.model";
 import { Assignment } from "../../models/assignment.model";
 import { Submission } from "../../models/submission.model";
+import { generateDownloadUrl } from "../../utils/s3-download";
 
 const feedbackSchema = z.object({
   rating: z.number().min(1).max(5),
@@ -41,9 +43,13 @@ export const submitFeedback = async (
     allowedAttributes: {},
   });
 
-  await Feedback.create({
+  const user = await User.findById(req.user!.userId).select("username email role avatarKey");
+  const username = user?.username || (user?.email ? user.email.split("@")[0] : "User");
+
+  const feedback = await Feedback.create({
     userId: req.user!.userId,
-    role: req.user!.role,
+    username,
+    role: user?.role || req.user!.role,
     rating: parsed.data.rating,
     message: cleanMessage,
   });
@@ -51,8 +57,28 @@ export const submitFeedback = async (
   // Bust cache so latest review updates real-time
   statsCache = null;
 
+  let avatarUrl: string | null = null;
+  if (user?.avatarKey) {
+    try {
+      avatarUrl = await generateDownloadUrl(user.avatarKey);
+    } catch {
+      // ignore presigned error
+    }
+  }
+
   return res.status(201).json({
     message: "Feedback submitted successfully",
+    feedback: {
+      id: feedback._id.toString(),
+      _id: feedback._id.toString(),
+      username,
+      name: username,
+      avatarUrl,
+      role: feedback.role,
+      rating: feedback.rating,
+      message: feedback.message,
+      createdAt: feedback.createdAt,
+    },
   });
 };
 
@@ -61,12 +87,54 @@ export const getLatestFeedbacks = async (
   _req: Request,
   res: Response
 ) => {
-  const feedbacks = await Feedback.find({ rating: 5 })
-    .sort({ createdAt: -1 })
-    .limit(3)
-    .select("role rating message createdAt");
+  try {
+    let feedbacks = await Feedback.find({ rating: { $gte: 4 } })
+      .sort({ createdAt: -1 })
+      .limit(6)
+      .populate("userId", "username email avatarKey role");
 
-  return res.status(200).json(feedbacks);
+    if (feedbacks.length < 3) {
+      feedbacks = await Feedback.find()
+        .sort({ createdAt: -1 })
+        .limit(6)
+        .populate("userId", "username email avatarKey role");
+    }
+
+    const formatted = await Promise.all(
+      feedbacks.map(async (fb) => {
+        const user = fb.userId as any;
+        let avatarUrl: string | null = null;
+        if (user && user.avatarKey) {
+          try {
+            avatarUrl = await generateDownloadUrl(user.avatarKey);
+          } catch {
+            // ignore
+          }
+        }
+
+        const rawUsername = user?.username || fb.username;
+        const fallbackEmail = user?.email ? user.email.split("@")[0] : null;
+        const resolvedUsername = rawUsername || fallbackEmail || "User";
+
+        return {
+          _id: fb._id.toString(),
+          id: fb._id.toString(),
+          username: resolvedUsername,
+          name: resolvedUsername,
+          avatarUrl,
+          role: user?.role || fb.role,
+          rating: fb.rating,
+          message: fb.message,
+          createdAt: fb.createdAt,
+        };
+      })
+    );
+
+    return res.status(200).json(formatted);
+  } catch (error) {
+    console.error("[getLatestFeedbacks] Error fetching feedbacks:", error);
+    return res.status(200).json([]);
+  }
 };
 
 // GET /api/feedback/stats

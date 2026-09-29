@@ -2,6 +2,7 @@ import { NavLink, useNavigate } from "react-router-dom";
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAdminSocket } from "../../admin/AdminSocketProvider";
+import { logoutUser } from "../../services/auth.api";
 
 import {
   LayoutDashboard,
@@ -184,10 +185,8 @@ const AdminNavbar = () => {
      Logout
   ===================== */
 
-  const handleLogout = () => {
-    localStorage.removeItem("authToken");
-    localStorage.removeItem("userRole");
-    window.dispatchEvent(new Event("storage"));
+  const handleLogout = async () => {
+    await logoutUser();
     navigate("/login");
   };
 

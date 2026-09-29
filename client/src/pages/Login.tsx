@@ -79,6 +79,7 @@ const Login = () => {
       // Store authentication data
       localStorage.setItem("authToken", data.token);
       localStorage.setItem("userRole", data.user.role);
+      localStorage.setItem("lastActivityTimestamp", Date.now().toString());
 
       if (rememberMe) {
         localStorage.setItem("rememberedEmail", email);

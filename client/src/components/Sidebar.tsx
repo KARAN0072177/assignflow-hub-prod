@@ -17,6 +17,7 @@ import {
   MessageSquare
 } from "lucide-react";
 import { useAppSocket } from "../context/SocketContext";
+import { logoutUser } from "../services/auth.api";
 
 interface SidebarProps {
   isOpen?: boolean;
@@ -55,12 +56,8 @@ const Sidebar = ({ isOpen = false, onClose }: SidebarProps) => {
     }
   }, [location.pathname]);
 
-  const handleLogout = () => {
-    localStorage.removeItem("authToken");
-    localStorage.removeItem("userRole");
-    localStorage.removeItem("userEmail");
-    localStorage.removeItem("username");
-    window.dispatchEvent(new Event("storage"));
+  const handleLogout = async () => {
+    await logoutUser();
     window.location.href = "/login";
   };
 

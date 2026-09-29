@@ -6,11 +6,11 @@ import {
   X,
   LogOut,
   Home,
-  User,
   LayoutDashboard,
   Contact,
   Info
 } from "lucide-react";
+import { logoutUser } from "../services/auth.api";
 
 const Navbar = () => {
   const navigate = useNavigate();
@@ -44,33 +44,8 @@ const Navbar = () => {
   }, [location]);
 
   const handleLogout = async () => {
-    try {
-      const token = localStorage.getItem("authToken");
-
-      if (token) {
-        await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/auth/logout`, {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-      }
-    } catch (error) {
-      // ignore errors — logout must always succeed
-    } finally {
-      // Clear session
-      localStorage.removeItem("authToken");
-      localStorage.removeItem("refreshToken");
-      localStorage.removeItem("userRole");
-      localStorage.removeItem("userEmail");
-      localStorage.removeItem("username");
-
-      // Notify other components
-      window.dispatchEvent(new Event("storage"));
-
-      // Redirect to login
-      navigate("/login");
-    }
+    await logoutUser();
+    navigate("/login");
   };
 
   const navItems = [
@@ -112,29 +87,26 @@ const Navbar = () => {
           {/* Logo */}
           <Link
             to="/"
-            className="flex items-center gap-2 group"
+            className="flex items-center gap-2.5 group"
           >
-            {/* Logo */}
-            <motion.div
-              whileHover={{ rotate: 5 , scale: 1.05 , transition: { duration: 0.3 } }}
-              className="p-2 rounded-lg transition-colors duration-200 group-hover:bg-blue-50"
-            >
+            <div className="p-1.5 rounded-lg transition-colors">
               <img
                 src="/logo.png"
                 alt="AssignFlow Hub Logo"
-                className="h-12 w-auto object-contain"
+                className="h-9 w-auto object-contain"
               />
-            </motion.div>
+            </div>
 
             {/* Role Badge */}
             {userRole && (
               <span
-                className={`ml-2 px-2 py-1 text-xs rounded-full ${userRole === "TEACHER"
-                    ? "bg-blue-100 text-blue-800"
-                    : "bg-emerald-100 text-emerald-800"
-                  }`}
+                className={`ml-1 px-2 py-0.5 text-[11px] font-semibold tracking-wide uppercase rounded-md border ${
+                  userRole === "TEACHER"
+                    ? "bg-slate-100 text-slate-700 border-slate-200"
+                    : "bg-slate-100 text-slate-700 border-slate-200"
+                }`}
               >
-                {userRole === "TEACHER" ? "Teacher" : "Student"}
+                {userRole === "TEACHER" ? "Instructor" : "Student"}
               </span>
             )}
           </Link>
@@ -147,12 +119,12 @@ const Navbar = () => {
                   <Link
                     key={item.path}
                     to={item.path}
-                    className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${location.pathname === item.path
-                      ? 'bg-blue-50 text-blue-700'
-                      : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900'
-                      }`}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
+                      location.pathname === item.path
+                        ? 'bg-slate-100 text-slate-900 font-semibold'
+                        : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+                    }`}
                   >
-                    {item.icon}
                     {item.label}
                   </Link>
                 )
@@ -160,25 +132,30 @@ const Navbar = () => {
             </div>
 
             {/* Auth Section */}
-            <div className="flex items-center gap-4 pl-4 border-l border-slate-200">
+            <div className="flex items-center gap-3 pl-4 border-l border-slate-200">
               {!isLoggedIn ? (
-                <Link
-                  to="/login"
-                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 flex items-center gap-2 group"
-                >
-                  <User className="w-4 h-4" />
-                  Login
-                </Link>
+                <div className="flex items-center gap-2">
+                  <Link
+                    to="/login"
+                    className="px-3 py-1.5 text-xs font-medium text-slate-700 hover:text-slate-900 transition-colors"
+                  >
+                    Sign in
+                  </Link>
+                  <Link
+                    to="/register"
+                    className="px-3.5 py-1.5 bg-slate-900 hover:bg-slate-800 text-white text-xs font-medium rounded-md transition-colors"
+                  >
+                    Open Workspace
+                  </Link>
+                </div>
               ) : (
-                <motion.button
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
+                <button
                   onClick={handleLogout}
-                  className="px-4 py-2 bg-red-50 hover:bg-red-100 text-red-700 font-medium rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 flex items-center gap-2 group"
+                  className="px-3 py-1.5 text-xs font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-md transition-colors flex items-center gap-1.5"
                 >
-                  <LogOut className="w-4 h-4 group-hover:translate-x-0.5 transition-transform duration-200" />
-                  Logout
-                </motion.button>
+                  <LogOut className="w-3.5 h-3.5" />
+                  Sign out
+                </button>
               )}
             </div>
           </div>
@@ -226,22 +203,29 @@ const Navbar = () => {
               )}
 
               {/* Mobile Auth Section */}
-              <div className="pt-4 border-t border-slate-200">
+              <div className="pt-4 border-t border-slate-200 space-y-2">
                 {!isLoggedIn ? (
-                  <Link
-                    to="/login"
-                    className="flex items-center justify-center gap-2 w-full px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors duration-200"
-                  >
-                    <User className="w-4 h-4" />
-                    Login to Dashboard
-                  </Link>
+                  <div className="space-y-2">
+                    <Link
+                      to="/login"
+                      className="flex items-center justify-center gap-2 w-full px-4 py-2.5 border border-slate-200 text-slate-700 font-medium rounded-lg text-xs"
+                    >
+                      Sign in
+                    </Link>
+                    <Link
+                      to="/register"
+                      className="flex items-center justify-center gap-2 w-full px-4 py-2.5 bg-slate-900 text-white font-medium rounded-lg text-xs"
+                    >
+                      Open Workspace
+                    </Link>
+                  </div>
                 ) : (
                   <button
                     onClick={handleLogout}
-                    className="flex items-center justify-center gap-2 w-full px-4 py-3 bg-red-50 hover:bg-red-100 text-red-700 font-medium rounded-lg transition-colors duration-200"
+                    className="flex items-center justify-center gap-2 w-full px-4 py-2.5 text-rose-700 bg-rose-50 font-medium rounded-lg text-xs"
                   >
-                    <LogOut className="w-4 h-4" />
-                    Logout
+                    <LogOut className="w-3.5 h-3.5" />
+                    Sign out
                   </button>
                 )}
               </div>

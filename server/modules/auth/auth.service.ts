@@ -249,7 +249,7 @@ export const generateTokens = async (
       role,
     },
     config.jwtSecret,
-    { expiresIn: "15m" }
+    { expiresIn: "7d" } // 1 week session
   );
 
   const activeFamilyId = familyId || crypto.randomUUID();
@@ -271,7 +271,7 @@ export const generateTokens = async (
   return {
     accessToken,
     refreshToken: rawRefreshToken,
-    expiresIn: 15 * 60, // 15 mins in seconds
+    expiresIn: 7 * 24 * 60 * 60, // 7 days in seconds
   };
 };
 
@@ -358,14 +358,54 @@ export const rotateRefreshToken = async (
     throw new Error("Invalid refresh token");
   }
 
-  // 🚨 Reuse Detection: If an already revoked token is used, someone is attempting to hijack the session!
+  // 🚨 Reuse Detection with Concurrent Request Grace Window
   if (existingTokenDoc.isRevoked) {
-    // Revoke all tokens in this family immediately!
+    const GRACE_PERIOD_MS = 60 * 1000; // 60 seconds grace window for concurrent requests
+    const timeSinceRevocation =
+      Date.now() - new Date(existingTokenDoc.updatedAt).getTime();
+
+    // If this token was rotated within the last 60 seconds, it's a concurrent client request
+    // from the same active user session (e.g. multiple tabs or parallel API calls).
+    if (timeSinceRevocation <= GRACE_PERIOD_MS) {
+      // Find the active, valid token in this family
+      const activeTokenDoc = await RefreshToken.findOne({
+        familyId: existingTokenDoc.familyId,
+        isRevoked: false,
+      }).sort({ createdAt: -1 });
+
+      if (activeTokenDoc && new Date() <= activeTokenDoc.expiresAt) {
+        const user = await User.findById(activeTokenDoc.userId);
+        if (user) {
+          const accessToken = jwt.sign(
+            {
+              userId: user._id.toString(),
+              role: user.role,
+            },
+            config.jwtSecret,
+            { expiresIn: "7d" }
+          );
+
+          return {
+            token: accessToken,
+            refreshToken: rawRefreshToken, // preserve client state
+            expiresIn: 7 * 24 * 60 * 60,
+            user: {
+              id: user._id,
+              email: user.email,
+              username: user.username || null,
+              role: user.role,
+            },
+          };
+        }
+      }
+    }
+
+    // Only if reuse happens well after the grace period do we terminate the family
     await RefreshToken.updateMany(
       { familyId: existingTokenDoc.familyId },
       { isRevoked: true }
     );
-    throw new Error("Session hijacking detected. All sessions in this family have been terminated.");
+    throw new Error("Session expired. Please log in again.");
   }
 
   // Check expiration (7 days)
@@ -385,7 +425,7 @@ export const rotateRefreshToken = async (
     throw new Error("User no longer exists");
   }
 
-  // Issue new token pair preserving the session familyId
+  // Issue new token pair preserving the session familyId with 7-day validity
   const newTokens = await generateTokens(
     user._id,
     user.role,
